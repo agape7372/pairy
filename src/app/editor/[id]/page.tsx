@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import {
   ArrowLeft,
@@ -17,10 +17,16 @@ import {
   Redo2,
   ZoomIn,
   ZoomOut,
+  Check,
+  Cloud,
+  CloudOff,
 } from 'lucide-react'
 import { Button, ImageUpload } from '@/components/ui'
+import { ExportDialog } from '@/components/editor'
 import { cn } from '@/lib/utils/cn'
 import { uploadWorkImage } from '@/lib/supabase/storage'
+import { useEditorStore, useCanUndo, useCanRedo, useIsDirty, useIsSaving } from '@/stores/editorStore'
+import { useAutoSave } from '@/hooks/useAutoSave'
 
 // 샘플 템플릿 데이터
 const sampleTemplate = {
@@ -51,16 +57,53 @@ export default function EditorPage() {
   const params = useParams()
   const router = useRouter()
   const workId = params.id as string
+  const canvasRef = useRef<HTMLDivElement>(null)
 
-  const [title, setTitle] = useState('우리 커플 프로필')
+  // Editor Store
+  const {
+    title,
+    setTitle,
+    zoom,
+    setZoom,
+    zoomIn,
+    zoomOut,
+    undo,
+    redo,
+    initEditor,
+    lastSavedAt,
+  } = useEditorStore()
+
+  const canUndo = useCanUndo()
+  const canRedo = useCanRedo()
+  const isDirty = useIsDirty()
+  const isSaving = useIsSaving()
+
+  // Auto-save
+  const { save } = useAutoSave({
+    enabled: workId !== 'new',
+    interval: 30000,
+    onSaveSuccess: () => console.log('Auto-saved'),
+  })
+
+  // Local state
   const [isPublic, setIsPublic] = useState(false)
-  const [isSaving, setIsSaving] = useState(false)
   const [selectedTool, setSelectedTool] = useState<Tool>('select')
-  const [zoom, setZoom] = useState(100)
   const [selectedSlot, setSelectedSlot] = useState<string | null>('slot1')
   const [fields, setFields] = useState(sampleTemplate.fields)
   const [slotImages, setSlotImages] = useState<SlotImages>({})
   const [showShareModal, setShowShareModal] = useState(false)
+  const [showExportDialog, setShowExportDialog] = useState(false)
+
+  // Initialize editor
+  useEffect(() => {
+    initEditor({
+      workId: workId !== 'new' ? workId : undefined,
+      templateId: sampleTemplate.id,
+      title: '우리 커플 프로필',
+      canvasWidth: 600,
+      canvasHeight: 400,
+    })
+  }, [workId, initEditor])
 
   // 슬롯 이미지 업로드 핸들러
   const handleSlotImageUpload = useCallback(async (file: File): Promise<string | null> => {
@@ -79,10 +122,7 @@ export default function EditorPage() {
   }
 
   const handleSave = async () => {
-    setIsSaving(true)
-    // TODO: Save to Supabase with fields and slotImages
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-    setIsSaving(false)
+    await save()
   }
 
   const handleFieldChange = (fieldId: string, value: string) => {
@@ -92,6 +132,20 @@ export default function EditorPage() {
   }
 
   const currentSlotFields = fields.filter((f) => f.slotId === selectedSlot)
+
+  // 저장 상태 표시 텍스트
+  const getSaveStatusText = () => {
+    if (isSaving) return '저장 중...'
+    if (isDirty) return '변경사항 있음'
+    if (lastSavedAt) {
+      const time = new Date(lastSavedAt).toLocaleTimeString('ko-KR', {
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+      return `저장됨 ${time}`
+    }
+    return ''
+  }
 
   return (
     <div className="h-screen flex flex-col bg-gray-100">
@@ -111,6 +165,18 @@ export default function EditorPage() {
             onChange={(e) => setTitle(e.target.value)}
             className="text-lg font-semibold text-gray-900 bg-transparent border-none focus:outline-none focus:ring-2 focus:ring-primary-300 rounded px-2 py-1"
           />
+
+          {/* Save Status */}
+          <div className="flex items-center gap-1.5 text-xs text-gray-400">
+            {isSaving ? (
+              <Cloud className="w-4 h-4 animate-pulse text-accent-400" />
+            ) : isDirty ? (
+              <CloudOff className="w-4 h-4 text-warning" />
+            ) : lastSavedAt ? (
+              <Check className="w-4 h-4 text-success" />
+            ) : null}
+            <span>{getSaveStatusText()}</span>
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
@@ -142,14 +208,14 @@ export default function EditorPage() {
             공유
           </Button>
 
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={() => setShowExportDialog(true)}>
             <Download className="w-4 h-4 mr-1" />
             내보내기
           </Button>
 
-          <Button size="sm" onClick={handleSave} isLoading={isSaving}>
+          <Button size="sm" onClick={handleSave} disabled={isSaving || !isDirty}>
             <Save className="w-4 h-4 mr-1" />
-            저장
+            {isSaving ? '저장 중...' : '저장'}
           </Button>
         </div>
       </header>
@@ -185,14 +251,28 @@ export default function EditorPage() {
 
           {/* Undo/Redo */}
           <button
-            className="w-10 h-10 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors"
-            title="되돌리기"
+            onClick={undo}
+            disabled={!canUndo}
+            className={cn(
+              'w-10 h-10 rounded-lg flex items-center justify-center transition-colors',
+              canUndo
+                ? 'text-gray-500 hover:bg-gray-100'
+                : 'text-gray-300 cursor-not-allowed'
+            )}
+            title="되돌리기 (Ctrl+Z)"
           >
             <Undo2 className="w-5 h-5" />
           </button>
           <button
-            className="w-10 h-10 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors"
-            title="다시 실행"
+            onClick={redo}
+            disabled={!canRedo}
+            className={cn(
+              'w-10 h-10 rounded-lg flex items-center justify-center transition-colors',
+              canRedo
+                ? 'text-gray-500 hover:bg-gray-100'
+                : 'text-gray-300 cursor-not-allowed'
+            )}
+            title="다시 실행 (Ctrl+Y)"
           >
             <Redo2 className="w-5 h-5" />
           </button>
@@ -203,16 +283,16 @@ export default function EditorPage() {
           {/* Zoom Controls */}
           <div className="absolute top-4 right-4 flex items-center gap-2 bg-white rounded-lg shadow-sm border border-gray-200 p-1 z-10">
             <button
-              onClick={() => setZoom(Math.max(50, zoom - 10))}
+              onClick={zoomOut}
               className="p-1.5 text-gray-500 hover:bg-gray-100 rounded"
             >
               <ZoomOut className="w-4 h-4" />
             </button>
             <span className="text-sm text-gray-600 min-w-[3rem] text-center">
-              {zoom}%
+              {Math.round(zoom * 100)}%
             </span>
             <button
-              onClick={() => setZoom(Math.min(200, zoom + 10))}
+              onClick={zoomIn}
               className="p-1.5 text-gray-500 hover:bg-gray-100 rounded"
             >
               <ZoomIn className="w-4 h-4" />
@@ -222,9 +302,10 @@ export default function EditorPage() {
           {/* Canvas */}
           <div className="min-h-full flex items-center justify-center p-8">
             <div
+              ref={canvasRef}
               className="bg-white rounded-[24px] shadow-lg border border-gray-200 overflow-hidden transition-transform"
               style={{
-                transform: `scale(${zoom / 100})`,
+                transform: `scale(${zoom})`,
                 transformOrigin: 'center center',
               }}
             >
@@ -329,6 +410,15 @@ export default function EditorPage() {
           </div>
         </aside>
       </div>
+
+      {/* Export Dialog */}
+      <ExportDialog
+        isOpen={showExportDialog}
+        onClose={() => setShowExportDialog(false)}
+        canvasRef={canvasRef as React.RefObject<HTMLElement>}
+        title={title}
+        isPremium={false}
+      />
 
       {/* Share Modal */}
       {showShareModal && (
