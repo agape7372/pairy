@@ -1,17 +1,39 @@
 'use client'
 
-import { useState } from 'react'
-import { Edit3, Check, X } from 'lucide-react'
-import { Button } from '@/components/ui'
+import { useState, useCallback } from 'react'
+import { Edit3, Check, X, Camera } from 'lucide-react'
+import { Button, ImageUpload } from '@/components/ui'
 import { useUser } from '@/hooks/useUser'
 import { createClient } from '@/lib/supabase/client'
+import { uploadAvatar } from '@/lib/supabase/storage'
 
 export default function MyProfilePage() {
-  const { profile } = useUser()
+  const { user, profile } = useUser()
   const [isEditing, setIsEditing] = useState(false)
   const [displayName, setDisplayName] = useState(profile?.display_name || '')
   const [bio, setBio] = useState(profile?.bio || '')
+  const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || '')
   const [isSaving, setIsSaving] = useState(false)
+
+  // 아바타 업로드 핸들러
+  const handleAvatarUpload = useCallback(async (file: File): Promise<string | null> => {
+    if (!user?.id) return null
+
+    const result = await uploadAvatar(user.id, file)
+
+    if (result.url) {
+      // DB에 아바타 URL 업데이트
+      const supabase = createClient()
+      await supabase
+        .from('profiles')
+        .update({ avatar_url: result.url })
+        .eq('id', user.id)
+
+      return result.url
+    }
+
+    return null
+  }, [user?.id])
 
   const handleSave = async () => {
     if (!profile?.id) return
@@ -44,6 +66,30 @@ export default function MyProfilePage() {
 
   return (
     <div className="max-w-[600px]">
+      {/* Avatar Section */}
+      <div className="bg-white rounded-[20px] border border-gray-200 p-6 mb-4">
+        <h2 className="text-lg font-bold text-gray-900 mb-4">프로필 사진</h2>
+        <div className="flex items-center gap-6">
+          <ImageUpload
+            value={avatarUrl || profile?.avatar_url}
+            onChange={(url) => setAvatarUrl(url || '')}
+            onUpload={handleAvatarUpload}
+            shape="circle"
+            size="lg"
+            placeholder="사진 추가"
+          />
+          <div className="flex-1">
+            <p className="text-sm text-gray-600 mb-2">
+              프로필 사진을 업로드하세요.
+            </p>
+            <p className="text-xs text-gray-400">
+              JPG, PNG, GIF, WebP 형식 (최대 5MB)
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Profile Info Section */}
       <div className="bg-white rounded-[20px] border border-gray-200 p-6">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-bold text-gray-900">프로필 정보</h2>

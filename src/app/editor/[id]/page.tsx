@@ -1,8 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import Link from 'next/link'
 import {
   ArrowLeft,
   Save,
@@ -10,18 +9,18 @@ import {
   Share2,
   Eye,
   EyeOff,
-  MoreHorizontal,
   Users,
   Palette,
   Type,
-  Image,
+  Image as ImageIcon,
   Undo2,
   Redo2,
   ZoomIn,
   ZoomOut,
 } from 'lucide-react'
-import { Button } from '@/components/ui'
+import { Button, ImageUpload } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
+import { uploadWorkImage } from '@/lib/supabase/storage'
 
 // 샘플 템플릿 데이터
 const sampleTemplate = {
@@ -44,6 +43,10 @@ const sampleTemplate = {
 
 type Tool = 'select' | 'text' | 'image' | 'color'
 
+interface SlotImages {
+  [slotId: string]: string | null
+}
+
 export default function EditorPage() {
   const params = useParams()
   const router = useRouter()
@@ -56,11 +59,28 @@ export default function EditorPage() {
   const [zoom, setZoom] = useState(100)
   const [selectedSlot, setSelectedSlot] = useState<string | null>('slot1')
   const [fields, setFields] = useState(sampleTemplate.fields)
+  const [slotImages, setSlotImages] = useState<SlotImages>({})
   const [showShareModal, setShowShareModal] = useState(false)
+
+  // 슬롯 이미지 업로드 핸들러
+  const handleSlotImageUpload = useCallback(async (file: File): Promise<string | null> => {
+    if (!selectedSlot) return null
+
+    const result = await uploadWorkImage(workId, selectedSlot, file)
+    return result.url
+  }, [workId, selectedSlot])
+
+  const handleSlotImageChange = (url: string | null) => {
+    if (!selectedSlot) return
+    setSlotImages(prev => ({
+      ...prev,
+      [selectedSlot]: url,
+    }))
+  }
 
   const handleSave = async () => {
     setIsSaving(true)
-    // TODO: Save to Supabase
+    // TODO: Save to Supabase with fields and slotImages
     await new Promise((resolve) => setTimeout(resolve, 1000))
     setIsSaving(false)
   }
@@ -140,7 +160,7 @@ export default function EditorPage() {
           {[
             { id: 'select', icon: Users, label: '슬롯 선택' },
             { id: 'text', icon: Type, label: '텍스트' },
-            { id: 'image', icon: Image, label: '이미지' },
+            { id: 'image', icon: ImageIcon, label: '이미지' },
             { id: 'color', icon: Palette, label: '색상' },
           ].map((tool) => {
             const Icon = tool.icon
@@ -225,9 +245,17 @@ export default function EditorPage() {
                   >
                     <p className="text-xs text-gray-400 mb-2">{slot.label}</p>
 
-                    {/* Profile Image Placeholder */}
-                    <div className="w-20 h-20 mx-auto mb-3 rounded-full bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center text-3xl">
-                      {slot.id === 'slot1' ? '👤' : '👤'}
+                    {/* Profile Image */}
+                    <div className="w-20 h-20 mx-auto mb-3 rounded-full bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center text-3xl overflow-hidden">
+                      {slotImages[slot.id] ? (
+                        <img
+                          src={slotImages[slot.id]!}
+                          alt=""
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        '👤'
+                      )}
                     </div>
 
                     {/* Field Values */}
@@ -266,15 +294,19 @@ export default function EditorPage() {
 
             {selectedSlot && (
               <div className="space-y-4">
-                {/* Profile Image */}
+                {/* Profile Image Upload */}
                 <div>
                   <label className="block text-xs font-medium text-gray-500 mb-2">
                     프로필 이미지
                   </label>
-                  <button className="w-full aspect-square max-w-[120px] rounded-xl bg-gray-100 border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-400 hover:border-primary-400 hover:text-primary-400 transition-colors">
-                    <Image className="w-6 h-6 mb-1" />
-                    <span className="text-xs">업로드</span>
-                  </button>
+                  <ImageUpload
+                    value={slotImages[selectedSlot]}
+                    onChange={handleSlotImageChange}
+                    onUpload={handleSlotImageUpload}
+                    shape="square"
+                    size="md"
+                    placeholder="이미지 업로드"
+                  />
                 </div>
 
                 {/* Fields */}
