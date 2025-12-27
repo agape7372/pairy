@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pairy - 복숭아 우유 컨셉</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #FFAB91;
+      --primary-light: #FFCCBC;
+      --primary-dark: #FF8A65;
+      --bg: #FFFDFB;
+      --bg-card: #FFFFFF;
+      --text: #5D4E4E;
+      --text-light: #8B7E7E;
+      --text-dark: #3D3232;
+      --border: #F5E6E0;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Noto Sans KR', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    /* Header */
+    .header {
+      background: var(--bg-card);
+      padding: 16px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--primary-dark);
+    }
+
+    .nav {
+      display: flex;
+      gap: 32px;
+    }
+
+    .nav a {
+      color: var(--text);
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 0.95rem;
+      transition: color 0.2s;
+    }
+
+    .nav a:hover {
+      color: var(--primary-dark);
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-dark);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text);
+    }
+
+    .btn-ghost:hover {
+      background: var(--primary-light);
+      color: var(--primary-dark);
+    }
+
+    /* Hero */
+    .hero {
+      padding: 80px 40px;
+      text-align: center;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .hero h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: var(--text-dark);
+      margin-bottom: 16px;
+    }
+
+    .hero p {
+      font-size: 1.1rem;
+      color: var(--text-light);
+      margin-bottom: 32px;
+    }
+
+    .hero-buttons {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+    }
+
+    .btn-large {
+      padding: 14px 32px;
+      font-size: 1rem;
+      border-radius: 12px;
+    }
+
+    .btn-outline {
+      background: transparent;
+      border: 2px solid var(--primary);
+      color: var(--primary-dark);
+    }
+
+    .btn-outline:hover {
+      background: var(--primary-light);
+    }
+
+    /* Template Grid */
+    .section {
+      padding: 60px 40px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+
+    .section-title {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--text-dark);
+    }
+
+    .see-all {
+      color: var(--primary-dark);
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 0.9rem;
+    }
+
+    .template-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 24px;
+    }
+
+    .template-card {
+      background: var(--bg-card);
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      transition: all 0.2s;
+    }
+
+    .template-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 24px rgba(93, 78, 78, 0.08);
+    }
+
+    .template-image {
+      aspect-ratio: 4/3;
+      background: linear-gradient(135deg, var(--primary-light) 0%, #FFE0B2 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3rem;
+    }
+
+    .template-content {
+      padding: 16px;
+    }
+
+    .template-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-dark);
+      margin-bottom: 8px;
+    }
+
+    .template-meta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.85rem;
+      color: var(--text-light);
+    }
+
+    .template-tags {
+      display: flex;
+      gap: 6px;
+      margin-top: 12px;
+    }
+
+    .tag {
+      padding: 4px 10px;
+      background: var(--primary-light);
+      color: var(--primary-dark);
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+
+    /* Features */
+    .features {
+      background: var(--bg-card);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 40px;
+      text-align: center;
+    }
+
+    .feature-icon {
+      width: 56px;
+      height: 56px;
+      background: var(--primary-light);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      margin: 0 auto 16px;
+    }
+
+    .feature-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text-dark);
+      margin-bottom: 8px;
+    }
+
+    .feature-desc {
+      font-size: 0.9rem;
+      color: var(--text-light);
+    }
+
+    /* Footer */
+    .footer {
+      padding: 40px;
+      text-align: center;
+      color: var(--text-light);
+      font-size: 0.85rem;
+    }
+
+    /* Color Palette Display */
+    .palette {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: white;
+      padding: 16px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      font-size: 0.75rem;
+    }
+
+    .palette-title {
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: var(--text-dark);
+    }
+
+    .palette-colors {
+      display: flex;
+      gap: 8px;
+    }
+
+    .palette-color {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      padding-bottom: 4px;
+      color: white;
+      font-size: 0.6rem;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="logo">Pairy</div>
+    <nav class="nav">
+      <a href="#">틀 둘러보기</a>
+      <a href="#">에디터</a>
+      <a href="#">프리미엄</a>
+    </nav>
+    <div class="header-right">
+      <button class="btn btn-ghost">로그인</button>
+      <button class="btn btn-primary">시작하기</button>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero">
+    <h1>함께 채우는 우리만의 이야기</h1>
+    <p>자캐 페어틀을 웹에서 바로 편집하고, 친구와 실시간으로 함께 완성해요.</p>
+    <div class="hero-buttons">
+      <button class="btn btn-primary btn-large">틀 둘러보기</button>
+      <button class="btn btn-outline btn-large">사용법 보기</button>
+    </div>
+  </section>
+
+  <!-- Templates -->
+  <section class="section">
+    <div class="section-header">
+      <h2 class="section-title">인기 틀</h2>
+      <a href="#" class="see-all">모두 보기 →</a>
+    </div>
+    <div class="template-grid">
+      <div class="template-card">
+        <div class="template-image">💕</div>
+        <div class="template-content">
+          <h3 class="template-title">커플 프로필 틀</h3>
+          <div class="template-meta">
+            <span>♥ 1,234</span>
+            <span>by 딸기크림</span>
+          </div>
+          <div class="template-tags">
+            <span class="tag">커플</span>
+            <span class="tag">2인용</span>
+          </div>
+        </div>
+      </div>
+      <div class="template-card">
+        <div class="template-image">✨</div>
+        <div class="template-content">
+          <h3 class="template-title">친구 관계도</h3>
+          <div class="template-meta">
+            <span>♥ 892</span>
+            <span>by 페어리</span>
+          </div>
+          <div class="template-tags">
+            <span class="tag">친구</span>
+            <span class="tag">관계도</span>
+          </div>
+        </div>
+      </div>
+      <div class="template-card">
+        <div class="template-image">🌙</div>
+        <div class="template-content">
+          <h3 class="template-title">OC 소개 카드</h3>
+          <div class="template-meta">
+            <span>♥ 567</span>
+            <span>by 문라이트</span>
+          </div>
+          <div class="template-tags">
+            <span class="tag">프로필</span>
+            <span class="tag">1인용</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="section features">
+    <div class="features-grid">
+      <div class="feature">
+        <div class="feature-icon">🎨</div>
+        <h3 class="feature-title">웹에서 바로 편집</h3>
+        <p class="feature-desc">포토샵 없이도 예쁜 결과물을 만들 수 있어요</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">👥</div>
+        <h3 class="feature-title">실시간 협업</h3>
+        <p class="feature-desc">친구와 함께 동시에 편집할 수 있어요</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">💾</div>
+        <h3 class="feature-title">자동 저장</h3>
+        <p class="feature-desc">작업 내용이 자동으로 저장되어 안전해요</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    © 2025 Pairy. 함께 채우는 우리만의 이야기.
+  </footer>
+
+  <!-- Color Palette -->
+  <div class="palette">
+    <div class="palette-title">복숭아 우유 (Peach Milk)</div>
+    <div class="palette-colors">
+      <div class="palette-color" style="background: #FFAB91;">메인</div>
+      <div class="palette-color" style="background: #FF8A65;">포인트</div>
+      <div class="palette-color" style="background: #FFCCBC;">서브</div>
+      <div class="palette-color" style="background: #5D4E4E;">텍스트</div>
+    </div>
+  </div>
+</body>
+</html>
