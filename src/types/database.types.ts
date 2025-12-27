@@ -201,6 +201,48 @@ export interface Database {
         }
         Relationships: []
       }
+      collab_sessions: {
+        Row: {
+          id: string
+          host_id: string
+          work_id: string | null
+          template_id: string | null
+          invite_code: string
+          participants: Json
+          max_participants: number
+          status: 'waiting' | 'active' | 'completed' | 'expired'
+          created_at: string
+          expires_at: string
+          completed_at: string | null
+        }
+        Insert: {
+          id?: string
+          host_id: string
+          work_id?: string | null
+          template_id?: string | null
+          invite_code: string
+          participants?: Json
+          max_participants?: number
+          status?: 'waiting' | 'active' | 'completed' | 'expired'
+          created_at?: string
+          expires_at?: string
+          completed_at?: string | null
+        }
+        Update: {
+          id?: string
+          host_id?: string
+          work_id?: string | null
+          template_id?: string | null
+          invite_code?: string
+          participants?: Json
+          max_participants?: number
+          status?: 'waiting' | 'active' | 'completed' | 'expired'
+          created_at?: string
+          expires_at?: string
+          completed_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -221,6 +263,8 @@ export type Tag = Database['public']['Tables']['tags']['Row']
 export type Like = Database['public']['Tables']['likes']['Row']
 export type Bookmark = Database['public']['Tables']['bookmarks']['Row']
 export type Work = Database['public']['Tables']['works']['Row']
+
+export type CollabSession = Database['public']['Tables']['collab_sessions']['Row']
 
 // Extended types with relations
 export type TemplateWithTags = Template & {
