@@ -1,0 +1,355 @@
+'use client'
+
+import { useState } from 'react'
+import { useParams, useRouter } from 'next/navigation'
+import Link from 'next/link'
+import {
+  ArrowLeft,
+  Save,
+  Download,
+  Share2,
+  Eye,
+  EyeOff,
+  MoreHorizontal,
+  Users,
+  Palette,
+  Type,
+  Image,
+  Undo2,
+  Redo2,
+  ZoomIn,
+  ZoomOut,
+} from 'lucide-react'
+import { Button } from '@/components/ui'
+import { cn } from '@/lib/utils/cn'
+
+// 샘플 템플릿 데이터
+const sampleTemplate = {
+  id: '1',
+  title: '커플 프로필 틀',
+  emoji: '💕',
+  slots: [
+    { id: 'slot1', label: '사람 1', x: 50, y: 100 },
+    { id: 'slot2', label: '사람 2', x: 350, y: 100 },
+  ],
+  fields: [
+    { id: 'name1', slotId: 'slot1', type: 'text', label: '이름', value: '' },
+    { id: 'name2', slotId: 'slot2', type: 'text', label: '이름', value: '' },
+    { id: 'like1', slotId: 'slot1', type: 'text', label: '좋아하는 것', value: '' },
+    { id: 'like2', slotId: 'slot2', type: 'text', label: '좋아하는 것', value: '' },
+    { id: 'dislike1', slotId: 'slot1', type: 'text', label: '싫어하는 것', value: '' },
+    { id: 'dislike2', slotId: 'slot2', type: 'text', label: '싫어하는 것', value: '' },
+  ],
+}
+
+type Tool = 'select' | 'text' | 'image' | 'color'
+
+export default function EditorPage() {
+  const params = useParams()
+  const router = useRouter()
+  const workId = params.id as string
+
+  const [title, setTitle] = useState('우리 커플 프로필')
+  const [isPublic, setIsPublic] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [selectedTool, setSelectedTool] = useState<Tool>('select')
+  const [zoom, setZoom] = useState(100)
+  const [selectedSlot, setSelectedSlot] = useState<string | null>('slot1')
+  const [fields, setFields] = useState(sampleTemplate.fields)
+  const [showShareModal, setShowShareModal] = useState(false)
+
+  const handleSave = async () => {
+    setIsSaving(true)
+    // TODO: Save to Supabase
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+    setIsSaving(false)
+  }
+
+  const handleFieldChange = (fieldId: string, value: string) => {
+    setFields((prev) =>
+      prev.map((f) => (f.id === fieldId ? { ...f, value } : f))
+    )
+  }
+
+  const currentSlotFields = fields.filter((f) => f.slotId === selectedSlot)
+
+  return (
+    <div className="h-screen flex flex-col bg-gray-100">
+      {/* Top Toolbar */}
+      <header className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4 shrink-0">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => router.back()}
+            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="text-lg font-semibold text-gray-900 bg-transparent border-none focus:outline-none focus:ring-2 focus:ring-primary-300 rounded px-2 py-1"
+          />
+        </div>
+
+        <div className="flex items-center gap-2">
+          {/* Visibility Toggle */}
+          <button
+            onClick={() => setIsPublic(!isPublic)}
+            className={cn(
+              'flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium transition-colors',
+              isPublic
+                ? 'bg-accent-200 text-accent-700'
+                : 'bg-gray-100 text-gray-600'
+            )}
+          >
+            {isPublic ? (
+              <>
+                <Eye className="w-4 h-4" />
+                공개
+              </>
+            ) : (
+              <>
+                <EyeOff className="w-4 h-4" />
+                비공개
+              </>
+            )}
+          </button>
+
+          <Button variant="ghost" size="sm" onClick={() => setShowShareModal(true)}>
+            <Share2 className="w-4 h-4 mr-1" />
+            공유
+          </Button>
+
+          <Button variant="outline" size="sm">
+            <Download className="w-4 h-4 mr-1" />
+            내보내기
+          </Button>
+
+          <Button size="sm" onClick={handleSave} isLoading={isSaving}>
+            <Save className="w-4 h-4 mr-1" />
+            저장
+          </Button>
+        </div>
+      </header>
+
+      <div className="flex-1 flex overflow-hidden">
+        {/* Left Sidebar - Tools */}
+        <aside className="w-14 bg-white border-r border-gray-200 flex flex-col items-center py-3 gap-1 shrink-0">
+          {[
+            { id: 'select', icon: Users, label: '슬롯 선택' },
+            { id: 'text', icon: Type, label: '텍스트' },
+            { id: 'image', icon: Image, label: '이미지' },
+            { id: 'color', icon: Palette, label: '색상' },
+          ].map((tool) => {
+            const Icon = tool.icon
+            return (
+              <button
+                key={tool.id}
+                onClick={() => setSelectedTool(tool.id as Tool)}
+                className={cn(
+                  'w-10 h-10 rounded-lg flex items-center justify-center transition-colors',
+                  selectedTool === tool.id
+                    ? 'bg-primary-200 text-primary-600'
+                    : 'text-gray-500 hover:bg-gray-100'
+                )}
+                title={tool.label}
+              >
+                <Icon className="w-5 h-5" />
+              </button>
+            )
+          })}
+
+          <div className="flex-1" />
+
+          {/* Undo/Redo */}
+          <button
+            className="w-10 h-10 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors"
+            title="되돌리기"
+          >
+            <Undo2 className="w-5 h-5" />
+          </button>
+          <button
+            className="w-10 h-10 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors"
+            title="다시 실행"
+          >
+            <Redo2 className="w-5 h-5" />
+          </button>
+        </aside>
+
+        {/* Canvas Area */}
+        <main className="flex-1 relative overflow-auto">
+          {/* Zoom Controls */}
+          <div className="absolute top-4 right-4 flex items-center gap-2 bg-white rounded-lg shadow-sm border border-gray-200 p-1 z-10">
+            <button
+              onClick={() => setZoom(Math.max(50, zoom - 10))}
+              className="p-1.5 text-gray-500 hover:bg-gray-100 rounded"
+            >
+              <ZoomOut className="w-4 h-4" />
+            </button>
+            <span className="text-sm text-gray-600 min-w-[3rem] text-center">
+              {zoom}%
+            </span>
+            <button
+              onClick={() => setZoom(Math.min(200, zoom + 10))}
+              className="p-1.5 text-gray-500 hover:bg-gray-100 rounded"
+            >
+              <ZoomIn className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Canvas */}
+          <div className="min-h-full flex items-center justify-center p-8">
+            <div
+              className="bg-white rounded-[24px] shadow-lg border border-gray-200 overflow-hidden transition-transform"
+              style={{
+                transform: `scale(${zoom / 100})`,
+                transformOrigin: 'center center',
+              }}
+            >
+              {/* Template Preview */}
+              <div className="w-[600px] h-[400px] bg-gradient-to-br from-primary-100 to-accent-100 relative">
+                {/* Slots */}
+                {sampleTemplate.slots.map((slot) => (
+                  <div
+                    key={slot.id}
+                    onClick={() => setSelectedSlot(slot.id)}
+                    className={cn(
+                      'absolute w-[200px] h-[280px] bg-white/80 backdrop-blur rounded-[20px] p-4 cursor-pointer transition-all',
+                      selectedSlot === slot.id
+                        ? 'ring-2 ring-primary-400 shadow-lg'
+                        : 'hover:ring-2 hover:ring-primary-200'
+                    )}
+                    style={{ left: slot.x, top: slot.y }}
+                  >
+                    <p className="text-xs text-gray-400 mb-2">{slot.label}</p>
+
+                    {/* Profile Image Placeholder */}
+                    <div className="w-20 h-20 mx-auto mb-3 rounded-full bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center text-3xl">
+                      {slot.id === 'slot1' ? '👤' : '👤'}
+                    </div>
+
+                    {/* Field Values */}
+                    <div className="space-y-2 text-center">
+                      {fields
+                        .filter((f) => f.slotId === slot.id)
+                        .map((field) => (
+                          <div key={field.id}>
+                            <p className="text-xs text-gray-400">{field.label}</p>
+                            <p className="text-sm font-medium text-gray-900 truncate">
+                              {field.value || '-'}
+                            </p>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                ))}
+
+                {/* Center Heart */}
+                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-5xl">
+                  💕
+                </div>
+              </div>
+            </div>
+          </div>
+        </main>
+
+        {/* Right Sidebar - Properties */}
+        <aside className="w-72 bg-white border-l border-gray-200 overflow-y-auto shrink-0">
+          <div className="p-4">
+            <h3 className="text-sm font-semibold text-gray-900 mb-4">
+              {selectedSlot
+                ? sampleTemplate.slots.find((s) => s.id === selectedSlot)?.label
+                : '슬롯을 선택하세요'}
+            </h3>
+
+            {selectedSlot && (
+              <div className="space-y-4">
+                {/* Profile Image */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-2">
+                    프로필 이미지
+                  </label>
+                  <button className="w-full aspect-square max-w-[120px] rounded-xl bg-gray-100 border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-400 hover:border-primary-400 hover:text-primary-400 transition-colors">
+                    <Image className="w-6 h-6 mb-1" />
+                    <span className="text-xs">업로드</span>
+                  </button>
+                </div>
+
+                {/* Fields */}
+                {currentSlotFields.map((field) => (
+                  <div key={field.id}>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">
+                      {field.label}
+                    </label>
+                    <input
+                      type="text"
+                      value={field.value}
+                      onChange={(e) => handleFieldChange(field.id, e.target.value)}
+                      placeholder={`${field.label}을 입력하세요`}
+                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-300 focus:border-transparent"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </aside>
+      </div>
+
+      {/* Share Modal */}
+      {showShareModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
+          <div className="bg-white rounded-[24px] max-w-[400px] w-full p-6 animate-scale-in">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">공유하기</h3>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  공유 링크
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={`https://pairy.app/work/${workId}`}
+                    className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50"
+                  />
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => {
+                      navigator.clipboard.writeText(`https://pairy.app/work/${workId}`)
+                    }}
+                  >
+                    복사
+                  </Button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  협업자 초대
+                </label>
+                <p className="text-sm text-gray-500 mb-3">
+                  링크를 공유하면 친구가 함께 편집할 수 있어요.
+                </p>
+                <Button variant="accent" className="w-full">
+                  <Users className="w-4 h-4 mr-2" />
+                  협업 링크 생성
+                </Button>
+              </div>
+            </div>
+
+            <div className="flex justify-end mt-6">
+              <Button variant="ghost" onClick={() => setShowShareModal(false)}>
+                닫기
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}

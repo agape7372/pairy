@@ -40,6 +40,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
       }
       templates: {
         Row: {
@@ -90,6 +91,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
       }
       tags: {
         Row: {
@@ -110,6 +112,7 @@ export interface Database {
           slug?: string
           created_at?: string
         }
+        Relationships: []
       }
       template_tags: {
         Row: {
@@ -124,6 +127,7 @@ export interface Database {
           template_id?: string
           tag_id?: string
         }
+        Relationships: []
       }
       likes: {
         Row: {
@@ -141,6 +145,7 @@ export interface Database {
           template_id?: string
           created_at?: string
         }
+        Relationships: []
       }
       bookmarks: {
         Row: {
@@ -158,6 +163,7 @@ export interface Database {
           template_id?: string
           created_at?: string
         }
+        Relationships: []
       }
       works: {
         Row: {
@@ -193,6 +199,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
       }
     }
     Views: {
