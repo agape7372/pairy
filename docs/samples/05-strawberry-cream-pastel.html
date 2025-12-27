@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pairy - 딸기 크림 (Pastel)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* 유저 지정 컬러 */
+      --primary: #FFD9D9;          /* 파스텔 핑크 */
+      --primary-hover: #FFCACA;    /* 호버 시 */
+      --primary-dark: #E8A8A8;     /* 버튼용 진한 핑크 */
+      --primary-light: #FFF0F0;    /* 연한 배경 */
+      --accent: #D7FAFA;           /* 파스텔 민트 */
+      --accent-dark: #9FD9D9;      /* 버튼용 진한 민트 */
+      --accent-light: #EDFCFC;     /* 연한 민트 배경 */
+      --bg: #FEFEFE;
+      --bg-card: #FFFFFF;
+      --text: #5A5252;
+      --text-light: #8A8080;
+      --text-dark: #3D3636;
+      --border: #F0EAEA;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Noto Sans KR', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    /* Header */
+    .header {
+      background: var(--bg-card);
+      padding: 16px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--primary-dark);
+    }
+
+    .logo span {
+      color: var(--accent-dark);
+    }
+
+    .nav {
+      display: flex;
+      gap: 32px;
+    }
+
+    .nav a {
+      color: var(--text);
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 0.95rem;
+      transition: color 0.2s;
+    }
+
+    .nav a:hover {
+      color: var(--primary-dark);
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border-radius: 24px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+    }
+
+    .btn-primary {
+      background: var(--primary-dark);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #D99999;
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text);
+    }
+
+    .btn-ghost:hover {
+      background: var(--primary);
+      color: var(--text-dark);
+    }
+
+    /* Hero */
+    .hero {
+      padding: 80px 40px;
+      text-align: center;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .hero h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: var(--text-dark);
+      margin-bottom: 16px;
+    }
+
+    .hero h1 span {
+      color: var(--primary-dark);
+    }
+
+    .hero p {
+      font-size: 1.1rem;
+      color: var(--text-light);
+      margin-bottom: 32px;
+    }
+
+    .hero-buttons {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+    }
+
+    .btn-large {
+      padding: 14px 32px;
+      font-size: 1rem;
+      border-radius: 28px;
+    }
+
+    .btn-outline {
+      background: transparent;
+      border: 2px solid var(--accent-dark);
+      color: var(--accent-dark);
+    }
+
+    .btn-outline:hover {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .btn-accent {
+      background: var(--accent-dark);
+      color: white;
+    }
+
+    .btn-accent:hover {
+      background: #8ECECE;
+    }
+
+    /* Stats */
+    .stats {
+      display: flex;
+      justify-content: center;
+      gap: 48px;
+      margin-top: 48px;
+      padding-top: 48px;
+      border-top: 1px solid var(--border);
+    }
+
+    .stat {
+      text-align: center;
+    }
+
+    .stat-number {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--primary-dark);
+    }
+
+    .stat-label {
+      font-size: 0.9rem;
+      color: var(--text-light);
+    }
+
+    /* Template Grid */
+    .section {
+      padding: 60px 40px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+
+    .section-title {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--text-dark);
+    }
+
+    .section-title span {
+      color: var(--accent-dark);
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+    }
+
+    .tab {
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+      background: transparent;
+      color: var(--text-light);
+    }
+
+    .tab.active {
+      background: var(--primary-dark);
+      color: white;
+    }
+
+    .tab:hover:not(.active) {
+      background: var(--primary);
+      color: var(--text-dark);
+    }
+
+    .template-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 24px;
+    }
+
+    .template-card {
+      background: var(--bg-card);
+      border-radius: 20px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      transition: all 0.2s;
+    }
+
+    .template-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 24px rgba(90, 82, 82, 0.06);
+    }
+
+    .template-image {
+      aspect-ratio: 4/3;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3rem;
+      position: relative;
+    }
+
+    .template-like {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 36px;
+      height: 36px;
+      background: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .template-like:hover {
+      transform: scale(1.1);
+      background: var(--primary);
+    }
+
+    .template-content {
+      padding: 16px;
+    }
+
+    .template-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-dark);
+      margin-bottom: 8px;
+    }
+
+    .template-meta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.85rem;
+      color: var(--text-light);
+    }
+
+    .template-tags {
+      display: flex;
+      gap: 6px;
+      margin-top: 12px;
+    }
+
+    .tag {
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+
+    .tag-primary {
+      background: var(--primary);
+      color: var(--text-dark);
+    }
+
+    .tag-accent {
+      background: var(--accent);
+      color: #5A8A8A;
+    }
+
+    /* Features */
+    .features {
+      background: var(--bg-card);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 40px;
+      text-align: center;
+    }
+
+    .feature-icon {
+      width: 64px;
+      height: 64px;
+      background: var(--primary);
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8rem;
+      margin: 0 auto 16px;
+    }
+
+    .feature-icon.accent {
+      background: var(--accent);
+    }
+
+    .feature-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text-dark);
+      margin-bottom: 8px;
+    }
+
+    .feature-desc {
+      font-size: 0.9rem;
+      color: var(--text-light);
+    }
+
+    /* Creator Section */
+    .creators {
+      background: linear-gradient(135deg, var(--primary-light) 0%, var(--accent-light) 100%);
+    }
+
+    .creator-grid {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+
+    .creator-card {
+      background: white;
+      padding: 24px;
+      border-radius: 20px;
+      text-align: center;
+      width: 200px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+    }
+
+    .creator-avatar {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      margin: 0 auto 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+    }
+
+    .creator-name {
+      font-weight: 600;
+      color: var(--text-dark);
+      margin-bottom: 4px;
+    }
+
+    .creator-count {
+      font-size: 0.85rem;
+      color: var(--text-light);
+    }
+
+    /* Footer */
+    .footer {
+      padding: 40px;
+      text-align: center;
+      color: var(--text-light);
+      font-size: 0.85rem;
+    }
+
+    /* Color Palette Display */
+    .palette {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: white;
+      padding: 16px;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      font-size: 0.75rem;
+    }
+
+    .palette-title {
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: var(--text-dark);
+    }
+
+    .palette-subtitle {
+      font-size: 0.65rem;
+      color: var(--text-light);
+      margin-bottom: 12px;
+    }
+
+    .palette-colors {
+      display: flex;
+      gap: 8px;
+    }
+
+    .palette-color {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.55rem;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .palette-color span {
+      margin-top: 2px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="logo">Pair<span>y</span></div>
+    <nav class="nav">
+      <a href="#">틀 둘러보기</a>
+      <a href="#">에디터</a>
+      <a href="#">프리미엄</a>
+    </nav>
+    <div class="header-right">
+      <button class="btn btn-ghost">로그인</button>
+      <button class="btn btn-primary">시작하기</button>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero">
+    <h1>함께 채우는 <span>우리만의</span> 이야기</h1>
+    <p>자캐 페어틀을 웹에서 바로 편집하고, 친구와 실시간으로 함께 완성해요.</p>
+    <div class="hero-buttons">
+      <button class="btn btn-primary btn-large">틀 둘러보기</button>
+      <button class="btn btn-accent btn-large">에디터 시작하기</button>
+    </div>
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-number">1,200+</div>
+        <div class="stat-label">틀 템플릿</div>
+      </div>
+      <div class="stat">
+        <div class="stat-number">8,500+</div>
+        <div class="stat-label">완성된 작품</div>
+      </div>
+      <div class="stat">
+        <div class="stat-number">3,200+</div>
+        <div class="stat-label">크리에이터</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Templates -->
+  <section class="section">
+    <div class="section-header">
+      <h2 class="section-title">인기 <span>틀</span></h2>
+      <div class="tabs">
+        <button class="tab active">전체</button>
+        <button class="tab">커플</button>
+        <button class="tab">친구</button>
+        <button class="tab">프로필</button>
+      </div>
+    </div>
+    <div class="template-grid">
+      <div class="template-card">
+        <div class="template-image">
+          <span class="template-like">🤍</span>
+          💕
+        </div>
+        <div class="template-content">
+          <h3 class="template-title">커플 프로필 틀</h3>
+          <div class="template-meta">
+            <span>♥ 1,234</span>
+            <span>by 딸기크림</span>
+          </div>
+          <div class="template-tags">
+            <span class="tag tag-primary">커플</span>
+            <span class="tag tag-accent">2인용</span>
+          </div>
+        </div>
+      </div>
+      <div class="template-card">
+        <div class="template-image">
+          <span class="template-like">🤍</span>
+          ✨
+        </div>
+        <div class="template-content">
+          <h3 class="template-title">친구 관계도</h3>
+          <div class="template-meta">
+            <span>♥ 892</span>
+            <span>by 페어리</span>
+          </div>
+          <div class="template-tags">
+            <span class="tag tag-primary">친구</span>
+            <span class="tag tag-accent">관계도</span>
+          </div>
+        </div>
+      </div>
+      <div class="template-card">
+        <div class="template-image">
+          <span class="template-like">🤍</span>
+          🌙
+        </div>
+        <div class="template-content">
+          <h3 class="template-title">OC 소개 카드</h3>
+          <div class="template-meta">
+            <span>♥ 567</span>
+            <span>by 문라이트</span>
+          </div>
+          <div class="template-tags">
+            <span class="tag tag-primary">프로필</span>
+            <span class="tag tag-accent">1인용</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="section features">
+    <div class="features-grid">
+      <div class="feature">
+        <div class="feature-icon">🎨</div>
+        <h3 class="feature-title">웹에서 바로 편집</h3>
+        <p class="feature-desc">포토샵 없이도 예쁜 결과물을 만들 수 있어요</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon accent">👥</div>
+        <h3 class="feature-title">실시간 협업</h3>
+        <p class="feature-desc">친구와 함께 동시에 편집할 수 있어요</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">💾</div>
+        <h3 class="feature-title">자동 저장</h3>
+        <p class="feature-desc">작업 내용이 자동으로 저장되어 안전해요</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Creators -->
+  <section class="section creators">
+    <div class="section-header" style="justify-content: center; margin-bottom: 32px;">
+      <h2 class="section-title">인기 크리에이터</h2>
+    </div>
+    <div class="creator-grid">
+      <div class="creator-card">
+        <div class="creator-avatar" style="background: var(--primary);">🍓</div>
+        <div class="creator-name">딸기크림</div>
+        <div class="creator-count">틀 23개</div>
+      </div>
+      <div class="creator-card">
+        <div class="creator-avatar" style="background: var(--accent);">🌿</div>
+        <div class="creator-name">민트초코</div>
+        <div class="creator-count">틀 18개</div>
+      </div>
+      <div class="creator-card">
+        <div class="creator-avatar" style="background: var(--primary);">🌸</div>
+        <div class="creator-name">벚꽃라떼</div>
+        <div class="creator-count">틀 15개</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    © 2025 Pairy. 함께 채우는 우리만의 이야기.
+  </footer>
+
+  <!-- Color Palette -->
+  <div class="palette">
+    <div class="palette-title">딸기 크림 (Pastel)</div>
+    <div class="palette-subtitle">유저 지정 컬러</div>
+    <div class="palette-colors">
+      <div class="palette-color" style="background: #FFD9D9;">핑크<span>#FFD9D9</span></div>
+      <div class="palette-color" style="background: #D7FAFA;">민트<span>#D7FAFA</span></div>
+      <div class="palette-color" style="background: #E8A8A8; color: white;">버튼<span>#E8A8A8</span></div>
+      <div class="palette-color" style="background: #5A5252; color: white;">텍스트<span>#5A5252</span></div>
+    </div>
+  </div>
+</body>
+</html>

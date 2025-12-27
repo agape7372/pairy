@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pairy 테마 컬러 - 딸기크림 파스텔</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Noto Sans KR', -apple-system, sans-serif;
+      background: #FEFEFE;
+      color: #5A5252;
+      line-height: 1.6;
+      padding: 40px;
+    }
+
+    h1 {
+      text-align: center;
+      color: #3D3636;
+      font-size: 2rem;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #8A8080;
+      font-size: 1rem;
+      margin-bottom: 40px;
+    }
+
+    .section {
+      background: white;
+      border-radius: 20px;
+      padding: 24px;
+      margin-bottom: 24px;
+      border: 1px solid #F0EAEA;
+    }
+
+    .section h2 {
+      color: #3D3636;
+      font-size: 1.1rem;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #F0EAEA;
+    }
+
+    .color-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .color-box {
+      width: 70px;
+      height: 70px;
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.65rem;
+      font-weight: 600;
+      border: 1px solid #F0EAEA;
+      transition: transform 0.2s;
+    }
+
+    .color-box:hover {
+      transform: scale(1.05);
+    }
+
+    .color-box span {
+      margin-top: 4px;
+      font-size: 0.55rem;
+      opacity: 0.8;
+    }
+
+    .light-text { color: #5A5252; }
+    .dark-text { color: #fff; }
+
+    /* Main Colors Highlight */
+    .main-colors {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      margin-bottom: 32px;
+    }
+
+    .main-color {
+      width: 120px;
+      height: 120px;
+      border-radius: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      border: 1px solid #F0EAEA;
+    }
+
+    .main-color .label {
+      font-size: 0.9rem;
+      margin-bottom: 4px;
+    }
+
+    .main-color .code {
+      font-size: 0.75rem;
+      opacity: 0.8;
+    }
+
+    /* Demo Section */
+    .demo-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+    }
+
+    .demo-card {
+      background: white;
+      border-radius: 20px;
+      overflow: hidden;
+      border: 1px solid #F0EAEA;
+    }
+
+    .demo-card-image {
+      height: 120px;
+      background: linear-gradient(135deg, #FFD9D9 0%, #D7FAFA 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.5rem;
+    }
+
+    .demo-card-content {
+      padding: 16px;
+    }
+
+    .demo-card-title {
+      color: #3D3636;
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .demo-card-desc {
+      color: #8A8080;
+      font-size: 0.85rem;
+      margin-bottom: 12px;
+    }
+
+    .demo-card-tags {
+      display: flex;
+      gap: 6px;
+    }
+
+    .tag {
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+
+    .tag-primary {
+      background: #FFD9D9;
+      color: #5A5252;
+    }
+
+    .tag-accent {
+      background: #D7FAFA;
+      color: #5A9A9A;
+    }
+
+    .btn {
+      padding: 10px 24px;
+      border-radius: 24px;
+      border: none;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-right: 8px;
+      margin-bottom: 8px;
+    }
+
+    .btn-primary {
+      background: #E8A8A8;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #D99999;
+    }
+
+    .btn-secondary {
+      background: #FFD9D9;
+      color: #5A5252;
+    }
+
+    .btn-secondary:hover {
+      background: #FFCACA;
+    }
+
+    .btn-accent {
+      background: #9FD9D9;
+      color: white;
+    }
+
+    .btn-accent:hover {
+      background: #8ECECE;
+    }
+
+    .btn-outline {
+      background: white;
+      color: #5A9A9A;
+      border: 2px solid #9FD9D9;
+    }
+
+    .btn-outline:hover {
+      background: #D7FAFA;
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: #5A5252;
+    }
+
+    .btn-ghost:hover {
+      background: #FFD9D9;
+    }
+
+    /* Header Demo */
+    .header-demo {
+      background: white;
+      padding: 12px 20px;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      border: 1px solid #F0EAEA;
+    }
+
+    .logo {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: #E8A8A8;
+    }
+
+    .logo span {
+      color: #9FD9D9;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 24px;
+    }
+
+    .nav-link {
+      color: #5A5252;
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 0.9rem;
+      transition: color 0.2s;
+    }
+
+    .nav-link:hover {
+      color: #E8A8A8;
+    }
+
+    .avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #FFD9D9 0%, #D7FAFA 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #5A5252;
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+
+    /* Input Demo */
+    .input-demo {
+      padding: 12px 16px;
+      border: 1px solid #F0EAEA;
+      border-radius: 16px;
+      font-size: 0.9rem;
+      color: #5A5252;
+      width: 100%;
+      max-width: 300px;
+      margin-bottom: 16px;
+      transition: all 0.2s;
+    }
+
+    .input-demo:focus {
+      outline: none;
+      border-color: #E8A8A8;
+      box-shadow: 0 0 0 3px #FFF0F0;
+    }
+
+    .input-demo::placeholder {
+      color: #B8ACAC;
+    }
+  </style>
+</head>
+<body>
+  <h1>Pairy</h1>
+  <p class="subtitle">딸기크림 파스텔 (Strawberry Cream Pastel)</p>
+
+  <!-- Main Colors -->
+  <div class="main-colors">
+    <div class="main-color light-text" style="background: #FFD9D9;">
+      <span class="label">메인 핑크</span>
+      <span class="code">#FFD9D9</span>
+    </div>
+    <div class="main-color light-text" style="background: #D7FAFA;">
+      <span class="label">메인 민트</span>
+      <span class="code">#D7FAFA</span>
+    </div>
+    <div class="main-color dark-text" style="background: #E8A8A8;">
+      <span class="label">핑크 버튼</span>
+      <span class="code">#E8A8A8</span>
+    </div>
+    <div class="main-color dark-text" style="background: #9FD9D9;">
+      <span class="label">민트 버튼</span>
+      <span class="code">#9FD9D9</span>
+    </div>
+  </div>
+
+  <!-- Primary Colors -->
+  <div class="section">
+    <h2>Primary Colors (핑크 계열)</h2>
+    <div class="color-row">
+      <div class="color-box light-text" style="background: #FFF5F5;">50<span>#FFF5F5</span></div>
+      <div class="color-box light-text" style="background: #FFF0F0;">100<span>#FFF0F0</span></div>
+      <div class="color-box light-text" style="background: #FFD9D9;">200<span>#FFD9D9</span></div>
+      <div class="color-box light-text" style="background: #FFCACA;">300<span>#FFCACA</span></div>
+      <div class="color-box dark-text" style="background: #E8A8A8;">400<span>#E8A8A8</span></div>
+      <div class="color-box dark-text" style="background: #D99999;">500<span>#D99999</span></div>
+      <div class="color-box dark-text" style="background: #C48888;">600<span>#C48888</span></div>
+      <div class="color-box dark-text" style="background: #A87070;">700<span>#A87070</span></div>
+      <div class="color-box dark-text" style="background: #8B5A5A;">800<span>#8B5A5A</span></div>
+      <div class="color-box dark-text" style="background: #6E4545;">900<span>#6E4545</span></div>
+    </div>
+  </div>
+
+  <!-- Accent Colors -->
+  <div class="section">
+    <h2>Accent Colors (민트 계열)</h2>
+    <div class="color-row">
+      <div class="color-box light-text" style="background: #F5FEFE;">50<span>#F5FEFE</span></div>
+      <div class="color-box light-text" style="background: #EDFCFC;">100<span>#EDFCFC</span></div>
+      <div class="color-box light-text" style="background: #D7FAFA;">200<span>#D7FAFA</span></div>
+      <div class="color-box light-text" style="background: #B8F0F0;">300<span>#B8F0F0</span></div>
+      <div class="color-box dark-text" style="background: #9FD9D9;">400<span>#9FD9D9</span></div>
+      <div class="color-box dark-text" style="background: #8ECECE;">500<span>#8ECECE</span></div>
+      <div class="color-box dark-text" style="background: #7ABFBF;">600<span>#7ABFBF</span></div>
+      <div class="color-box dark-text" style="background: #5A9A9A;">700<span>#5A9A9A</span></div>
+      <div class="color-box dark-text" style="background: #4A8080;">800<span>#4A8080</span></div>
+      <div class="color-box dark-text" style="background: #3A6565;">900<span>#3A6565</span></div>
+    </div>
+  </div>
+
+  <!-- Gray Colors -->
+  <div class="section">
+    <h2>Gray Colors (따뜻한 그레이)</h2>
+    <div class="color-row">
+      <div class="color-box light-text" style="background: #FEFEFE;">50<span>#FEFEFE</span></div>
+      <div class="color-box light-text" style="background: #F8F6F5;">100<span>#F8F6F5</span></div>
+      <div class="color-box light-text" style="background: #F0EAEA;">200<span>#F0EAEA</span></div>
+      <div class="color-box light-text" style="background: #E0D8D8;">300<span>#E0D8D8</span></div>
+      <div class="color-box light-text" style="background: #B8ACAC;">400<span>#B8ACAC</span></div>
+      <div class="color-box dark-text" style="background: #8A8080;">500<span>#8A8080</span></div>
+      <div class="color-box dark-text" style="background: #6A6060;">600<span>#6A6060</span></div>
+      <div class="color-box dark-text" style="background: #5A5252;">700<span>#5A5252</span></div>
+      <div class="color-box dark-text" style="background: #4A4040;">800<span>#4A4040</span></div>
+      <div class="color-box dark-text" style="background: #3D3636;">900<span>#3D3636</span></div>
+    </div>
+  </div>
+
+  <!-- Semantic Colors -->
+  <div class="section">
+    <h2>Semantic Colors (상태 표시)</h2>
+    <div class="color-row">
+      <div class="color-box light-text" style="background: #E8F5E8;">Success<span>#E8F5E8</span></div>
+      <div class="color-box dark-text" style="background: #6BBF6B;">Success<span>#6BBF6B</span></div>
+      <div class="color-box dark-text" style="background: #4A9A4A;">Success<span>#4A9A4A</span></div>
+
+      <div class="color-box light-text" style="background: #FFF8E8;">Warning<span>#FFF8E8</span></div>
+      <div class="color-box light-text" style="background: #E8C56B;">Warning<span>#E8C56B</span></div>
+      <div class="color-box dark-text" style="background: #C4A04A;">Warning<span>#C4A04A</span></div>
+
+      <div class="color-box light-text" style="background: #FFE8E8;">Error<span>#FFE8E8</span></div>
+      <div class="color-box dark-text" style="background: #D98080;">Error<span>#D98080</span></div>
+      <div class="color-box dark-text" style="background: #B86060;">Error<span>#B86060</span></div>
+    </div>
+  </div>
+
+  <!-- Buttons -->
+  <div class="section">
+    <h2>Buttons (버튼 스타일)</h2>
+    <button class="btn btn-primary">Primary</button>
+    <button class="btn btn-secondary">Secondary</button>
+    <button class="btn btn-accent">Accent</button>
+    <button class="btn btn-outline">Outline</button>
+    <button class="btn btn-ghost">Ghost</button>
+  </div>
+
+  <!-- Input -->
+  <div class="section">
+    <h2>Input (입력 필드)</h2>
+    <input type="text" class="input-demo" placeholder="검색어를 입력하세요...">
+  </div>
+
+  <!-- Header Demo -->
+  <div class="section">
+    <h2>Header Demo (헤더 예시)</h2>
+    <div class="header-demo">
+      <div class="logo">Pair<span>y</span></div>
+      <div class="nav-links">
+        <a href="#" class="nav-link">틀 둘러보기</a>
+        <a href="#" class="nav-link">내 작업</a>
+        <a href="#" class="nav-link">프리미엄</a>
+      </div>
+      <div class="avatar">P</div>
+    </div>
+  </div>
+
+  <!-- Card Demo -->
+  <div class="section">
+    <h2>Card Demo (카드 예시)</h2>
+    <div class="demo-container">
+      <div class="demo-card">
+        <div class="demo-card-image">💕</div>
+        <div class="demo-card-content">
+          <h3 class="demo-card-title">커플 프로필 틀</h3>
+          <p class="demo-card-desc">귀여운 커플 프로필을 만들어보세요!</p>
+          <div class="demo-card-tags">
+            <span class="tag tag-primary">커플</span>
+            <span class="tag tag-accent">2인용</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="demo-card">
+        <div class="demo-card-image" style="background: linear-gradient(135deg, #D7FAFA 0%, #FFD9D9 100%);">✨</div>
+        <div class="demo-card-content">
+          <h3 class="demo-card-title">친구 관계도 틀</h3>
+          <p class="demo-card-desc">친구들과 함께 관계도를 완성하세요!</p>
+          <div class="demo-card-tags">
+            <span class="tag tag-primary">친구</span>
+            <span class="tag tag-accent">다인용</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
