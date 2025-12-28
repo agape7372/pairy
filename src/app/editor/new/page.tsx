@@ -51,6 +51,12 @@ function NewEditorContent() {
 
     setIsCreating(true)
     try {
+      if (isDemoMode) {
+        // 데모 모드: 미리 생성된 에디터 페이지로 이동
+        router.push(`/editor/1`)
+        return
+      }
+
       // TODO: Create work in Supabase and get the new work ID
       const newWorkId = 'new-' + Date.now()
 
