@@ -67,7 +67,7 @@ export function Header() {
                     isActive ? 'text-primary-400' : 'text-gray-700'
                   )}
                 >
-                  <Icon className="w-4 h-4" />
+                  <Icon className="w-4 h-4" strokeWidth={1.5} />
                   {link.label}
                 </Link>
               )
@@ -92,7 +92,7 @@ export function Header() {
                   {profile?.avatar_url ? (
                     <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
                   ) : (
-                    <User className="w-5 h-5 text-gray-600" />
+                    <User className="w-5 h-5 text-gray-600" strokeWidth={1.5} />
                   )}
                   {/* Tier Badge */}
                   {subscription.tier !== 'free' && (
@@ -124,14 +124,14 @@ export function Header() {
                         className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                         onClick={() => setShowUserMenu(false)}
                       >
-                        <User className="w-4 h-4" />
+                        <User className="w-4 h-4" strokeWidth={1.5} />
                         마이페이지
                       </Link>
                       <button
                         onClick={handleSignOut}
                         className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
                       >
-                        <LogOut className="w-4 h-4" />
+                        <LogOut className="w-4 h-4" strokeWidth={1.5} />
                         로그아웃
                       </button>
                     </div>
@@ -156,7 +156,7 @@ export function Header() {
             className="md:hidden p-2 text-gray-600"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           >
-            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            {mobileMenuOpen ? <X className="w-6 h-6" strokeWidth={1.5} /> : <Menu className="w-6 h-6" strokeWidth={1.5} />}
           </button>
         </div>
 
@@ -170,7 +170,7 @@ export function Header() {
                   {profile?.avatar_url ? (
                     <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
                   ) : (
-                    <User className="w-5 h-5 text-gray-600" />
+                    <User className="w-5 h-5 text-gray-600" strokeWidth={1.5} />
                   )}
                 </div>
                 <div>
@@ -196,7 +196,7 @@ export function Header() {
                     )}
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    <Icon className="w-4 h-4" />
+                    <Icon className="w-4 h-4" strokeWidth={1.5} />
                     {link.label}
                   </Link>
                 )
@@ -212,7 +212,7 @@ export function Header() {
                   )}
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  <User className="w-4 h-4" />
+                  <User className="w-4 h-4" strokeWidth={1.5} />
                   마이페이지
                 </Link>
               )}
@@ -229,7 +229,7 @@ export function Header() {
                     setMobileMenuOpen(false)
                   }}
                 >
-                  <LogOut className="w-4 h-4 mr-2" />
+                  <LogOut className="w-4 h-4 mr-2" strokeWidth={1.5} />
                   로그아웃
                 </Button>
               ) : (
