@@ -50,16 +50,7 @@ export function ExportDialog({
         quality,
         scale,
         backgroundColor: format === 'jpg' ? '#FFFFFF' : undefined,
-        // 무료 사용자는 워터마크 추가
-        watermark: isPremium
-          ? undefined
-          : {
-              text: 'Made with Pairy',
-              position: 'bottom-right',
-              opacity: 0.4,
-              fontSize: 14,
-              color: '#8A8080',
-            },
+        // 워터마크 없음 - 무료/프리미엄 모두 깨끗한 이미지 제공
       })
 
       const filename = generateFilename(title, format, scale)
@@ -183,40 +174,18 @@ export function ExportDialog({
               <button
                 key={option.value}
                 onClick={() => setScale(option.value)}
-                disabled={option.value > 1 && !isPremium}
                 className={cn(
                   'py-3 px-4 rounded-xl text-sm font-medium transition-all',
                   scale === option.value
                     ? 'bg-primary-400 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200',
-                  option.value > 1 && !isPremium && 'opacity-50 cursor-not-allowed'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 )}
               >
                 {option.label}
-                {option.value > 1 && !isPremium && (
-                  <span className="block text-xs mt-1 opacity-70">프리미엄</span>
-                )}
               </button>
             ))}
           </div>
         </div>
-
-        {/* Watermark Notice */}
-        {!isPremium && (
-          <div className="mb-6 p-4 bg-primary-50 rounded-xl">
-            <p className="text-sm text-gray-600">
-              무료 버전에서는 워터마크가 추가됩니다.
-              <br />
-              <a
-                href="/pricing"
-                className="text-primary-400 font-medium hover:underline"
-              >
-                프리미엄으로 업그레이드
-              </a>
-              하면 워터마크 없이 내보낼 수 있어요.
-            </p>
-          </div>
-        )}
 
         {/* Error */}
         {error && (
