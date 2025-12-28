@@ -52,8 +52,11 @@ function NewEditorContent() {
     setIsCreating(true)
     try {
       if (isDemoMode) {
-        // 데모 모드: 미리 생성된 에디터 페이지로 이동
-        router.push(`/editor/1`)
+        // 데모 모드: 미리 생성된 에디터 페이지로 이동 (템플릿 ID와 제목 전달)
+        const params = new URLSearchParams()
+        if (templateId) params.set('template', templateId)
+        if (title) params.set('title', title)
+        router.push(`/editor/1?${params.toString()}`)
         return
       }
 
