@@ -1,8 +1,8 @@
 import Link from 'next/link'
-import { Heart, Users, Download, Sparkles, ArrowRight, Palette, Share2, Zap, Check } from 'lucide-react'
+import { Heart, Users, Download, Sparkles, ArrowRight, Palette, Share2, Zap, Check, User, PenTool, Moon, Star, Brush, MessageCircle } from 'lucide-react'
 import { Button, Tag } from '@/components/ui'
 
-// 임시 샘플 데이터
+// 임시 샘플 데이터 - 이모지 대신 lucide 아이콘 사용
 const sampleTemplates = [
   {
     id: '1',
@@ -10,7 +10,8 @@ const sampleTemplates = [
     creator: '딸기크림',
     likeCount: 1234,
     tags: ['커플', '2인용'],
-    emoji: '💕',
+    icon: Heart,
+    iconColor: 'text-primary-400',
   },
   {
     id: '2',
@@ -18,7 +19,8 @@ const sampleTemplates = [
     creator: '페어리',
     likeCount: 892,
     tags: ['친구', '관계도'],
-    emoji: '✨',
+    icon: Star,
+    iconColor: 'text-accent-400',
   },
   {
     id: '3',
@@ -26,7 +28,8 @@ const sampleTemplates = [
     creator: '문라이트',
     likeCount: 567,
     tags: ['프로필', '1인용'],
-    emoji: '🌙',
+    icon: Moon,
+    iconColor: 'text-gray-600',
   },
 ]
 
@@ -74,22 +77,25 @@ const steps = [
 
 const testimonials = [
   {
-    text: '드디어 포토샵 없이도 페어틀을 채울 수 있어요! 친구랑 실시간으로 하니까 더 재밌어요 💕',
+    text: '드디어 포토샵 없이도 페어틀을 채울 수 있어요! 친구랑 실시간으로 하니까 더 재밌어요.',
     author: '민지',
     role: '트위터 자캐러',
-    avatar: '🧚',
+    icon: Sparkles,
+    iconBg: 'from-primary-200 to-primary-300',
   },
   {
     text: '제가 만든 틀을 다른 분들이 사용하는 걸 보니 뿌듯해요. 수익화도 기대되고요!',
     author: '수아',
     role: '틀 크리에이터',
-    avatar: '🎨',
+    icon: Brush,
+    iconBg: 'from-accent-200 to-accent-300',
   },
   {
     text: '모바일에서도 잘 되고, UI도 예뻐서 계속 쓰게 돼요. 최고예요!',
     author: '하늘',
     role: 'OC 창작러',
-    avatar: '✨',
+    icon: Star,
+    iconBg: 'from-primary-200 to-accent-200',
   },
 ]
 
@@ -138,7 +144,7 @@ export default function HomePage() {
         <div className="relative max-w-[900px] mx-auto text-center">
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary-100 rounded-full text-sm text-primary-700 mb-6">
-            <Zap className="w-4 h-4" />
+            <Zap className="w-4 h-4" strokeWidth={1.5} />
             <span>자캐러를 위한 페어틀 플랫폼</span>
           </div>
 
@@ -158,7 +164,7 @@ export default function HomePage() {
             <Button size="lg" asChild>
               <Link href="/templates">
                 틀 둘러보기
-                <ArrowRight className="w-5 h-5 ml-2" />
+                <ArrowRight className="w-5 h-5 ml-2" strokeWidth={1.5} />
               </Link>
             </Button>
             <Button variant="outline" size="lg" asChild>
@@ -173,17 +179,19 @@ export default function HomePage() {
                 {/* Mock Editor UI */}
                 <div className="flex gap-2 sm:gap-4 scale-75 sm:scale-100">
                   <div className="w-28 sm:w-40 h-40 sm:h-56 bg-white/80 backdrop-blur rounded-xl sm:rounded-2xl shadow-lg p-2 sm:p-3 transform -rotate-3">
-                    <div className="w-8 sm:w-12 h-8 sm:h-12 mx-auto mb-1.5 sm:mb-2 rounded-full bg-gradient-to-br from-primary-200 to-primary-300 flex items-center justify-center text-lg sm:text-2xl">
-                      👧
+                    <div className="w-8 sm:w-12 h-8 sm:h-12 mx-auto mb-1.5 sm:mb-2 rounded-full bg-gradient-to-br from-primary-200 to-primary-300 flex items-center justify-center">
+                      <User className="w-4 sm:w-6 h-4 sm:h-6 text-primary-600" strokeWidth={1.5} />
                     </div>
                     <div className="h-1.5 sm:h-2 bg-gray-200 rounded mb-1 sm:mb-1.5" />
                     <div className="h-1.5 sm:h-2 bg-gray-200 rounded w-3/4 mx-auto mb-1 sm:mb-1.5" />
                     <div className="h-1.5 sm:h-2 bg-primary-200 rounded w-1/2 mx-auto" />
                   </div>
-                  <div className="text-3xl sm:text-5xl self-center">💕</div>
+                  <div className="self-center">
+                    <Heart className="w-8 sm:w-12 h-8 sm:h-12 text-primary-400" strokeWidth={1.5} fill="currentColor" />
+                  </div>
                   <div className="w-28 sm:w-40 h-40 sm:h-56 bg-white/80 backdrop-blur rounded-xl sm:rounded-2xl shadow-lg p-2 sm:p-3 transform rotate-3">
-                    <div className="w-8 sm:w-12 h-8 sm:h-12 mx-auto mb-1.5 sm:mb-2 rounded-full bg-gradient-to-br from-accent-200 to-accent-300 flex items-center justify-center text-lg sm:text-2xl">
-                      👦
+                    <div className="w-8 sm:w-12 h-8 sm:h-12 mx-auto mb-1.5 sm:mb-2 rounded-full bg-gradient-to-br from-accent-200 to-accent-300 flex items-center justify-center">
+                      <User className="w-4 sm:w-6 h-4 sm:h-6 text-accent-600" strokeWidth={1.5} />
                     </div>
                     <div className="h-1.5 sm:h-2 bg-gray-200 rounded mb-1 sm:mb-1.5" />
                     <div className="h-1.5 sm:h-2 bg-gray-200 rounded w-3/4 mx-auto mb-1 sm:mb-1.5" />
@@ -243,7 +251,7 @@ export default function HomePage() {
                 <div className="bg-white rounded-[16px] sm:rounded-[20px] p-4 sm:p-6 border border-gray-200 hover:shadow-lg transition-shadow">
                   <div className="flex items-center gap-3 sm:gap-4 mb-3 sm:mb-4">
                     <div className="w-12 sm:w-14 h-12 sm:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center">
-                      <step.icon className="w-5 sm:w-6 h-5 sm:h-6 text-gray-700" />
+                      <step.icon className="w-5 sm:w-6 h-5 sm:h-6 text-gray-700" strokeWidth={1.5} />
                     </div>
                     <span className="text-3xl sm:text-4xl font-bold text-gray-200">{step.step}</span>
                   </div>
@@ -270,44 +278,47 @@ export default function HomePage() {
               href="/templates"
               className="text-xs sm:text-sm font-medium text-primary-400 hover:text-primary-500 transition-colors flex items-center gap-1"
             >
-              모두 보기 <ArrowRight className="w-3 sm:w-4 h-3 sm:h-4" />
+              모두 보기 <ArrowRight className="w-3 sm:w-4 h-3 sm:h-4" strokeWidth={1.5} />
             </Link>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {sampleTemplates.map((template) => (
-              <Link
-                key={template.id}
-                href={`/templates/${template.id}`}
-                className="group bg-white rounded-[20px] overflow-hidden border border-gray-200 hover:shadow-lg transition-all duration-200 hover:-translate-y-1"
-              >
-                {/* Preview */}
-                <div className="aspect-[4/3] bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center text-5xl">
-                  {template.emoji}
-                </div>
+            {sampleTemplates.map((template) => {
+              const IconComponent = template.icon
+              return (
+                <Link
+                  key={template.id}
+                  href={`/templates/${template.id}`}
+                  className="group bg-white rounded-[20px] overflow-hidden border border-gray-200 hover:shadow-lg transition-all duration-200 hover:-translate-y-1"
+                >
+                  {/* Preview */}
+                  <div className="aspect-[4/3] bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center">
+                    <IconComponent className={`w-12 h-12 ${template.iconColor}`} strokeWidth={1.5} />
+                  </div>
 
-                {/* Content */}
-                <div className="p-4">
-                  <h3 className="font-semibold text-gray-900 mb-2 group-hover:text-primary-400 transition-colors">
-                    {template.title}
-                  </h3>
-                  <div className="flex items-center gap-3 text-sm text-gray-500 mb-3">
-                    <span className="flex items-center gap-1">
-                      <Heart className="w-4 h-4" />
-                      {template.likeCount.toLocaleString()}
-                    </span>
-                    <span>by {template.creator}</span>
+                  {/* Content */}
+                  <div className="p-4">
+                    <h3 className="font-semibold text-gray-900 mb-2 group-hover:text-primary-400 transition-colors">
+                      {template.title}
+                    </h3>
+                    <div className="flex items-center gap-3 text-sm text-gray-500 mb-3">
+                      <span className="flex items-center gap-1">
+                        <Heart className="w-4 h-4" strokeWidth={1.5} />
+                        {template.likeCount.toLocaleString()}
+                      </span>
+                      <span>by {template.creator}</span>
+                    </div>
+                    <div className="flex gap-2">
+                      {template.tags.map((tag, idx) => (
+                        <Tag key={tag} variant={idx === 0 ? 'primary' : 'accent'}>
+                          {tag}
+                        </Tag>
+                      ))}
+                    </div>
                   </div>
-                  <div className="flex gap-2">
-                    {template.tags.map((tag, idx) => (
-                      <Tag key={tag} variant={idx === 0 ? 'primary' : 'accent'}>
-                        {tag}
-                      </Tag>
-                    ))}
-                  </div>
-                </div>
-              </Link>
-            ))}
+                </Link>
+              )
+            })}
           </div>
         </div>
       </section>
@@ -333,7 +344,7 @@ export default function HomePage() {
                 }`}>
                   <feature.icon className={`w-6 sm:w-8 h-6 sm:h-8 ${
                     feature.color === 'primary' ? 'text-primary-400' : 'text-accent-400'
-                  }`} />
+                  }`} strokeWidth={1.5} />
                 </div>
                 <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-1.5 sm:mb-2">{feature.title}</h3>
                 <p className="text-xs sm:text-sm text-gray-500">{feature.description}</p>
@@ -353,23 +364,26 @@ export default function HomePage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
-            {testimonials.map((testimonial) => (
-              <div
-                key={testimonial.author}
-                className="bg-white rounded-[16px] sm:rounded-[20px] p-4 sm:p-6 border border-gray-200"
-              >
-                <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">&ldquo;{testimonial.text}&rdquo;</p>
-                <div className="flex items-center gap-3">
-                  <div className="w-8 sm:w-10 h-8 sm:h-10 rounded-full bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center text-base sm:text-xl">
-                    {testimonial.avatar}
-                  </div>
-                  <div>
-                    <div className="text-sm sm:text-base font-medium text-gray-900">{testimonial.author}</div>
-                    <div className="text-xs sm:text-sm text-gray-500">{testimonial.role}</div>
+            {testimonials.map((testimonial) => {
+              const IconComponent = testimonial.icon
+              return (
+                <div
+                  key={testimonial.author}
+                  className="bg-white rounded-[16px] sm:rounded-[20px] p-4 sm:p-6 border border-gray-200"
+                >
+                  <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">&ldquo;{testimonial.text}&rdquo;</p>
+                  <div className="flex items-center gap-3">
+                    <div className={`w-8 sm:w-10 h-8 sm:h-10 rounded-full bg-gradient-to-br ${testimonial.iconBg} flex items-center justify-center`}>
+                      <IconComponent className="w-4 sm:w-5 h-4 sm:h-5 text-gray-700" strokeWidth={1.5} />
+                    </div>
+                    <div>
+                      <div className="text-sm sm:text-base font-medium text-gray-900">{testimonial.author}</div>
+                      <div className="text-xs sm:text-sm text-gray-500">{testimonial.role}</div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       </section>
@@ -406,7 +420,7 @@ export default function HomePage() {
                 <ul className="space-y-2 sm:space-y-3 mb-4 sm:mb-6">
                   {plan.features.map((feature) => (
                     <li key={feature} className="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
-                      <Check className="w-4 h-4 text-success shrink-0" />
+                      <Check className="w-4 h-4 text-success shrink-0" strokeWidth={1.5} />
                       {feature}
                     </li>
                   ))}
@@ -428,10 +442,16 @@ export default function HomePage() {
       <section className="py-12 sm:py-20 px-4">
         <div className="max-w-[700px] mx-auto">
           <div className="bg-gradient-to-br from-primary-200 via-primary-100 to-accent-200 rounded-[20px] sm:rounded-[32px] p-6 sm:p-12 text-center relative overflow-hidden">
-            {/* Decorative elements - hidden on mobile */}
-            <div className="hidden sm:block absolute top-4 left-8 text-4xl opacity-20">✨</div>
-            <div className="hidden sm:block absolute bottom-8 right-12 text-5xl opacity-20">💕</div>
-            <div className="hidden sm:block absolute top-12 right-20 text-3xl opacity-20">🧚</div>
+            {/* Decorative elements - SVG icons instead of emojis */}
+            <div className="hidden sm:block absolute top-4 left-8 opacity-20">
+              <Sparkles className="w-10 h-10 text-gray-700" strokeWidth={1} />
+            </div>
+            <div className="hidden sm:block absolute bottom-8 right-12 opacity-20">
+              <Heart className="w-14 h-14 text-gray-700" strokeWidth={1} />
+            </div>
+            <div className="hidden sm:block absolute top-12 right-20 opacity-20">
+              <Star className="w-8 h-8 text-gray-700" strokeWidth={1} />
+            </div>
 
             <h2 className="text-xl sm:text-3xl font-bold text-gray-900 mb-3 sm:mb-4 relative">
               지금 바로 시작해보세요
@@ -445,7 +465,7 @@ export default function HomePage() {
               <Button size="lg" asChild>
                 <Link href="/login">
                   무료로 시작하기
-                  <ArrowRight className="w-4 sm:w-5 h-4 sm:h-5 ml-2" />
+                  <ArrowRight className="w-4 sm:w-5 h-4 sm:h-5 ml-2" strokeWidth={1.5} />
                 </Link>
               </Button>
             </div>
@@ -461,8 +481,9 @@ export default function HomePage() {
               <Link href="/" className="text-lg sm:text-xl font-bold text-gray-900">
                 <span className="text-primary-400">Pai</span>ry
               </Link>
-              <p className="text-xs sm:text-sm text-gray-500 mt-1.5 sm:mt-2">
-                페어를 완성하는 마법 ✨
+              <p className="text-xs sm:text-sm text-gray-500 mt-1.5 sm:mt-2 flex items-center gap-1">
+                페어를 완성하는 마법
+                <Sparkles className="w-3 h-3 text-primary-400" strokeWidth={1.5} />
               </p>
             </div>
 
