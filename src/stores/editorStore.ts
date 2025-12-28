@@ -198,6 +198,7 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         slot.id === id ? { ...slot, ...updates } : slot
       )
       set({ slots: newSlots, isDirty: true })
+      get().pushHistory()
     },
 
     // 슬롯 삭제
