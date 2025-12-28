@@ -1,6 +1,7 @@
 import { Suspense } from 'react'
 import { Loader2 } from 'lucide-react'
 import EditorClient from '@/components/pages/EditorClient'
+import { EditorErrorBoundary } from '@/components/editor'
 
 export function generateStaticParams() {
   return [
@@ -26,8 +27,10 @@ function EditorLoading() {
 export default async function EditorPage({ params }: PageProps) {
   const { id } = await params
   return (
-    <Suspense fallback={<EditorLoading />}>
-      <EditorClient workId={id} />
-    </Suspense>
+    <EditorErrorBoundary>
+      <Suspense fallback={<EditorLoading />}>
+        <EditorClient workId={id} />
+      </Suspense>
+    </EditorErrorBoundary>
   )
 }

@@ -12,6 +12,9 @@ import {
   Save,
   Eye,
   X,
+  Upload,
+  FileImage,
+  Sparkles,
 } from 'lucide-react'
 import { Button } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
@@ -275,6 +278,28 @@ export default function NewTemplatePage() {
                     </button>
                   ))}
                 </div>
+              </div>
+            </div>
+
+            {/* PSD/CLIP 업로드 (Phase 3 스캐폴딩) */}
+            <div className="bg-gradient-to-br from-accent-50 to-primary-50 rounded-[20px] border border-accent-200 p-6">
+              <div className="flex items-center gap-2 mb-3">
+                <Sparkles className="w-4 h-4 text-accent-500" />
+                <h2 className="text-sm font-semibold text-gray-900">디자인 파일 업로드</h2>
+                <span className="px-2 py-0.5 bg-accent-200 text-accent-700 text-[10px] font-medium rounded-full">
+                  SOON
+                </span>
+              </div>
+              <p className="text-xs text-gray-500 mb-4">
+                포토샵(PSD) 또는 클립스튜디오(CLIP) 파일을 업로드하면
+                레이어를 자동으로 인식해 슬롯으로 변환해드려요.
+              </p>
+              <div
+                className="border-2 border-dashed border-accent-300 rounded-xl p-6 text-center bg-white/50 cursor-not-allowed opacity-70"
+              >
+                <FileImage className="w-8 h-8 text-accent-400 mx-auto mb-2" />
+                <p className="text-sm text-gray-500 mb-1">PSD, CLIP 파일 지원 예정</p>
+                <p className="text-xs text-gray-400">현재는 수동으로 슬롯을 추가해주세요</p>
               </div>
             </div>
 
