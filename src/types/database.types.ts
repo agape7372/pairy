@@ -17,6 +17,10 @@ export interface Database {
           avatar_url: string | null
           bio: string | null
           is_creator: boolean
+          follower_count: number
+          following_count: number
+          total_earnings: number
+          pending_payout: number
           created_at: string
           updated_at: string
         }
@@ -27,6 +31,10 @@ export interface Database {
           avatar_url?: string | null
           bio?: string | null
           is_creator?: boolean
+          follower_count?: number
+          following_count?: number
+          total_earnings?: number
+          pending_payout?: number
           created_at?: string
           updated_at?: string
         }
@@ -37,6 +45,10 @@ export interface Database {
           avatar_url?: string | null
           bio?: string | null
           is_creator?: boolean
+          follower_count?: number
+          following_count?: number
+          total_earnings?: number
+          pending_payout?: number
           created_at?: string
           updated_at?: string
         }
@@ -54,8 +66,10 @@ export interface Database {
           is_public: boolean
           is_premium: boolean
           price: number
+          pricing_type: 'free' | 'credit' | 'paid'
           like_count: number
           use_count: number
+          purchase_count: number
           created_at: string
           updated_at: string
         }
@@ -70,8 +84,10 @@ export interface Database {
           is_public?: boolean
           is_premium?: boolean
           price?: number
+          pricing_type?: 'free' | 'credit' | 'paid'
           like_count?: number
           use_count?: number
+          purchase_count?: number
           created_at?: string
           updated_at?: string
         }
@@ -86,8 +102,10 @@ export interface Database {
           is_public?: boolean
           is_premium?: boolean
           price?: number
+          pricing_type?: 'free' | 'credit' | 'paid'
           like_count?: number
           use_count?: number
+          purchase_count?: number
           created_at?: string
           updated_at?: string
         }
@@ -243,6 +261,111 @@ export interface Database {
         }
         Relationships: []
       }
+      follows: {
+        Row: {
+          follower_id: string
+          following_id: string
+          created_at: string
+        }
+        Insert: {
+          follower_id: string
+          following_id: string
+          created_at?: string
+        }
+        Update: {
+          follower_id?: string
+          following_id?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
+      comments: {
+        Row: {
+          id: string
+          template_id: string
+          user_id: string
+          parent_id: string | null
+          content: string
+          like_count: number
+          is_edited: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          template_id: string
+          user_id: string
+          parent_id?: string | null
+          content: string
+          like_count?: number
+          is_edited?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          template_id?: string
+          user_id?: string
+          parent_id?: string | null
+          content?: string
+          like_count?: number
+          is_edited?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      comment_likes: {
+        Row: {
+          user_id: string
+          comment_id: string
+          created_at: string
+        }
+        Insert: {
+          user_id: string
+          comment_id: string
+          created_at?: string
+        }
+        Update: {
+          user_id?: string
+          comment_id?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
+      purchases: {
+        Row: {
+          id: string
+          buyer_id: string | null
+          template_id: string | null
+          amount: number
+          currency: string
+          status: 'pending' | 'completed' | 'failed' | 'refunded' | 'cancelled'
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          buyer_id?: string | null
+          template_id?: string | null
+          amount: number
+          currency?: string
+          status?: 'pending' | 'completed' | 'failed' | 'refunded' | 'cancelled'
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          buyer_id?: string | null
+          template_id?: string | null
+          amount?: number
+          currency?: string
+          status?: 'pending' | 'completed' | 'failed' | 'refunded' | 'cancelled'
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -263,11 +386,21 @@ export type Tag = Database['public']['Tables']['tags']['Row']
 export type Like = Database['public']['Tables']['likes']['Row']
 export type Bookmark = Database['public']['Tables']['bookmarks']['Row']
 export type Work = Database['public']['Tables']['works']['Row']
-
 export type CollabSession = Database['public']['Tables']['collab_sessions']['Row']
+export type Follow = Database['public']['Tables']['follows']['Row']
+export type Comment = Database['public']['Tables']['comments']['Row']
+export type CommentLike = Database['public']['Tables']['comment_likes']['Row']
+export type Purchase = Database['public']['Tables']['purchases']['Row']
 
 // Extended types with relations
 export type TemplateWithTags = Template & {
   tags: Tag[]
   creator: Profile
+}
+
+// Comment with user info
+export type CommentWithUser = Comment & {
+  user: Pick<Profile, 'id' | 'display_name' | 'avatar_url'>
+  replies?: CommentWithUser[]
+  isLiked?: boolean
 }

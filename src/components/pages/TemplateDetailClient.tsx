@@ -21,6 +21,10 @@ import {
   FolderPlus,
 } from 'lucide-react'
 import { Button, Tag, useToast } from '@/components/ui'
+import { LikeButton, CommentSection } from '@/components/social'
+import { SectionErrorBoundary } from '@/components/common'
+import { PricingBadge, PurchaseButton } from '@/components/marketplace'
+import { useMarketplaceStore, type PricingType } from '@/stores/marketplaceStore'
 import { cn } from '@/lib/utils/cn'
 import { copyToClipboard } from '@/lib/utils/clipboard'
 import {
@@ -32,6 +36,13 @@ import {
   type Resource,
 } from '@/types/resources'
 import { useSubscriptionStore } from '@/stores/subscriptionStore'
+
+// 라이선스를 가격 타입으로 변환
+function licenseToPricingType(license: LicenseType, price?: number): PricingType {
+  if (license === 'paid' && price) return 'paid'
+  if (license === 'credit') return 'credit'
+  return 'free'
+}
 
 // 샘플 자료 데이터 (확장된 형태)
 const sampleResources: Record<string, Resource> = {
@@ -325,8 +336,9 @@ export default function TemplateDetailClient({ templateId }: TemplateDetailClien
   const router = useRouter()
   const toast = useToast()
   const { subscription, incrementDownloads, getRemainingDownloads } = useSubscriptionStore()
+  const hasPurchased = useMarketplaceStore((state) => state.hasPurchased(templateId))
 
-  const [isLiked, setIsLiked] = useState(false)
+  // isLiked state moved to LikeButton component
   const [isBookmarked, setIsBookmarked] = useState(false)
   const [showShareToast, setShowShareToast] = useState(false)
   const [showAddToLibrary, setShowAddToLibrary] = useState(false)
@@ -350,6 +362,8 @@ export default function TemplateDetailClient({ templateId }: TemplateDetailClien
   const categoryInfo = RESOURCE_CATEGORIES[resource.category]
   const licenseInfo = LICENSE_INFO[resource.license]
   const relatedResources = getRelatedResources(resource.category, resource.id)
+  const pricingType = licenseToPricingType(resource.license, resource.price)
+  const templatePrice = resource.price || 0
 
   const handleShare = async () => {
     const success = await copyToClipboard(window.location.href)
@@ -487,9 +501,12 @@ export default function TemplateDetailClient({ templateId }: TemplateDetailClien
               </div>
 
               {/* Title */}
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                {resource.title}
-              </h1>
+              <div className="flex items-center gap-3 mb-2">
+                <h1 className="text-3xl font-bold text-gray-900">
+                  {resource.title}
+                </h1>
+                <PricingBadge pricingType={pricingType} price={templatePrice} />
+              </div>
 
               {/* Creator */}
               <Link
@@ -623,24 +640,42 @@ export default function TemplateDetailClient({ templateId }: TemplateDetailClien
               )}
 
               {/* Actions */}
-              <div className="flex gap-3 mb-4">
-                <Button
-                  size="lg"
-                  className="flex-1"
-                  onClick={handleDownload}
-                  disabled={resource.license === 'paid' || isDownloading}
-                >
-                  <Download className={cn('w-5 h-5 mr-2', isDownloading && 'animate-bounce')} />
-                  {isDownloading ? '다운로드 중...' : resource.license === 'paid' ? `₩${resource.price?.toLocaleString()} 구매` : '다운로드'}
-                </Button>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  onClick={handleAddToLibrary}
-                  className={cn(showAddToLibrary && 'animate-pulse')}
-                >
-                  <FolderPlus className="w-5 h-5" />
-                </Button>
+              <div className="mb-4">
+                {pricingType === 'paid' ? (
+                  <PurchaseButton
+                    template={{
+                      id: resource.id,
+                      title: resource.title,
+                      preview: resource.thumbnailUrl || '',
+                      creatorId: resource.creator.id,
+                      creatorName: resource.creator.displayName,
+                      price: templatePrice,
+                      pricingType: pricingType,
+                    }}
+                    onUseTemplate={handleStartWork}
+                    fullWidth
+                  />
+                ) : (
+                  <div className="flex gap-3">
+                    <Button
+                      size="lg"
+                      className="flex-1"
+                      onClick={handleDownload}
+                      disabled={isDownloading}
+                    >
+                      <Download className={cn('w-5 h-5 mr-2', isDownloading && 'animate-bounce')} />
+                      {isDownloading ? '다운로드 중...' : '다운로드'}
+                    </Button>
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      onClick={handleAddToLibrary}
+                      className={cn(showAddToLibrary && 'animate-pulse')}
+                    >
+                      <FolderPlus className="w-5 h-5" />
+                    </Button>
+                  </div>
+                )}
               </div>
 
               {/* 에디터로 시작하기 (페어틀 전용) */}
@@ -656,14 +691,12 @@ export default function TemplateDetailClient({ templateId }: TemplateDetailClien
               )}
 
               <div className="flex gap-3">
-                <Button
-                  variant={isLiked ? 'primary' : 'outline'}
+                <LikeButton
+                  templateId={templateId}
+                  initialLikeCount={resource.stats.likes}
+                  variant="outline"
                   className="flex-1"
-                  onClick={() => setIsLiked(!isLiked)}
-                >
-                  <Heart className={cn('w-5 h-5 mr-2', isLiked && 'fill-current')} />
-                  {isLiked ? '좋아요 취소' : '좋아요'}
-                </Button>
+                />
                 <Button
                   variant={isBookmarked ? 'accent' : 'outline'}
                   className="flex-1"
@@ -741,6 +774,15 @@ export default function TemplateDetailClient({ templateId }: TemplateDetailClien
           </div>
         </section>
       )}
+
+      {/* 댓글 섹션 */}
+      <section className="py-12 px-4 bg-gray-50">
+        <div className="max-w-[1200px] mx-auto">
+          <SectionErrorBoundary sectionName="댓글">
+            <CommentSection templateId={templateId} />
+          </SectionErrorBoundary>
+        </div>
+      </section>
     </div>
   )
 }

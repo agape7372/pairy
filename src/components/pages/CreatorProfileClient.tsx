@@ -15,10 +15,13 @@ import {
   Calendar,
 } from 'lucide-react'
 import { Button, Tag } from '@/components/ui'
+import { FollowButton } from '@/components/social'
+import { useFollow } from '@/hooks/useFollow'
 import { cn } from '@/lib/utils/cn'
 
 // 크리에이터 샘플 데이터
 const creatorsData: Record<string, {
+  id: string
   username: string
   displayName: string
   bio: string
@@ -41,9 +44,10 @@ const creatorsData: Record<string, {
   }>
 }> = {
   strawberry123: {
+    id: 'creator-1',
     username: 'strawberry123',
     displayName: '딸기크림',
-    bio: '달달한 커플 틀 전문 크리에이터입니다. 사랑스러운 관계를 표현하는 틀을 주로 만들어요 💕',
+    bio: '달달한 커플 틀 전문 크리에이터입니다. 사랑스러운 관계를 표현하는 틀을 주로 만들어요',
     avatarEmoji: '🍓',
     joinedAt: '2024-06-15',
     twitterHandle: 'strawberry_pairy',
@@ -60,9 +64,10 @@ const creatorsData: Record<string, {
     ],
   },
   fairy_art: {
+    id: 'creator-2',
     username: 'fairy_art',
     displayName: '페어리',
-    bio: '친구들과의 소중한 추억을 담는 관계도 틀을 만들고 있어요. 복잡한 관계도 예쁘게! ✨',
+    bio: '친구들과의 소중한 추억을 담는 관계도 틀을 만들고 있어요. 복잡한 관계도 예쁘게!',
     avatarEmoji: '🧚',
     joinedAt: '2024-03-01',
     twitterHandle: 'fairy_art_kr',
@@ -78,9 +83,10 @@ const creatorsData: Record<string, {
     ],
   },
   moonlight: {
+    id: 'creator-3',
     username: 'moonlight',
     displayName: '문라이트',
-    bio: 'OC 덕후입니다. 캐릭터 소개에 진심인 사람 🌙',
+    bio: 'OC 덕후입니다. 캐릭터 소개에 진심인 사람',
     avatarEmoji: '🌙',
     joinedAt: '2024-07-20',
     stats: {
@@ -94,9 +100,10 @@ const creatorsData: Record<string, {
     ],
   },
   mintchoco: {
+    id: 'creator-4',
     username: 'mintchoco',
     displayName: '민트초코',
-    bio: '베프와의 케미를 세상에 알리고 싶어서 틀을 만들기 시작했어요 🍀',
+    bio: '베프와의 케미를 세상에 알리고 싶어서 틀을 만들기 시작했어요',
     avatarEmoji: '🍀',
     joinedAt: '2024-05-10',
     twitterHandle: 'mintchoco_design',
@@ -111,9 +118,10 @@ const creatorsData: Record<string, {
     ],
   },
   roseberry: {
+    id: 'creator-5',
     username: 'roseberry',
     displayName: '로즈베리',
-    bio: '복잡한 관계도 아름답게, 삼각관계 전문 크리에이터 🔺',
+    bio: '복잡한 관계도 아름답게, 삼각관계 전문 크리에이터',
     avatarEmoji: '🌹',
     joinedAt: '2024-04-05',
     stats: {
@@ -127,9 +135,10 @@ const creatorsData: Record<string, {
     ],
   },
   skyblue: {
+    id: 'creator-6',
     username: 'skyblue',
     displayName: '스카이블루',
-    bio: '깔끔하고 정돈된 캐릭터 프로필 카드를 만들어요 📋',
+    bio: '깔끔하고 정돈된 캐릭터 프로필 카드를 만들어요',
     avatarEmoji: '☁️',
     joinedAt: '2024-08-12',
     stats: {
@@ -143,9 +152,10 @@ const creatorsData: Record<string, {
     ],
   },
   cherryblossom: {
+    id: 'creator-7',
     username: 'cherryblossom',
     displayName: '체리블라썸',
-    bio: '팬아트 전문! 좋아하는 캐릭터들의 케미를 담아요 🌸',
+    bio: '팬아트 전문! 좋아하는 캐릭터들의 케미를 담아요',
     avatarEmoji: '🌸',
     joinedAt: '2024-02-14',
     twitterHandle: 'cherry_blossom_art',
@@ -160,9 +170,10 @@ const creatorsData: Record<string, {
     ],
   },
   coconut: {
+    id: 'creator-8',
     username: 'coconut',
     displayName: '코코넛',
-    bio: '단체 관계도의 달인, 복잡한 캐릭터 관계를 정리해드려요 🥥',
+    bio: '단체 관계도의 달인, 복잡한 캐릭터 관계를 정리해드려요',
     avatarEmoji: '🥥',
     joinedAt: '2024-01-20',
     stats: {
@@ -183,9 +194,11 @@ interface CreatorProfileClientProps {
 
 export default function CreatorProfileClient({ username }: CreatorProfileClientProps) {
   const router = useRouter()
-  const [isFollowing, setIsFollowing] = useState(false)
 
   const creator = creatorsData[username]
+
+  // useFollow 훅 사용 (creator.id가 있을 때만)
+  const { followerCount, isFollowing } = useFollow(creator?.id || '')
 
   if (!creator) {
     return (
@@ -207,6 +220,9 @@ export default function CreatorProfileClient({ username }: CreatorProfileClientP
     const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`
     window.open(twitterUrl, '_blank', 'width=600,height=400')
   }
+
+  // 팔로워 수 (훅에서 가져온 값 또는 초기값)
+  const displayFollowerCount = followerCount || creator.stats.followers
 
   return (
     <div className="animate-fade-in">
@@ -261,15 +277,9 @@ export default function CreatorProfileClient({ username }: CreatorProfileClientP
                 )}
               </div>
 
-              {/* Actions */}
+              {/* Actions - FollowButton 컴포넌트 사용 */}
               <div className="flex flex-wrap justify-center md:justify-start gap-3">
-                <Button
-                  variant={isFollowing ? 'outline' : 'primary'}
-                  onClick={() => setIsFollowing(!isFollowing)}
-                >
-                  <Users className="w-4 h-4 mr-2" />
-                  {isFollowing ? '팔로잉' : '팔로우'}
-                </Button>
+                <FollowButton userId={creator.id} />
                 <Button variant="outline" onClick={handleTwitterShare}>
                   <Twitter className="w-4 h-4 mr-2" />
                   공유하기
@@ -299,11 +309,14 @@ export default function CreatorProfileClient({ username }: CreatorProfileClientP
               <p className="text-2xl font-bold text-gray-900">{creator.stats.totalUses.toLocaleString()}</p>
               <p className="text-sm text-gray-500">사용 횟수</p>
             </div>
-            <div className="text-center p-4 bg-gray-50 rounded-xl">
+            <Link
+              href={`/creator/${username}/followers`}
+              className="text-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors cursor-pointer"
+            >
               <Users className="w-6 h-6 text-blue-400 mx-auto mb-2" />
-              <p className="text-2xl font-bold text-gray-900">{creator.stats.followers.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-gray-900">{displayFollowerCount.toLocaleString()}</p>
               <p className="text-sm text-gray-500">팔로워</p>
-            </div>
+            </Link>
           </div>
         </div>
       </section>
