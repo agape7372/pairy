@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useRef, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import {
   ArrowLeft,
@@ -32,24 +32,152 @@ import { useEditorStore, useCanUndo, useCanRedo, useIsDirty, useIsSaving } from 
 import { useAutoSave } from '@/hooks/useAutoSave'
 import { IS_DEMO_MODE } from '@/lib/supabase/client'
 
-// 샘플 템플릿 데이터
-const sampleTemplate = {
-  id: '1',
-  title: '커플 프로필 틀',
-  emoji: '💕',
-  slots: [
-    { id: 'slot1', label: '사람 1', x: 50, y: 100 },
-    { id: 'slot2', label: '사람 2', x: 350, y: 100 },
-  ],
-  fields: [
-    { id: 'name1', slotId: 'slot1', type: 'text', label: '이름', value: '' },
-    { id: 'name2', slotId: 'slot2', type: 'text', label: '이름', value: '' },
-    { id: 'like1', slotId: 'slot1', type: 'text', label: '좋아하는 것', value: '' },
-    { id: 'like2', slotId: 'slot2', type: 'text', label: '좋아하는 것', value: '' },
-    { id: 'dislike1', slotId: 'slot1', type: 'text', label: '싫어하는 것', value: '' },
-    { id: 'dislike2', slotId: 'slot2', type: 'text', label: '싫어하는 것', value: '' },
-  ],
+// 템플릿 정의
+interface TemplateSlot {
+  id: string
+  label: string
+  x: number
+  y: number
 }
+
+interface TemplateField {
+  id: string
+  slotId: string
+  type: string
+  label: string
+  value: string
+}
+
+interface Template {
+  id: string
+  title: string
+  emoji: string
+  slots: TemplateSlot[]
+  fields: TemplateField[]
+}
+
+// 모든 템플릿 데이터
+const templates: Record<string, Template> = {
+  '1': {
+    id: '1',
+    title: '커플 프로필 틀',
+    emoji: '💕',
+    slots: [
+      { id: 'slot1', label: '사람 1', x: 50, y: 50 },
+      { id: 'slot2', label: '사람 2', x: 350, y: 50 },
+    ],
+    fields: [
+      { id: 'name1', slotId: 'slot1', type: 'text', label: '이름', value: '' },
+      { id: 'name2', slotId: 'slot2', type: 'text', label: '이름', value: '' },
+      { id: 'like1', slotId: 'slot1', type: 'text', label: '좋아하는 것', value: '' },
+      { id: 'like2', slotId: 'slot2', type: 'text', label: '좋아하는 것', value: '' },
+    ],
+  },
+  '2': {
+    id: '2',
+    title: '친구 관계도',
+    emoji: '✨',
+    slots: [
+      { id: 'slot1', label: '친구 1', x: 50, y: 50 },
+      { id: 'slot2', label: '친구 2', x: 350, y: 50 },
+    ],
+    fields: [
+      { id: 'name1', slotId: 'slot1', type: 'text', label: '이름', value: '' },
+      { id: 'name2', slotId: 'slot2', type: 'text', label: '이름', value: '' },
+      { id: 'hobby1', slotId: 'slot1', type: 'text', label: '취미', value: '' },
+      { id: 'hobby2', slotId: 'slot2', type: 'text', label: '취미', value: '' },
+    ],
+  },
+  '3': {
+    id: '3',
+    title: 'OC 소개 카드',
+    emoji: '🌙',
+    slots: [
+      { id: 'slot1', label: '캐릭터', x: 200, y: 50 },
+    ],
+    fields: [
+      { id: 'name', slotId: 'slot1', type: 'text', label: '이름', value: '' },
+      { id: 'age', slotId: 'slot1', type: 'text', label: '나이', value: '' },
+      { id: 'personality', slotId: 'slot1', type: 'text', label: '성격', value: '' },
+    ],
+  },
+  '4': {
+    id: '4',
+    title: '베프 케미 틀',
+    emoji: '🍀',
+    slots: [
+      { id: 'slot1', label: '베프 1', x: 50, y: 50 },
+      { id: 'slot2', label: '베프 2', x: 350, y: 50 },
+    ],
+    fields: [
+      { id: 'name1', slotId: 'slot1', type: 'text', label: '이름', value: '' },
+      { id: 'name2', slotId: 'slot2', type: 'text', label: '이름', value: '' },
+      { id: 'like1', slotId: 'slot1', type: 'text', label: '좋아하는 것', value: '' },
+      { id: 'like2', slotId: 'slot2', type: 'text', label: '좋아하는 것', value: '' },
+    ],
+  },
+  '5': {
+    id: '5',
+    title: '삼각관계 틀',
+    emoji: '🔺',
+    slots: [
+      { id: 'slot1', label: '인물 1', x: 200, y: 20 },
+      { id: 'slot2', label: '인물 2', x: 50, y: 180 },
+      { id: 'slot3', label: '인물 3', x: 350, y: 180 },
+    ],
+    fields: [
+      { id: 'name1', slotId: 'slot1', type: 'text', label: '이름', value: '' },
+      { id: 'name2', slotId: 'slot2', type: 'text', label: '이름', value: '' },
+      { id: 'name3', slotId: 'slot3', type: 'text', label: '이름', value: '' },
+    ],
+  },
+  '6': {
+    id: '6',
+    title: '캐릭터 프로필 카드',
+    emoji: '📋',
+    slots: [
+      { id: 'slot1', label: '캐릭터', x: 200, y: 50 },
+    ],
+    fields: [
+      { id: 'name', slotId: 'slot1', type: 'text', label: '이름', value: '' },
+      { id: 'species', slotId: 'slot1', type: 'text', label: '종족', value: '' },
+      { id: 'ability', slotId: 'slot1', type: 'text', label: '능력', value: '' },
+    ],
+  },
+  '7': {
+    id: '7',
+    title: '팬아트 커플 틀',
+    emoji: '🌸',
+    slots: [
+      { id: 'slot1', label: '캐릭터 1', x: 50, y: 50 },
+      { id: 'slot2', label: '캐릭터 2', x: 350, y: 50 },
+    ],
+    fields: [
+      { id: 'name1', slotId: 'slot1', type: 'text', label: '이름', value: '' },
+      { id: 'name2', slotId: 'slot2', type: 'text', label: '이름', value: '' },
+      { id: 'from1', slotId: 'slot1', type: 'text', label: '작품', value: '' },
+      { id: 'from2', slotId: 'slot2', type: 'text', label: '작품', value: '' },
+    ],
+  },
+  '8': {
+    id: '8',
+    title: '단체 관계도',
+    emoji: '🥥',
+    slots: [
+      { id: 'slot1', label: '멤버 1', x: 50, y: 50 },
+      { id: 'slot2', label: '멤버 2', x: 220, y: 50 },
+      { id: 'slot3', label: '멤버 3', x: 390, y: 50 },
+    ],
+    fields: [
+      { id: 'name1', slotId: 'slot1', type: 'text', label: '이름', value: '' },
+      { id: 'name2', slotId: 'slot2', type: 'text', label: '이름', value: '' },
+      { id: 'name3', slotId: 'slot3', type: 'text', label: '이름', value: '' },
+    ],
+  },
+}
+
+// 기본 템플릿
+const defaultTemplate = templates['1']
 
 type Tool = 'select' | 'text' | 'image' | 'color'
 
@@ -63,7 +191,13 @@ interface EditorClientProps {
 
 export default function EditorClient({ workId }: EditorClientProps) {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const canvasRef = useRef<HTMLDivElement>(null)
+
+  // URL에서 템플릿 ID와 제목 가져오기
+  const templateId = searchParams.get('template') || '1'
+  const initialTitle = searchParams.get('title') || ''
+  const currentTemplate = templates[templateId] || defaultTemplate
 
   // Editor Store
   const {
@@ -94,8 +228,8 @@ export default function EditorClient({ workId }: EditorClientProps) {
   // Local state
   const [isPublic, setIsPublic] = useState(false)
   const [selectedTool, setSelectedTool] = useState<Tool>('select')
-  const [selectedSlot, setSelectedSlot] = useState<string | null>('slot1')
-  const [fields, setFields] = useState(sampleTemplate.fields)
+  const [selectedSlot, setSelectedSlot] = useState<string | null>(currentTemplate.slots[0]?.id || null)
+  const [fields, setFields] = useState(currentTemplate.fields)
   const [slotImages, setSlotImages] = useState<SlotImages>({})
   const [showShareModal, setShowShareModal] = useState(false)
   const [showExportDialog, setShowExportDialog] = useState(false)
@@ -105,12 +239,15 @@ export default function EditorClient({ workId }: EditorClientProps) {
   useEffect(() => {
     initEditor({
       workId: workId !== 'new' ? workId : undefined,
-      templateId: sampleTemplate.id,
-      title: '우리 커플 프로필',
+      templateId: currentTemplate.id,
+      title: initialTitle || `나의 ${currentTemplate.title}`,
       canvasWidth: 600,
       canvasHeight: 400,
     })
-  }, [workId, initEditor])
+    // 템플릿이 바뀌면 필드와 선택된 슬롯 초기화
+    setFields(currentTemplate.fields)
+    setSelectedSlot(currentTemplate.slots[0]?.id || null)
+  }, [workId, templateId, initEditor, currentTemplate, initialTitle])
 
   // 슬롯 이미지 업로드 핸들러
   const handleSlotImageUpload = useCallback(async (file: File): Promise<string | null> => {
@@ -302,7 +439,7 @@ export default function EditorClient({ workId }: EditorClientProps) {
         {/* Canvas Area */}
         <main className="flex-1 relative overflow-auto">
           {/* Zoom Controls */}
-          <div className="absolute top-4 right-4 flex items-center gap-2 bg-white rounded-lg shadow-sm border border-gray-200 p-1 z-10">
+          <div className="absolute top-2 right-2 sm:top-4 sm:right-4 flex items-center gap-2 bg-white rounded-lg shadow-sm border border-gray-200 p-1 z-10">
             <button
               onClick={zoomOut}
               className="p-1.5 text-gray-500 hover:bg-gray-100 rounded"
@@ -321,34 +458,41 @@ export default function EditorClient({ workId }: EditorClientProps) {
           </div>
 
           {/* Canvas */}
-          <div className="min-h-full flex items-center justify-center p-8">
+          <div className="min-h-full flex items-start sm:items-center justify-center p-4 sm:p-8 pt-14 sm:pt-8">
             <div
               ref={canvasRef}
-              className="bg-white rounded-[24px] shadow-lg border border-gray-200 overflow-hidden transition-transform"
+              className="bg-white rounded-[20px] sm:rounded-[24px] shadow-lg border border-gray-200 overflow-hidden transition-transform origin-top sm:origin-center"
               style={{
                 transform: `scale(${zoom})`,
-                transformOrigin: 'center center',
               }}
             >
-              {/* Template Preview */}
-              <div className="w-[600px] h-[400px] bg-gradient-to-br from-primary-100 to-accent-100 relative">
-                {/* Slots */}
-                {sampleTemplate.slots.map((slot) => (
+              {/* Template Preview - 모바일에서 작게 */}
+              <div className="w-[320px] h-[220px] sm:w-[600px] sm:h-[400px] bg-gradient-to-br from-primary-100 to-accent-100 relative">
+                {/* Center Emoji */}
+                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-5xl opacity-30">
+                  {currentTemplate.emoji}
+                </div>
+                {/* Slots - 모바일에서 비율 조정 */}
+                {currentTemplate.slots.map((slot) => (
                   <div
                     key={slot.id}
                     onClick={() => setSelectedSlot(slot.id)}
                     className={cn(
-                      'absolute w-[200px] h-[280px] bg-white/80 backdrop-blur rounded-[20px] p-4 cursor-pointer transition-all',
+                      'absolute bg-white/80 backdrop-blur rounded-[12px] sm:rounded-[20px] p-2 sm:p-4 cursor-pointer transition-all',
+                      'w-[100px] h-[140px] sm:w-[200px] sm:h-[280px]',
                       selectedSlot === slot.id
                         ? 'ring-2 ring-primary-400 shadow-lg'
                         : 'hover:ring-2 hover:ring-primary-200'
                     )}
-                    style={{ left: slot.x, top: slot.y }}
+                    style={{
+                      left: `${(slot.x / 600) * 100}%`,
+                      top: `${(slot.y / 400) * 100}%`
+                    }}
                   >
-                    <p className="text-xs text-gray-400 mb-2">{slot.label}</p>
+                    <p className="text-[10px] sm:text-xs text-gray-400 mb-1 sm:mb-2">{slot.label}</p>
 
                     {/* Profile Image */}
-                    <div className="w-20 h-20 mx-auto mb-3 rounded-full bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center text-3xl overflow-hidden">
+                    <div className="w-10 h-10 sm:w-20 sm:h-20 mx-auto mb-1 sm:mb-3 rounded-full bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center text-xl sm:text-3xl overflow-hidden">
                       {slotImages[slot.id] ? (
                         <img
                           src={slotImages[slot.id]!}
@@ -361,13 +505,13 @@ export default function EditorClient({ workId }: EditorClientProps) {
                     </div>
 
                     {/* Field Values */}
-                    <div className="space-y-2 text-center">
+                    <div className="space-y-1 sm:space-y-2 text-center">
                       {fields
                         .filter((f) => f.slotId === slot.id)
                         .map((field) => (
                           <div key={field.id}>
-                            <p className="text-xs text-gray-400">{field.label}</p>
-                            <p className="text-sm font-medium text-gray-900 truncate">
+                            <p className="text-[8px] sm:text-xs text-gray-400">{field.label}</p>
+                            <p className="text-[10px] sm:text-sm font-medium text-gray-900 truncate">
                               {field.value || '-'}
                             </p>
                           </div>
@@ -375,11 +519,6 @@ export default function EditorClient({ workId }: EditorClientProps) {
                     </div>
                   </div>
                 ))}
-
-                {/* Center Heart */}
-                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-5xl">
-                  💕
-                </div>
               </div>
             </div>
           </div>
@@ -390,7 +529,7 @@ export default function EditorClient({ workId }: EditorClientProps) {
           <div className="p-4">
             <h3 className="text-sm font-semibold text-gray-900 mb-4">
               {selectedSlot
-                ? sampleTemplate.slots.find((s) => s.id === selectedSlot)?.label
+                ? currentTemplate.slots.find((s) => s.id === selectedSlot)?.label
                 : '슬롯을 선택하세요'}
             </h3>
 
@@ -464,7 +603,7 @@ export default function EditorClient({ workId }: EditorClientProps) {
 
               {/* 슬롯 선택 */}
               <div className="flex gap-2 mb-4">
-                {sampleTemplate.slots.map((slot) => (
+                {currentTemplate.slots.map((slot) => (
                   <button
                     key={slot.id}
                     onClick={() => setSelectedSlot(slot.id)}
