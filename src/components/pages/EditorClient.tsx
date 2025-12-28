@@ -23,6 +23,13 @@ import {
   CloudOff,
   Menu,
   X,
+  Bold,
+  Italic,
+  ChevronUp,
+  ChevronDown,
+  Lock,
+  Unlock,
+  Layers,
 } from 'lucide-react'
 import { Button, ImageUpload } from '@/components/ui'
 import { ExportDialog } from '@/components/editor'
@@ -32,12 +39,42 @@ import { useEditorStore, useCanUndo, useCanRedo, useIsDirty, useIsSaving } from 
 import { useAutoSave } from '@/hooks/useAutoSave'
 import { IS_DEMO_MODE } from '@/lib/supabase/client'
 
+// 폰트 옵션
+const FONT_OPTIONS = [
+  { value: 'inherit', label: '기본' },
+  { value: "'Nanum Gothic', sans-serif", label: '나눔고딕' },
+  { value: "'Nanum Myeongjo', serif", label: '나눔명조' },
+  { value: "'Jua', sans-serif", label: '주아' },
+  { value: "'Gaegu', cursive", label: '개구' },
+]
+
+const FONT_SIZE_OPTIONS = [
+  { value: 10, label: '작게' },
+  { value: 12, label: '보통' },
+  { value: 14, label: '크게' },
+  { value: 16, label: '매우 크게' },
+]
+
+const TEXT_COLOR_OPTIONS = [
+  '#3D3636', // 기본 (dark gray)
+  '#6A6060', // 중간 gray
+  '#E8A8A8', // primary
+  '#9FD9D9', // accent
+  '#D98080', // error/red
+  '#6BBF6B', // success/green
+  '#3B82F6', // blue
+  '#8B5CF6', // purple
+]
+
 // 템플릿 정의
 interface TemplateSlot {
   id: string
   label: string
   x: number
   y: number
+  locked?: boolean
+  visible?: boolean
+  zIndex?: number
 }
 
 interface TemplateField {
@@ -46,6 +83,12 @@ interface TemplateField {
   type: string
   label: string
   value: string
+  // 텍스트 스타일링
+  fontFamily?: string
+  fontSize?: number
+  fontColor?: string
+  fontWeight?: 'normal' | 'bold'
+  fontStyle?: 'normal' | 'italic'
 }
 
 interface Template {
@@ -54,6 +97,13 @@ interface Template {
   emoji: string
   slots: TemplateSlot[]
   fields: TemplateField[]
+}
+
+// 슬롯 상태 (순서, 잠금, 표시)
+interface SlotState {
+  locked: boolean
+  visible: boolean
+  zIndex: number
 }
 
 // 모든 템플릿 데이터
@@ -229,11 +279,26 @@ export default function EditorClient({ workId }: EditorClientProps) {
   const [isPublic, setIsPublic] = useState(false)
   const [selectedTool, setSelectedTool] = useState<Tool>('select')
   const [selectedSlot, setSelectedSlot] = useState<string | null>(currentTemplate.slots[0]?.id || null)
-  const [fields, setFields] = useState(currentTemplate.fields)
+  const [fields, setFields] = useState<TemplateField[]>(currentTemplate.fields)
   const [slotImages, setSlotImages] = useState<SlotImages>({})
   const [showShareModal, setShowShareModal] = useState(false)
   const [showExportDialog, setShowExportDialog] = useState(false)
   const [showMobilePanel, setShowMobilePanel] = useState(false)
+
+  // 배경색 상태
+  const [backgroundColor, setBackgroundColor] = useState('#FFD9D9')
+
+  // 슬롯 상태 (순서, 잠금, 표시)
+  const [slotStates, setSlotStates] = useState<Record<string, SlotState>>(() => {
+    const initial: Record<string, SlotState> = {}
+    currentTemplate.slots.forEach((slot, index) => {
+      initial[slot.id] = { locked: false, visible: true, zIndex: index }
+    })
+    return initial
+  })
+
+  // 선택된 필드 (텍스트 스타일링용)
+  const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null)
 
   // Initialize editor
   useEffect(() => {
@@ -275,7 +340,69 @@ export default function EditorClient({ workId }: EditorClientProps) {
     )
   }
 
+  // 필드 스타일 변경 핸들러
+  const handleFieldStyleChange = (fieldId: string, styleKey: keyof TemplateField, value: string | number) => {
+    setFields((prev) =>
+      prev.map((f) => (f.id === fieldId ? { ...f, [styleKey]: value } : f))
+    )
+  }
+
+  // 슬롯 잠금 토글
+  const toggleSlotLock = (slotId: string) => {
+    setSlotStates((prev) => ({
+      ...prev,
+      [slotId]: { ...prev[slotId], locked: !prev[slotId]?.locked }
+    }))
+  }
+
+  // 슬롯 표시 토글
+  const toggleSlotVisible = (slotId: string) => {
+    setSlotStates((prev) => ({
+      ...prev,
+      [slotId]: { ...prev[slotId], visible: !prev[slotId]?.visible }
+    }))
+  }
+
+  // 슬롯 순서 변경 (위로)
+  const moveSlotUp = (slotId: string) => {
+    const currentZ = slotStates[slotId]?.zIndex ?? 0
+    const maxZ = currentTemplate.slots.length - 1
+    if (currentZ >= maxZ) return
+
+    setSlotStates((prev) => {
+      const updated = { ...prev }
+      // 현재 슬롯의 zIndex를 올리고, 그 위치에 있던 슬롯을 내림
+      Object.keys(updated).forEach((id) => {
+        if (id === slotId) {
+          updated[id] = { ...updated[id], zIndex: currentZ + 1 }
+        } else if (updated[id].zIndex === currentZ + 1) {
+          updated[id] = { ...updated[id], zIndex: currentZ }
+        }
+      })
+      return updated
+    })
+  }
+
+  // 슬롯 순서 변경 (아래로)
+  const moveSlotDown = (slotId: string) => {
+    const currentZ = slotStates[slotId]?.zIndex ?? 0
+    if (currentZ <= 0) return
+
+    setSlotStates((prev) => {
+      const updated = { ...prev }
+      Object.keys(updated).forEach((id) => {
+        if (id === slotId) {
+          updated[id] = { ...updated[id], zIndex: currentZ - 1 }
+        } else if (updated[id].zIndex === currentZ - 1) {
+          updated[id] = { ...updated[id], zIndex: currentZ }
+        }
+      })
+      return updated
+    })
+  }
+
   const currentSlotFields = fields.filter((f) => f.slotId === selectedSlot)
+  const selectedField = selectedFieldId ? fields.find(f => f.id === selectedFieldId) : null
 
   // 저장 상태 표시 텍스트
   const getSaveStatusText = () => {
@@ -467,28 +594,44 @@ export default function EditorClient({ workId }: EditorClientProps) {
               }}
             >
               {/* Template Preview - 모바일에서 작게 */}
-              <div className="w-[320px] h-[220px] sm:w-[600px] sm:h-[400px] bg-gradient-to-br from-primary-100 to-accent-100 relative">
+              <div
+                className="w-[320px] h-[220px] sm:w-[600px] sm:h-[400px] relative transition-colors"
+                style={{ backgroundColor }}
+              >
                 {/* Center Emoji */}
                 <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-5xl opacity-30">
                   {currentTemplate.emoji}
                 </div>
-                {/* Slots - 모바일에서 비율 조정 */}
-                {currentTemplate.slots.map((slot) => (
+                {/* Slots - zIndex 및 visibility 적용 */}
+                {currentTemplate.slots
+                  .filter(slot => slotStates[slot.id]?.visible !== false)
+                  .sort((a, b) => (slotStates[a.id]?.zIndex ?? 0) - (slotStates[b.id]?.zIndex ?? 0))
+                  .map((slot) => (
                   <div
                     key={slot.id}
-                    onClick={() => setSelectedSlot(slot.id)}
+                    onClick={() => !slotStates[slot.id]?.locked && setSelectedSlot(slot.id)}
                     className={cn(
-                      'absolute bg-white/80 backdrop-blur rounded-[12px] sm:rounded-[20px] p-2 sm:p-4 cursor-pointer transition-all',
+                      'absolute bg-white/80 backdrop-blur rounded-[12px] sm:rounded-[20px] p-2 sm:p-4 transition-all',
                       'w-[100px] h-[140px] sm:w-[200px] sm:h-[280px]',
+                      slotStates[slot.id]?.locked
+                        ? 'cursor-not-allowed opacity-80'
+                        : 'cursor-pointer',
                       selectedSlot === slot.id
                         ? 'ring-2 ring-primary-400 shadow-lg'
-                        : 'hover:ring-2 hover:ring-primary-200'
+                        : !slotStates[slot.id]?.locked && 'hover:ring-2 hover:ring-primary-200'
                     )}
                     style={{
                       left: `${(slot.x / 600) * 100}%`,
-                      top: `${(slot.y / 400) * 100}%`
+                      top: `${(slot.y / 400) * 100}%`,
+                      zIndex: slotStates[slot.id]?.zIndex ?? 0,
                     }}
                   >
+                    {/* Lock 표시 */}
+                    {slotStates[slot.id]?.locked && (
+                      <div className="absolute top-1 right-1 sm:top-2 sm:right-2">
+                        <Lock className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400" />
+                      </div>
+                    )}
                     <p className="text-[10px] sm:text-xs text-gray-400 mb-1 sm:mb-2">{slot.label}</p>
 
                     {/* Profile Image */}
@@ -504,14 +647,23 @@ export default function EditorClient({ workId }: EditorClientProps) {
                       )}
                     </div>
 
-                    {/* Field Values */}
+                    {/* Field Values - 텍스트 스타일 적용 */}
                     <div className="space-y-1 sm:space-y-2 text-center">
                       {fields
                         .filter((f) => f.slotId === slot.id)
                         .map((field) => (
                           <div key={field.id}>
                             <p className="text-[8px] sm:text-xs text-gray-400">{field.label}</p>
-                            <p className="text-[10px] sm:text-sm font-medium text-gray-900 truncate">
+                            <p
+                              className="text-[10px] sm:text-sm truncate"
+                              style={{
+                                fontFamily: field.fontFamily || 'inherit',
+                                fontSize: field.fontSize ? `${field.fontSize}px` : undefined,
+                                color: field.fontColor || '#3D3636',
+                                fontWeight: field.fontWeight || 'normal',
+                                fontStyle: field.fontStyle || 'normal',
+                              }}
+                            >
                               {field.value || '-'}
                             </p>
                           </div>
@@ -535,6 +687,79 @@ export default function EditorClient({ workId }: EditorClientProps) {
 
             {selectedSlot && (
               <div className="space-y-4">
+                {/* 레이어 컨트롤 */}
+                <div className="p-3 bg-gray-50 rounded-xl">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-medium text-gray-600 flex items-center gap-1">
+                      <Layers className="w-3 h-3" />
+                      레이어
+                    </span>
+                    <span className="text-xs text-gray-400">
+                      {(slotStates[selectedSlot]?.zIndex ?? 0) + 1} / {currentTemplate.slots.length}
+                    </span>
+                  </div>
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => moveSlotUp(selectedSlot)}
+                      disabled={(slotStates[selectedSlot]?.zIndex ?? 0) >= currentTemplate.slots.length - 1}
+                      className={cn(
+                        'flex-1 py-1.5 rounded-lg text-xs font-medium flex items-center justify-center gap-1',
+                        (slotStates[selectedSlot]?.zIndex ?? 0) >= currentTemplate.slots.length - 1
+                          ? 'bg-gray-100 text-gray-300 cursor-not-allowed'
+                          : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+                      )}
+                    >
+                      <ChevronUp className="w-3 h-3" />
+                      위로
+                    </button>
+                    <button
+                      onClick={() => moveSlotDown(selectedSlot)}
+                      disabled={(slotStates[selectedSlot]?.zIndex ?? 0) <= 0}
+                      className={cn(
+                        'flex-1 py-1.5 rounded-lg text-xs font-medium flex items-center justify-center gap-1',
+                        (slotStates[selectedSlot]?.zIndex ?? 0) <= 0
+                          ? 'bg-gray-100 text-gray-300 cursor-not-allowed'
+                          : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+                      )}
+                    >
+                      <ChevronDown className="w-3 h-3" />
+                      아래로
+                    </button>
+                    <button
+                      onClick={() => toggleSlotLock(selectedSlot)}
+                      className={cn(
+                        'p-1.5 rounded-lg border',
+                        slotStates[selectedSlot]?.locked
+                          ? 'bg-primary-100 border-primary-300 text-primary-600'
+                          : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-100'
+                      )}
+                      title={slotStates[selectedSlot]?.locked ? '잠금 해제' : '잠금'}
+                    >
+                      {slotStates[selectedSlot]?.locked ? (
+                        <Lock className="w-3 h-3" />
+                      ) : (
+                        <Unlock className="w-3 h-3" />
+                      )}
+                    </button>
+                    <button
+                      onClick={() => toggleSlotVisible(selectedSlot)}
+                      className={cn(
+                        'p-1.5 rounded-lg border',
+                        slotStates[selectedSlot]?.visible === false
+                          ? 'bg-gray-200 border-gray-300 text-gray-500'
+                          : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-100'
+                      )}
+                      title={slotStates[selectedSlot]?.visible === false ? '표시' : '숨김'}
+                    >
+                      {slotStates[selectedSlot]?.visible === false ? (
+                        <EyeOff className="w-3 h-3" />
+                      ) : (
+                        <Eye className="w-3 h-3" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
                 {/* Profile Image Upload */}
                 <div>
                   <label className="block text-xs font-medium text-gray-500 mb-2">
@@ -550,19 +775,83 @@ export default function EditorClient({ workId }: EditorClientProps) {
                   />
                 </div>
 
-                {/* Fields */}
+                {/* Fields with Text Styling */}
                 {currentSlotFields.map((field) => (
-                  <div key={field.id}>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">
+                  <div key={field.id} className="space-y-2">
+                    <label className="block text-xs font-medium text-gray-500">
                       {field.label}
                     </label>
                     <input
                       type="text"
                       value={field.value}
                       onChange={(e) => handleFieldChange(field.id, e.target.value)}
+                      onFocus={() => setSelectedFieldId(field.id)}
                       placeholder={`${field.label}을 입력하세요`}
                       className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-300 focus:border-transparent"
                     />
+                    {/* 텍스트 스타일링 컨트롤 */}
+                    <div className="flex flex-wrap gap-1.5">
+                      {/* 폰트 선택 */}
+                      <select
+                        value={field.fontFamily || 'inherit'}
+                        onChange={(e) => handleFieldStyleChange(field.id, 'fontFamily', e.target.value)}
+                        className="flex-1 min-w-[80px] px-2 py-1 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary-300"
+                      >
+                        {FONT_OPTIONS.map((opt) => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </select>
+                      {/* 크기 선택 */}
+                      <select
+                        value={field.fontSize || 12}
+                        onChange={(e) => handleFieldStyleChange(field.id, 'fontSize', parseInt(e.target.value))}
+                        className="w-16 px-2 py-1 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary-300"
+                      >
+                        {FONT_SIZE_OPTIONS.map((opt) => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </select>
+                      {/* Bold */}
+                      <button
+                        onClick={() => handleFieldStyleChange(field.id, 'fontWeight', field.fontWeight === 'bold' ? 'normal' : 'bold')}
+                        className={cn(
+                          'p-1.5 rounded-lg border',
+                          field.fontWeight === 'bold'
+                            ? 'bg-primary-100 border-primary-300 text-primary-600'
+                            : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-100'
+                        )}
+                      >
+                        <Bold className="w-3 h-3" />
+                      </button>
+                      {/* Italic */}
+                      <button
+                        onClick={() => handleFieldStyleChange(field.id, 'fontStyle', field.fontStyle === 'italic' ? 'normal' : 'italic')}
+                        className={cn(
+                          'p-1.5 rounded-lg border',
+                          field.fontStyle === 'italic'
+                            ? 'bg-primary-100 border-primary-300 text-primary-600'
+                            : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-100'
+                        )}
+                      >
+                        <Italic className="w-3 h-3" />
+                      </button>
+                    </div>
+                    {/* 텍스트 색상 */}
+                    <div className="flex gap-1 flex-wrap">
+                      {TEXT_COLOR_OPTIONS.map((color) => (
+                        <button
+                          key={color}
+                          onClick={() => handleFieldStyleChange(field.id, 'fontColor', color)}
+                          className={cn(
+                            'w-5 h-5 rounded-full border-2 transition-all',
+                            field.fontColor === color || (!field.fontColor && color === '#3D3636')
+                              ? 'border-primary-400 scale-110'
+                              : 'border-gray-200 hover:border-gray-400'
+                          )}
+                          style={{ backgroundColor: color }}
+                        />
+                      ))}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -669,13 +958,24 @@ export default function EditorClient({ workId }: EditorClientProps) {
                     {['#FFD9D9', '#D7FAFA', '#FFF3D9', '#E8D9FF', '#D9FFE8', '#FFD9F3', '#D9E8FF', '#FFFFFF'].map((color) => (
                       <button
                         key={color}
-                        className="w-12 h-12 rounded-xl border-2 border-gray-200 hover:border-primary-400 transition-colors"
+                        className={cn(
+                          'w-12 h-12 rounded-xl border-2 transition-all',
+                          backgroundColor === color
+                            ? 'border-primary-400 ring-2 ring-primary-200 scale-105'
+                            : 'border-gray-200 hover:border-primary-400'
+                        )}
                         style={{ backgroundColor: color }}
-                        onClick={() => {/* TODO: 배경색 변경 */}}
+                        onClick={() => setBackgroundColor(color)}
                       />
                     ))}
                   </div>
-                  <p className="text-xs text-gray-400 text-center">색상 변경 기능은 준비 중이에요</p>
+                  <div className="pt-2 border-t border-gray-100">
+                    <p className="text-xs text-gray-500 mb-2">현재 배경색</p>
+                    <div
+                      className="w-full h-8 rounded-lg border border-gray-200"
+                      style={{ backgroundColor }}
+                    />
+                  </div>
                 </div>
               )}
 

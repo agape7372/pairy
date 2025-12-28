@@ -21,8 +21,16 @@ export async function uploadFile(options: UploadOptions): Promise<UploadResult> 
   const { bucket, path, file, upsert = true } = options
 
   // 데모 모드: 로컬 Blob URL 반환
+  // 주의: Blob URL은 페이지 언로드 시 자동 해제됨
+  // 장기 세션에서는 수동 해제 필요할 수 있음
   if (IS_DEMO_MODE) {
     const url = URL.createObjectURL(file)
+    // 세션 종료 시 자동 정리되지만, 명시적 revoke를 위한 추적 가능
+    if (typeof window !== 'undefined') {
+      // 페이지 언로드 시 정리 (선택적)
+      const cleanup = () => URL.revokeObjectURL(url)
+      window.addEventListener('beforeunload', cleanup, { once: true })
+    }
     return { url, error: null }
   }
 
@@ -96,7 +104,7 @@ export async function deleteFile(bucket: StorageBucket, path: string): Promise<b
  * 아바타 업로드
  */
 export async function uploadAvatar(userId: string, file: File): Promise<UploadResult> {
-  const fileExt = file.name.split('.').pop()
+  const fileExt = file.name.split('.').pop() || 'jpg'
   const path = `${userId}/avatar.${fileExt}`
 
   return uploadFile({
@@ -115,7 +123,7 @@ export async function uploadWorkImage(
   slotId: string,
   file: File
 ): Promise<UploadResult> {
-  const fileExt = file.name.split('.').pop()
+  const fileExt = file.name.split('.').pop() || 'jpg'
   const timestamp = Date.now()
   const path = `${workId}/${slotId}_${timestamp}.${fileExt}`
 
@@ -134,7 +142,7 @@ export async function uploadWorkThumbnail(
   workId: string,
   file: File
 ): Promise<UploadResult> {
-  const fileExt = file.name.split('.').pop()
+  const fileExt = file.name.split('.').pop() || 'jpg'
   const path = `${workId}/thumbnail.${fileExt}`
 
   return uploadFile({

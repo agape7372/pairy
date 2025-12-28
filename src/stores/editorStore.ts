@@ -154,6 +154,10 @@ const generateId = () => {
   })
 }
 
+// 히스토리 디바운싱을 위한 타이머 (빠른 연속 작업 시 히스토리 통합)
+let historyDebounceTimer: ReturnType<typeof setTimeout> | null = null
+const HISTORY_DEBOUNCE_MS = 300
+
 // 에디터 스토어 생성
 export const useEditorStore = create<EditorState & EditorActions>()(
   subscribeWithSelector((set, get) => ({
@@ -280,21 +284,39 @@ export const useEditorStore = create<EditorState & EditorActions>()(
       get().pushHistory()
     },
 
-    // 히스토리 관리
+    // 히스토리 관리 (디바운싱 적용 - 빠른 연속 작업 시 마지막 상태만 저장)
     pushHistory: () => {
-      const state = get()
-      const newHistory = state.history.slice(0, state.historyIndex + 1)
-      newHistory.push([...state.slots])
-
-      // 최대 길이 제한
-      if (newHistory.length > state.maxHistoryLength) {
-        newHistory.shift()
+      // 이전 타이머 취소
+      if (historyDebounceTimer) {
+        clearTimeout(historyDebounceTimer)
       }
 
-      set({
-        history: newHistory,
-        historyIndex: newHistory.length - 1,
-      })
+      // 디바운스된 히스토리 저장
+      historyDebounceTimer = setTimeout(() => {
+        const state = get()
+        const currentSlots = [...state.slots]
+        const lastHistorySlots = state.history[state.historyIndex]
+
+        // 변경이 없으면 히스토리 추가 안함 (깊은 비교는 비용이 높으므로 JSON 비교)
+        if (lastHistorySlots && JSON.stringify(currentSlots) === JSON.stringify(lastHistorySlots)) {
+          return
+        }
+
+        const newHistory = state.history.slice(0, state.historyIndex + 1)
+        newHistory.push(currentSlots)
+
+        // 최대 길이 제한
+        if (newHistory.length > state.maxHistoryLength) {
+          newHistory.shift()
+        }
+
+        set({
+          history: newHistory,
+          historyIndex: newHistory.length - 1,
+        })
+
+        historyDebounceTimer = null
+      }, HISTORY_DEBOUNCE_MS)
     },
 
     undo: () => {
