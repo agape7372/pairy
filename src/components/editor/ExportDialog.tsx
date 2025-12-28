@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { X, Download, Image, FileImage, Loader2 } from 'lucide-react'
+import { X, Download, Image, FileImage, Loader2, AtSign, Twitter } from 'lucide-react'
 import { Button } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
 import {
@@ -18,6 +18,8 @@ interface ExportDialogProps {
   canvasRef: React.RefObject<HTMLElement>
   title: string
   isPremium?: boolean
+  creatorName?: string // 틀 제작자 이름
+  templateTitle?: string // 틀 이름
 }
 
 export function ExportDialog({
@@ -26,14 +28,33 @@ export function ExportDialog({
   canvasRef,
   title,
   isPremium = false,
+  creatorName,
+  templateTitle,
 }: ExportDialogProps) {
   const [format, setFormat] = useState<ExportFormat>('png')
   const [quality, setQuality] = useState<ExportQuality>('high')
   const [scale, setScale] = useState<number>(1)
   const [isExporting, setIsExporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [includeCredit, setIncludeCredit] = useState(true) // 크레딧 포함 여부
+  const [shareToTwitter, setShareToTwitter] = useState(false) // 트위터 공유
 
   if (!isOpen) return null
+
+  // 크레딧 텍스트 생성
+  const getCreditText = () => {
+    if (!creatorName) return '페어리에서 만듦 ✨'
+    return `틀: ${templateTitle || '페어리 틀'} by @${creatorName}`
+  }
+
+  // 트위터 공유 URL 생성
+  const getTwitterShareUrl = (imageUrl?: string) => {
+    const text = creatorName
+      ? `${templateTitle || '페어리'}로 만든 나의 작품! ✨\n\n틀 by @${creatorName}\n#페어리 #Pairy`
+      : `페어리로 만든 나의 작품! ✨\n\n#페어리 #Pairy`
+    const url = 'https://pairy.app'
+    return `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`
+  }
 
   const handleExport = async () => {
     if (!canvasRef.current) {
@@ -45,16 +66,33 @@ export function ExportDialog({
       setIsExporting(true)
       setError(null)
 
+      // 크레딧 워터마크 옵션
+      const watermarkOption = includeCredit && creatorName
+        ? {
+            text: getCreditText(),
+            position: 'bottom-right' as const,
+            opacity: 0.7,
+            fontSize: 14,
+            color: '#666666',
+          }
+        : undefined
+
       const blob = await captureElementAsImage(canvasRef.current, {
         format,
         quality,
         scale,
         backgroundColor: format === 'jpg' ? '#FFFFFF' : undefined,
-        // 워터마크 없음 - 무료/프리미엄 모두 깨끗한 이미지 제공
+        watermark: watermarkOption,
       })
 
       const filename = generateFilename(title, format, scale)
       downloadBlob(blob, filename)
+
+      // 트위터 공유 옵션이 선택된 경우
+      if (shareToTwitter) {
+        window.open(getTwitterShareUrl(), '_blank', 'width=600,height=400')
+      }
+
       onClose()
     } catch (err) {
       console.error('Export failed:', err)
@@ -186,6 +224,75 @@ export function ExportDialog({
             ))}
           </div>
         </div>
+
+        {/* Creator Options */}
+        {creatorName && (
+          <div className="mb-6 p-4 bg-gradient-to-r from-primary-50 to-accent-50 rounded-xl border border-primary-100">
+            <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+              <AtSign className="w-4 h-4 text-primary-400" />
+              크리에이터 옵션
+            </h3>
+
+            {/* 크레딧 포함 토글 */}
+            <label className="flex items-center justify-between cursor-pointer mb-3">
+              <div>
+                <span className="text-sm text-gray-700">틀 크레딧 포함</span>
+                <p className="text-xs text-gray-500">이미지에 제작자 정보가 표시돼요</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIncludeCredit(!includeCredit)}
+                className={cn(
+                  'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
+                  includeCredit ? 'bg-primary-400' : 'bg-gray-300'
+                )}
+              >
+                <span
+                  className={cn(
+                    'inline-block h-4 w-4 transform rounded-full bg-white transition-transform',
+                    includeCredit ? 'translate-x-6' : 'translate-x-1'
+                  )}
+                />
+              </button>
+            </label>
+
+            {/* 트위터 공유 토글 */}
+            <label className="flex items-center justify-between cursor-pointer">
+              <div className="flex items-center gap-2">
+                <Twitter className="w-4 h-4 text-[#1DA1F2]" />
+                <div>
+                  <span className="text-sm text-gray-700">트위터에 공유</span>
+                  <p className="text-xs text-gray-500">다운로드 후 트윗 창이 열려요</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShareToTwitter(!shareToTwitter)}
+                className={cn(
+                  'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
+                  shareToTwitter ? 'bg-[#1DA1F2]' : 'bg-gray-300'
+                )}
+              >
+                <span
+                  className={cn(
+                    'inline-block h-4 w-4 transform rounded-full bg-white transition-transform',
+                    shareToTwitter ? 'translate-x-6' : 'translate-x-1'
+                  )}
+                />
+              </button>
+            </label>
+
+            {/* 크레딧 미리보기 */}
+            {includeCredit && (
+              <div className="mt-3 pt-3 border-t border-primary-100">
+                <p className="text-xs text-gray-500 mb-1">크레딧 미리보기:</p>
+                <p className="text-xs text-gray-600 font-mono bg-white px-2 py-1 rounded">
+                  {getCreditText()}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Error */}
         {error && (
