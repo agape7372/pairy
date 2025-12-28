@@ -7,12 +7,18 @@ import Link from 'next/link'
 import { ArrowLeft, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui'
 import { useUser } from '@/hooks/useUser'
+import { isSupabaseConfigured } from '@/lib/supabase/client'
 
 // 임시 템플릿 데이터
 const templates: Record<string, { title: string; emoji: string }> = {
   '1': { title: '커플 프로필 틀', emoji: '💕' },
   '2': { title: '친구 관계도', emoji: '✨' },
   '3': { title: 'OC 소개 카드', emoji: '🌙' },
+  '4': { title: '베프 케미 틀', emoji: '🍀' },
+  '5': { title: '삼각관계 틀', emoji: '🔺' },
+  '6': { title: '캐릭터 프로필 카드', emoji: '📋' },
+  '7': { title: '팬아트 커플 틀', emoji: '🌸' },
+  '8': { title: '단체 관계도', emoji: '🥥' },
 }
 
 function NewEditorContent() {
@@ -25,6 +31,7 @@ function NewEditorContent() {
   const [isCreating, setIsCreating] = useState(false)
 
   const template = templateId ? templates[templateId] : null
+  const isDemoMode = !isSupabaseConfigured()
 
   useEffect(() => {
     if (template) {
@@ -32,12 +39,12 @@ function NewEditorContent() {
     }
   }, [template])
 
-  // Redirect if not logged in
+  // Redirect if not logged in (데모 모드에서는 스킵)
   useEffect(() => {
-    if (!userLoading && !user) {
+    if (!isDemoMode && !userLoading && !user) {
       router.push(`/login?redirectTo=/editor/new${templateId ? `?template=${templateId}` : ''}`)
     }
-  }, [user, userLoading, router, templateId])
+  }, [user, userLoading, router, templateId, isDemoMode])
 
   const handleCreate = async () => {
     if (!title.trim()) return
