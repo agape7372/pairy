@@ -1,18 +1,25 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { Check, Sparkles, Zap, Crown, ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui'
+import { cn } from '@/lib/utils/cn'
+import { useSubscriptionStore, PRICING } from '@/stores/subscriptionStore'
+import { UpgradeModal } from '@/components/premium/UpgradeModal'
 
-const plans = [
+type BillingCycle = 'monthly' | 'yearly'
+
+const getPlans = (billingCycle: BillingCycle, currentTier: string) => [
   {
     name: '무료',
     price: '₩0',
     period: '',
+    monthlyEquivalent: null,
     description: '가볍게 시작하기',
     features: [
       '기본 틀 이용',
-      '월 3회 내보내기',
+      '월 5회 내보내기',
       '워터마크 포함',
       '2인 협업',
     ],
@@ -20,14 +27,21 @@ const plans = [
       '프리미엄 틀 이용 불가',
       '고해상도 내보내기 불가',
     ],
-    cta: '현재 플랜',
+    cta: currentTier === 'free' ? '현재 플랜' : '무료로 전환',
     variant: 'outline' as const,
-    current: true,
+    current: currentTier === 'free',
+    tier: 'free' as const,
   },
   {
     name: '프리미엄',
-    price: '₩3,900',
-    period: '/월',
+    price: billingCycle === 'yearly'
+      ? `₩${PRICING.premium.yearly.toLocaleString()}`
+      : `₩${PRICING.premium.monthly.toLocaleString()}`,
+    period: billingCycle === 'yearly' ? '/년' : '/월',
+    monthlyEquivalent: billingCycle === 'yearly'
+      ? Math.floor(PRICING.premium.yearly / 12)
+      : null,
+    savings: billingCycle === 'yearly' ? PRICING.premium.yearlySavings : null,
     description: '본격적으로 즐기기',
     features: [
       '모든 틀 이용',
@@ -38,14 +52,22 @@ const plans = [
       '신규 틀 우선 이용',
     ],
     limitations: [],
-    cta: '프리미엄 시작',
+    cta: currentTier === 'premium' ? '현재 플랜' : '프리미엄 시작',
     variant: 'primary' as const,
     popular: true,
+    current: currentTier === 'premium',
+    tier: 'premium' as const,
   },
   {
     name: '크리에이터',
-    price: '₩9,900',
-    period: '/월',
+    price: billingCycle === 'yearly'
+      ? `₩${PRICING.creator.yearly.toLocaleString()}`
+      : `₩${PRICING.creator.monthly.toLocaleString()}`,
+    period: billingCycle === 'yearly' ? '/년' : '/월',
+    monthlyEquivalent: billingCycle === 'yearly'
+      ? Math.floor(PRICING.creator.yearly / 12)
+      : null,
+    savings: billingCycle === 'yearly' ? PRICING.creator.yearlySavings : null,
     description: '틀 제작자를 위한',
     features: [
       '프리미엄 모든 기능',
@@ -56,8 +78,10 @@ const plans = [
       '1:1 전담 지원',
     ],
     limitations: [],
-    cta: '크리에이터 신청',
+    cta: currentTier === 'creator' ? '현재 플랜' : '크리에이터 신청',
     variant: 'accent' as const,
+    current: currentTier === 'creator',
+    tier: 'creator' as const,
   },
 ]
 
@@ -81,6 +105,27 @@ const faqs = [
 ]
 
 export default function PremiumPage() {
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>('yearly')
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+  const [selectedTier, setSelectedTier] = useState<'premium' | 'creator'>('premium')
+  const { subscription, subscribe, isDemoMode } = useSubscriptionStore()
+
+  const plans = getPlans(billingCycle, subscription.tier)
+
+  const handleSelectPlan = (tier: 'free' | 'premium' | 'creator') => {
+    if (tier === 'free' || tier === subscription.tier) return
+
+    if (isDemoMode) {
+      // 데모 모드: 바로 구독 적용
+      subscribe(tier, billingCycle)
+      alert(`${tier === 'premium' ? '프리미엄' : '크리에이터'} 구독이 활성화되었습니다! (데모 모드)`)
+    } else {
+      // 실제 모드: 모달 열기
+      setSelectedTier(tier)
+      setShowUpgradeModal(true)
+    }
+  }
+
   return (
     <div className="animate-fade-in">
       {/* Hero */}
@@ -98,6 +143,35 @@ export default function PremiumPage() {
             <br className="hidden sm:block" />
             더 멋진 작품을 만들어보세요.
           </p>
+
+          {/* Billing Cycle Toggle */}
+          <div className="inline-flex items-center gap-2 p-1 bg-gray-100 rounded-full">
+            <button
+              onClick={() => setBillingCycle('monthly')}
+              className={cn(
+                'px-5 py-2 rounded-full text-sm font-medium transition-all',
+                billingCycle === 'monthly'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+              )}
+            >
+              월간 결제
+            </button>
+            <button
+              onClick={() => setBillingCycle('yearly')}
+              className={cn(
+                'px-5 py-2 rounded-full text-sm font-medium transition-all relative',
+                billingCycle === 'yearly'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+              )}
+            >
+              연간 결제
+              <span className="absolute -top-1 -right-1 px-1.5 py-0.5 bg-accent-400 text-white text-[10px] font-bold rounded-full">
+                2개월 무료
+              </span>
+            </button>
+          </div>
         </div>
       </section>
 
@@ -108,21 +182,30 @@ export default function PremiumPage() {
             {plans.map((plan) => (
               <div
                 key={plan.name}
-                className={`bg-white rounded-[24px] p-6 border-2 transition-all ${
-                  plan.popular
-                    ? 'border-primary-400 shadow-lg scale-105'
+                className={cn(
+                  'bg-white rounded-[24px] p-6 border-2 transition-all',
+                  plan.popular && !plan.current
+                    ? 'border-primary-400 shadow-lg md:scale-105'
+                    : plan.current
+                    ? 'border-green-400 bg-green-50/30'
                     : plan.variant === 'accent'
                     ? 'border-accent-300'
                     : 'border-gray-200'
-                }`}
+                )}
               >
-                {plan.popular && (
+                {plan.current && (
+                  <div className="inline-flex items-center gap-1 px-3 py-1 bg-green-500 text-white text-xs font-medium rounded-full mb-4">
+                    <Check className="w-3 h-3" />
+                    현재 구독 중
+                  </div>
+                )}
+                {plan.popular && !plan.current && (
                   <div className="inline-flex items-center gap-1 px-3 py-1 bg-primary-400 text-white text-xs font-medium rounded-full mb-4">
                     <Crown className="w-3 h-3" />
                     인기
                   </div>
                 )}
-                {plan.variant === 'accent' && !plan.popular && (
+                {plan.variant === 'accent' && !plan.popular && !plan.current && (
                   <div className="inline-flex items-center gap-1 px-3 py-1 bg-accent-400 text-white text-xs font-medium rounded-full mb-4">
                     <Zap className="w-3 h-3" />
                     크리에이터
@@ -130,10 +213,16 @@ export default function PremiumPage() {
                 )}
                 <h3 className="text-xl font-bold text-gray-900">{plan.name}</h3>
                 <p className="text-sm text-gray-500 mb-4">{plan.description}</p>
-                <div className="mb-6">
+                <div className="mb-2">
                   <span className="text-3xl font-bold text-gray-900">{plan.price}</span>
                   <span className="text-gray-500">{plan.period}</span>
                 </div>
+                {plan.monthlyEquivalent && (
+                  <p className="text-sm text-accent-500 mb-4">
+                    월 ₩{plan.monthlyEquivalent.toLocaleString()} · ₩{plan.savings?.toLocaleString()} 절약
+                  </p>
+                )}
+                {!plan.monthlyEquivalent && <div className="h-6 mb-4" />}
 
                 <ul className="space-y-3 mb-6">
                   {plan.features.map((feature) => (
@@ -153,11 +242,7 @@ export default function PremiumPage() {
                   variant={plan.current ? 'ghost' : plan.variant === 'accent' ? 'secondary' : plan.variant}
                   className="w-full"
                   disabled={plan.current}
-                  onClick={() => {
-                    if (!plan.current) {
-                      alert('결제 기능은 준비 중입니다.')
-                    }
-                  }}
+                  onClick={() => handleSelectPlan(plan.tier)}
                 >
                   {plan.cta}
                   {!plan.current && <ArrowRight className="w-4 h-4 ml-1" />}
@@ -165,8 +250,24 @@ export default function PremiumPage() {
               </div>
             ))}
           </div>
+
+          {/* Demo Mode Indicator */}
+          {isDemoMode && (
+            <div className="mt-8 p-4 bg-amber-50 border border-amber-200 rounded-xl text-center">
+              <p className="text-sm text-amber-700">
+                🎮 <span className="font-medium">데모 모드</span>: 플랜을 선택하면 실제 결제 없이 기능을 체험할 수 있어요
+              </p>
+            </div>
+          )}
         </div>
       </section>
+
+      {/* Upgrade Modal */}
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        requiredTier={selectedTier}
+      />
 
       {/* FAQ */}
       <section className="py-12 sm:py-20 px-4 bg-gray-50">
