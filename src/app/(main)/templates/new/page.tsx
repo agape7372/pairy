@@ -16,7 +16,7 @@ import {
   FileImage,
   Sparkles,
 } from 'lucide-react'
-import { Button } from '@/components/ui'
+import { Button, useToast } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
 import { IS_DEMO_MODE } from '@/lib/supabase/client'
 
@@ -46,6 +46,7 @@ interface TemplateField {
 
 export default function NewTemplatePage() {
   const router = useRouter()
+  const toast = useToast()
 
   // 템플릿 기본 정보
   const [title, setTitle] = useState('')
@@ -130,11 +131,11 @@ export default function NewTemplatePage() {
   // 저장
   const handleSave = async () => {
     if (!title.trim()) {
-      alert('템플릿 이름을 입력해주세요.')
+      toast.warning('템플릿 이름을 입력해주세요.')
       return
     }
     if (slots.length === 0) {
-      alert('최소 하나의 슬롯을 추가해주세요.')
+      toast.warning('최소 하나의 슬롯을 추가해주세요.')
       return
     }
 
@@ -143,7 +144,7 @@ export default function NewTemplatePage() {
       if (IS_DEMO_MODE) {
         // 데모 모드: 로컬 저장 시뮬레이션
         await new Promise((resolve) => setTimeout(resolve, 1000))
-        alert('데모 모드에서는 템플릿이 저장되지 않습니다.\n실제 서비스에서는 Supabase에 저장됩니다.')
+        toast.info('데모 모드에서는 템플릿이 저장되지 않습니다.')
         router.push('/templates')
         return
       }
@@ -158,10 +159,11 @@ export default function NewTemplatePage() {
         fields,
       }
       console.log('Template data:', templateData)
+      toast.success('템플릿이 저장되었습니다!')
       router.push('/templates')
     } catch (err) {
       console.error('Failed to save template:', err)
-      alert('저장에 실패했습니다. 다시 시도해주세요.')
+      toast.error('저장에 실패했습니다. 다시 시도해주세요.')
     } finally {
       setIsSaving(false)
     }

@@ -2,8 +2,8 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { X, Crown, Zap, Check, Sparkles } from 'lucide-react'
-import { Button } from '@/components/ui'
+import { X, Crown, Zap, Check, Sparkles, Heart, Users } from 'lucide-react'
+import { Button, useToast } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
 import {
   useSubscriptionStore,
@@ -25,10 +25,11 @@ export function UpgradeModal({
   feature,
   requiredTier = 'premium',
 }: UpgradeModalProps) {
-  const [selectedTier, setSelectedTier] = useState<'premium' | 'creator'>(
-    requiredTier === 'creator' ? 'creator' : 'premium'
+  const [selectedTier, setSelectedTier] = useState<'premium' | 'duo' | 'creator'>(
+    requiredTier === 'creator' ? 'creator' : requiredTier === 'duo' ? 'duo' : 'premium'
   )
   const { subscribe, startTrial, isDemoMode } = useSubscriptionStore()
+  const toast = useToast()
 
   if (!isOpen) return null
 
@@ -38,32 +39,39 @@ export function UpgradeModal({
     if (isDemoMode) {
       // 데모 모드: 바로 구독 적용
       subscribe(selectedTier, 'monthly')
+      const tierName = selectedTier === 'premium' ? '프리미엄' : selectedTier === 'duo' ? '듀오' : '크리에이터'
+      toast.success(`${tierName} 구독이 활성화되었습니다!`)
       onClose()
-      // 성공 토스트 표시
-      alert(`${selectedTier === 'premium' ? '프리미엄' : '크리에이터'} 구독이 활성화되었습니다! (데모 모드)`)
     } else {
       // 실제 모드: 결제 페이지로 이동 (추후 구현)
-      alert('결제 기능은 준비 중입니다.')
+      toast.info('결제 기능은 준비 중입니다.')
     }
   }
 
   const handleStartTrial = () => {
     startTrial()
+    toast.success('7일 무료 체험이 시작되었습니다!')
     onClose()
-    alert('7일 무료 체험이 시작되었습니다! (데모 모드)')
   }
 
   const features = {
     premium: [
-      '모든 프리미엄 틀 이용',
-      '무제한 내보내기',
+      '모든 프리미엄 자료 이용',
+      '무제한 다운로드 & 내보내기',
       '워터마크 제거',
       '고해상도 (2x) 내보내기',
       '우선 고객 지원',
     ],
+    duo: [
+      '프리미엄 모든 기능',
+      '2인 동시 이용',
+      '공유 서재 & 폴더',
+      `매월 ${PRICING.duo.bonusCredits} 보너스 크레딧`,
+      '듀오 전용 배지',
+    ],
     creator: [
       '프리미엄 모든 기능',
-      '틀 업로드 무제한',
+      '자료 업로드 무제한',
       '수익 배분 70%',
       '크리에이터 뱃지',
       '분석 대시보드',
@@ -106,37 +114,53 @@ export function UpgradeModal({
         </div>
 
         {/* Tier Selection */}
-        <div className="grid grid-cols-2 gap-3 mb-6">
+        <div className="grid grid-cols-3 gap-2 mb-6">
           <button
             onClick={() => setSelectedTier('premium')}
             className={cn(
-              'p-4 rounded-xl border-2 transition-all text-left',
+              'p-3 rounded-xl border-2 transition-all text-left',
               selectedTier === 'premium'
                 ? 'border-primary-400 bg-primary-50'
                 : 'border-gray-200 hover:border-gray-300'
             )}
           >
-            <div className="flex items-center gap-2 mb-1">
+            <div className="flex items-center gap-1.5 mb-1">
               <Sparkles className="w-4 h-4 text-primary-400" />
-              <span className="font-semibold text-gray-900">프리미엄</span>
+              <span className="font-semibold text-gray-900 text-sm">프리미엄</span>
             </div>
-            <p className="text-xs text-gray-500">본격적으로 즐기기</p>
+            <p className="text-xs text-gray-500">본격적으로</p>
+          </button>
+
+          <button
+            onClick={() => setSelectedTier('duo')}
+            className={cn(
+              'p-3 rounded-xl border-2 transition-all text-left',
+              selectedTier === 'duo'
+                ? 'border-pink-400 bg-pink-50'
+                : 'border-gray-200 hover:border-gray-300'
+            )}
+          >
+            <div className="flex items-center gap-1.5 mb-1">
+              <Heart className="w-4 h-4 text-pink-400" />
+              <span className="font-semibold text-gray-900 text-sm">듀오</span>
+            </div>
+            <p className="text-xs text-gray-500">페어와 함께</p>
           </button>
 
           <button
             onClick={() => setSelectedTier('creator')}
             className={cn(
-              'p-4 rounded-xl border-2 transition-all text-left',
+              'p-3 rounded-xl border-2 transition-all text-left',
               selectedTier === 'creator'
-                ? 'border-accent-400 bg-accent-50'
+                ? 'border-amber-400 bg-amber-50'
                 : 'border-gray-200 hover:border-gray-300'
             )}
           >
-            <div className="flex items-center gap-2 mb-1">
-              <Zap className="w-4 h-4 text-accent-400" />
-              <span className="font-semibold text-gray-900">크리에이터</span>
+            <div className="flex items-center gap-1.5 mb-1">
+              <Crown className="w-4 h-4 text-amber-500" />
+              <span className="font-semibold text-gray-900 text-sm">크리에이터</span>
             </div>
-            <p className="text-xs text-gray-500">틀 제작자를 위한</p>
+            <p className="text-xs text-gray-500">제작자용</p>
           </button>
         </div>
 
@@ -169,7 +193,7 @@ export function UpgradeModal({
             className="w-full"
             onClick={handleSubscribe}
           >
-            {selectedTier === 'premium' ? '프리미엄' : '크리에이터'} 시작하기
+            {selectedTier === 'premium' ? '프리미엄' : selectedTier === 'duo' ? '듀오' : '크리에이터'} 시작하기
           </Button>
 
           <Button

@@ -12,6 +12,7 @@ import {
   ArrowRight,
   AlertCircle,
   Gift,
+  Heart,
 } from 'lucide-react'
 import { Button } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
@@ -23,7 +24,13 @@ import {
 } from '@/stores/subscriptionStore'
 import { UpgradeModal } from '@/components/premium/UpgradeModal'
 
-const tierInfo = {
+const tierInfo: Record<SubscriptionTier, {
+  name: string
+  icon: typeof Sparkles
+  color: string
+  bgColor: string
+  borderColor: string
+}> = {
   free: {
     name: '무료',
     icon: Sparkles,
@@ -37,6 +44,13 @@ const tierInfo = {
     color: 'text-primary-500',
     bgColor: 'bg-primary-50',
     borderColor: 'border-primary-200',
+  },
+  duo: {
+    name: '듀오',
+    icon: Heart,
+    color: 'text-pink-500',
+    bgColor: 'bg-pink-50',
+    borderColor: 'border-pink-200',
   },
   creator: {
     name: '크리에이터',
@@ -97,7 +111,8 @@ export default function SubscriptionPage() {
               <div className={cn(
                 'w-12 h-12 rounded-full flex items-center justify-center',
                 subscription.tier === 'free' ? 'bg-gray-200' :
-                subscription.tier === 'premium' ? 'bg-primary-200' : 'bg-accent-200'
+                subscription.tier === 'premium' ? 'bg-primary-200' :
+                subscription.tier === 'duo' ? 'bg-pink-200' : 'bg-accent-200'
               )}>
                 <TierIcon className={cn('w-6 h-6', currentTier.color)} />
               </div>
@@ -262,8 +277,8 @@ export default function SubscriptionPage() {
           <p className="text-sm text-amber-600 mb-3">
             구독 티어를 변경해서 각 플랜의 기능을 테스트해보세요.
           </p>
-          <div className="flex gap-2">
-            {(['free', 'premium', 'creator'] as SubscriptionTier[]).map((tier) => (
+          <div className="flex gap-2 flex-wrap">
+            {(['free', 'premium', 'duo', 'creator'] as SubscriptionTier[]).map((tier) => (
               <button
                 key={tier}
                 onClick={() => setDemoTier(tier)}

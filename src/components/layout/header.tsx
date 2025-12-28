@@ -2,18 +2,29 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Menu, X, User, LogOut } from 'lucide-react'
+import { Menu, X, User, LogOut, Library, Sparkles, PenTool, Heart } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
 import { useUser } from '@/hooks/useUser'
 import { NotificationBell } from '@/components/notifications/NotificationPanel'
+import { useSubscriptionStore } from '@/stores/subscriptionStore'
 
+// 허브 중심 네비게이션
 const navLinks = [
-  { href: '/templates', label: '틀 둘러보기' },
-  { href: '/my/works', label: '내 작업' },
-  { href: '/premium', label: '프리미엄' },
+  { href: '/templates', label: '자료 허브', icon: Library },
+  { href: '/my/library', label: '내 서재', icon: Heart },
+  { href: '/editor/new', label: '에디터', icon: PenTool },
+  { href: '/premium', label: '프리미엄', icon: Sparkles },
 ]
+
+// 티어별 배지 색상
+const tierBadgeColors: Record<string, string> = {
+  free: '',
+  premium: 'bg-gradient-to-r from-primary-400 to-accent-400',
+  duo: 'bg-gradient-to-r from-pink-400 to-rose-400',
+  creator: 'bg-gradient-to-r from-amber-400 to-orange-400',
+}
 
 export function Header() {
   const pathname = usePathname()
@@ -22,6 +33,7 @@ export function Header() {
   const [showUserMenu, setShowUserMenu] = useState(false)
 
   const { user, profile, isLoading, signOut } = useUser()
+  const { subscription } = useSubscriptionStore()
 
   const handleSignOut = async () => {
     await signOut()
@@ -42,19 +54,24 @@ export function Header() {
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-8">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={cn(
-                  'text-sm font-medium transition-colors hover:text-primary-400',
-                  pathname === link.href ? 'text-primary-400' : 'text-gray-700'
-                )}
-              >
-                {link.label}
-              </Link>
-            ))}
+          <nav className="hidden md:flex items-center gap-6">
+            {navLinks.map((link) => {
+              const Icon = link.icon
+              const isActive = pathname === link.href || pathname.startsWith(link.href + '/')
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={cn(
+                    'flex items-center gap-1.5 text-sm font-medium transition-colors hover:text-primary-400',
+                    isActive ? 'text-primary-400' : 'text-gray-700'
+                  )}
+                >
+                  <Icon className="w-4 h-4" />
+                  {link.label}
+                </Link>
+              )
+            })}
           </nav>
 
           {/* Desktop Auth */}
@@ -66,16 +83,25 @@ export function Header() {
                 {/* Notification Bell */}
                 <NotificationBell />
 
-                {/* User Avatar */}
+                {/* User Avatar with Tier Badge */}
                 <div className="relative">
                 <button
                   onClick={() => setShowUserMenu(!showUserMenu)}
-                  className="w-9 h-9 rounded-full bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center overflow-hidden hover:ring-2 hover:ring-primary-300 transition-all"
+                  className="relative w-9 h-9 rounded-full bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center overflow-hidden hover:ring-2 hover:ring-primary-300 transition-all"
                 >
                   {profile?.avatar_url ? (
                     <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
                   ) : (
                     <User className="w-5 h-5 text-gray-600" />
+                  )}
+                  {/* Tier Badge */}
+                  {subscription.tier !== 'free' && (
+                    <span className={cn(
+                      'absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full flex items-center justify-center text-white text-[8px] font-bold border-2 border-white',
+                      tierBadgeColors[subscription.tier]
+                    )}>
+                      {subscription.tier === 'duo' ? '2' : subscription.tier === 'creator' ? 'C' : 'P'}
+                    </span>
                   )}
                 </button>
 
@@ -155,32 +181,38 @@ export function Header() {
             )}
 
             <nav className="flex flex-col gap-2">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={cn(
-                    'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
-                    pathname === link.href
-                      ? 'bg-primary-100 text-primary-700'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  )}
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  {link.label}
-                </Link>
-              ))}
+              {navLinks.map((link) => {
+                const Icon = link.icon
+                const isActive = pathname === link.href || pathname.startsWith(link.href + '/')
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className={cn(
+                      'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+                      isActive
+                        ? 'bg-primary-100 text-primary-700'
+                        : 'text-gray-700 hover:bg-gray-100'
+                    )}
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <Icon className="w-4 h-4" />
+                    {link.label}
+                  </Link>
+                )
+              })}
               {user && (
                 <Link
                   href="/my"
                   className={cn(
-                    'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+                    'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors',
                     pathname === '/my'
                       ? 'bg-primary-100 text-primary-700'
                       : 'text-gray-700 hover:bg-gray-100'
                   )}
                   onClick={() => setMobileMenuOpen(false)}
                 >
+                  <User className="w-4 h-4" />
                   마이페이지
                 </Link>
               )}
