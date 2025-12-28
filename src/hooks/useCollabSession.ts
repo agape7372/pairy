@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 
 // 세션 상태 타입
@@ -80,19 +80,26 @@ export function useCollabSession(options: UseCollabSessionOptions = {}): UseColl
 
   // 현재 사용자 정보 가져오기
   useEffect(() => {
+    // Supabase 설정이 없으면 스킵
+    if (!isSupabaseConfigured()) return
+
     const fetchUser = async () => {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        // profiles 테이블에서 id 가져오기
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('user_id', user.id)
-          .single()
-        if (profile) {
-          setCurrentUserId(profile.id)
+      try {
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+          // profiles 테이블에서 id 가져오기
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('user_id', user.id)
+            .single()
+          if (profile) {
+            setCurrentUserId(profile.id)
+          }
         }
+      } catch (error) {
+        console.error('Error fetching user:', error)
       }
     }
     fetchUser()

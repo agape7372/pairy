@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import type { User } from '@supabase/supabase-js'
 
 interface Profile {
@@ -24,6 +24,12 @@ export function useUser(): UseUserReturn {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
+    // Supabase 설정이 없으면 데모 모드로 동작
+    if (!isSupabaseConfigured()) {
+      setIsLoading(false)
+      return
+    }
+
     const supabase = createClient()
 
     // Get initial session
@@ -77,6 +83,8 @@ export function useUser(): UseUserReturn {
   }, [])
 
   const signOut = async () => {
+    if (!isSupabaseConfigured()) return
+
     const supabase = createClient()
     await supabase.auth.signOut()
     setUser(null)
