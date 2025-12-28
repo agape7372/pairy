@@ -601,42 +601,34 @@ export default function EditorClient({ workId }: EditorClientProps) {
                 })}
               </div>
 
-              {/* 슬롯 선택 */}
-              <div className="flex gap-2 mb-4">
-                {currentTemplate.slots.map((slot) => (
-                  <button
-                    key={slot.id}
-                    onClick={() => setSelectedSlot(slot.id)}
-                    className={cn(
-                      'flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors',
-                      selectedSlot === slot.id
-                        ? 'bg-primary-400 text-white'
-                        : 'bg-gray-100 text-gray-600'
-                    )}
-                  >
-                    {slot.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* 이미지 업로드 */}
-              {selectedSlot && (
+              {/* 툴별 패널 내용 */}
+              {selectedTool === 'select' && (
                 <div className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-2">
-                      프로필 이미지
-                    </label>
-                    <ImageUpload
-                      value={slotImages[selectedSlot]}
-                      onChange={handleSlotImageChange}
-                      onUpload={handleSlotImageUpload}
-                      shape="square"
-                      size="md"
-                      placeholder="이미지 업로드"
-                    />
+                  <p className="text-xs text-gray-500">편집할 슬롯을 선택하세요</p>
+                  <div className="flex gap-2">
+                    {currentTemplate.slots.map((slot) => (
+                      <button
+                        key={slot.id}
+                        onClick={() => setSelectedSlot(slot.id)}
+                        className={cn(
+                          'flex-1 py-3 px-3 rounded-xl text-sm font-medium transition-colors',
+                          selectedSlot === slot.id
+                            ? 'bg-primary-400 text-white'
+                            : 'bg-gray-100 text-gray-600'
+                        )}
+                      >
+                        {slot.label}
+                      </button>
+                    ))}
                   </div>
+                </div>
+              )}
 
-                  {/* Fields */}
+              {selectedTool === 'text' && selectedSlot && (
+                <div className="space-y-4">
+                  <p className="text-xs text-gray-500">
+                    {currentTemplate.slots.find(s => s.id === selectedSlot)?.label}의 정보를 입력하세요
+                  </p>
                   {currentSlotFields.map((field) => (
                     <div key={field.id}>
                       <label className="block text-xs font-medium text-gray-500 mb-1">
@@ -651,6 +643,46 @@ export default function EditorClient({ workId }: EditorClientProps) {
                       />
                     </div>
                   ))}
+                </div>
+              )}
+
+              {selectedTool === 'image' && selectedSlot && (
+                <div className="space-y-4">
+                  <p className="text-xs text-gray-500">
+                    {currentTemplate.slots.find(s => s.id === selectedSlot)?.label}의 이미지를 업로드하세요
+                  </p>
+                  <ImageUpload
+                    value={slotImages[selectedSlot]}
+                    onChange={handleSlotImageChange}
+                    onUpload={handleSlotImageUpload}
+                    shape="square"
+                    size="lg"
+                    placeholder="이미지 업로드"
+                  />
+                </div>
+              )}
+
+              {selectedTool === 'color' && (
+                <div className="space-y-4">
+                  <p className="text-xs text-gray-500">배경 색상을 선택하세요</p>
+                  <div className="grid grid-cols-5 gap-2">
+                    {['#FFD9D9', '#D7FAFA', '#FFF3D9', '#E8D9FF', '#D9FFE8', '#FFD9F3', '#D9E8FF', '#FFFFFF'].map((color) => (
+                      <button
+                        key={color}
+                        className="w-12 h-12 rounded-xl border-2 border-gray-200 hover:border-primary-400 transition-colors"
+                        style={{ backgroundColor: color }}
+                        onClick={() => {/* TODO: 배경색 변경 */}}
+                      />
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-400 text-center">색상 변경 기능은 준비 중이에요</p>
+                </div>
+              )}
+
+              {/* 슬롯 미선택 시 안내 */}
+              {(selectedTool === 'text' || selectedTool === 'image') && !selectedSlot && (
+                <div className="text-center py-8">
+                  <p className="text-gray-400">먼저 슬롯을 선택해주세요</p>
                 </div>
               )}
             </div>
