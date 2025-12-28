@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useCallback } from 'react'
 import { useEditorStore } from '@/stores/editorStore'
-import { createClient } from '@/lib/supabase/client'
+import { createClient, IS_DEMO_MODE } from '@/lib/supabase/client'
 
 interface UseAutoSaveOptions {
   interval?: number // 자동저장 간격 (ms)
@@ -41,6 +41,14 @@ export function useAutoSave(options: UseAutoSaveOptions = {}) {
     // 변경사항이 없으면 저장하지 않음
     const currentState = exportToJSON()
     if (currentState === lastSaveRef.current) return false
+
+    // 데모 모드: 로컬에만 저장된 것처럼 표시
+    if (IS_DEMO_MODE) {
+      lastSaveRef.current = currentState
+      markSaved()
+      onSaveSuccess?.()
+      return true
+    }
 
     try {
       setSaving(true)

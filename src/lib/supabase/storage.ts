@@ -1,4 +1,4 @@
-import { createClient } from './client'
+import { createClient, IS_DEMO_MODE } from './client'
 
 export type StorageBucket = 'avatars' | 'works' | 'templates'
 
@@ -19,6 +19,12 @@ interface UploadResult {
  */
 export async function uploadFile(options: UploadOptions): Promise<UploadResult> {
   const { bucket, path, file, upsert = true } = options
+
+  // 데모 모드: 로컬 Blob URL 반환
+  if (IS_DEMO_MODE) {
+    const url = URL.createObjectURL(file)
+    return { url, error: null }
+  }
 
   try {
     const supabase = createClient()
@@ -65,6 +71,11 @@ export async function uploadFile(options: UploadOptions): Promise<UploadResult> 
  * 파일 삭제
  */
 export async function deleteFile(bucket: StorageBucket, path: string): Promise<boolean> {
+  // 데모 모드: 항상 성공 반환
+  if (IS_DEMO_MODE) {
+    return true
+  }
+
   try {
     const supabase = createClient()
 
