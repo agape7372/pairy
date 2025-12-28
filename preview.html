@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pairy - 페어를 완성하는 마법</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: {
+              100: '#FFF0F0',
+              200: '#FFD9D9',
+              300: '#FFB8B8',
+              400: '#FF9999',
+              500: '#FF7A7A',
+            },
+            accent: {
+              100: '#F0FAFA',
+              200: '#D7FAFA',
+              300: '#B8F0F0',
+              400: '#7DD4D4',
+              500: '#5CBCBC',
+            },
+            success: '#22C55E',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @keyframes fade-in {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in { animation: fade-in 0.5s ease-out; }
+  </style>
+</head>
+<body class="bg-white">
+  <div class="animate-fade-in">
+    <!-- Hero Section -->
+    <section class="relative py-12 sm:py-20 px-4 overflow-hidden">
+      <!-- Background decorations -->
+      <div class="absolute top-20 left-0 sm:left-10 w-48 sm:w-72 h-48 sm:h-72 bg-primary-200/30 rounded-full blur-3xl"></div>
+      <div class="absolute bottom-10 right-0 sm:right-10 w-64 sm:w-96 h-64 sm:h-96 bg-accent-200/30 rounded-full blur-3xl"></div>
+
+      <div class="relative max-w-[900px] mx-auto text-center">
+        <!-- Badge -->
+        <div class="inline-flex items-center gap-2 px-4 py-2 bg-primary-100 rounded-full text-sm text-primary-500 mb-6">
+          <span>⚡</span>
+          <span>자캐러를 위한 페어틀 플랫폼</span>
+        </div>
+
+        <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 mb-6 leading-tight">
+          함께 채우는
+          <span class="text-transparent bg-clip-text bg-gradient-to-r from-primary-400 to-accent-400">
+            우리만의
+          </span>
+          이야기
+        </h1>
+        <p class="text-lg sm:text-xl text-gray-500 mb-8 max-w-[600px] mx-auto">
+          자캐 페어틀을 웹에서 바로 편집하고,
+          <br class="hidden sm:block" />
+          친구와 실시간으로 함께 완성해요.
+        </p>
+        <div class="flex flex-wrap gap-4 justify-center">
+          <button class="px-6 py-3 bg-primary-400 text-white rounded-xl font-medium hover:bg-primary-500 transition-colors flex items-center gap-2">
+            틀 둘러보기 <span>→</span>
+          </button>
+          <button class="px-6 py-3 border-2 border-gray-200 rounded-xl font-medium hover:border-primary-400 transition-colors">
+            무료로 시작하기
+          </button>
+        </div>
+
+        <!-- Hero Visual -->
+        <div class="mt-10 sm:mt-16 relative">
+          <div class="bg-white rounded-[16px] sm:rounded-[24px] shadow-xl border border-gray-200 overflow-hidden mx-auto max-w-[700px]">
+            <div class="bg-gradient-to-br from-primary-100 to-accent-100 aspect-video flex items-center justify-center relative p-4">
+              <!-- Mock Editor UI -->
+              <div class="flex gap-2 sm:gap-4 scale-75 sm:scale-100">
+                <div class="w-28 sm:w-40 h-40 sm:h-56 bg-white/80 backdrop-blur rounded-xl sm:rounded-2xl shadow-lg p-2 sm:p-3 transform -rotate-3">
+                  <div class="w-8 sm:w-12 h-8 sm:h-12 mx-auto mb-1.5 sm:mb-2 rounded-full bg-gradient-to-br from-primary-200 to-primary-300 flex items-center justify-center text-lg sm:text-2xl">
+                    👧
+                  </div>
+                  <div class="h-1.5 sm:h-2 bg-gray-200 rounded mb-1 sm:mb-1.5"></div>
+                  <div class="h-1.5 sm:h-2 bg-gray-200 rounded w-3/4 mx-auto mb-1 sm:mb-1.5"></div>
+                  <div class="h-1.5 sm:h-2 bg-primary-200 rounded w-1/2 mx-auto"></div>
+                </div>
+                <div class="text-3xl sm:text-5xl self-center">💕</div>
+                <div class="w-28 sm:w-40 h-40 sm:h-56 bg-white/80 backdrop-blur rounded-xl sm:rounded-2xl shadow-lg p-2 sm:p-3 transform rotate-3">
+                  <div class="w-8 sm:w-12 h-8 sm:h-12 mx-auto mb-1.5 sm:mb-2 rounded-full bg-gradient-to-br from-accent-200 to-accent-300 flex items-center justify-center text-lg sm:text-2xl">
+                    👦
+                  </div>
+                  <div class="h-1.5 sm:h-2 bg-gray-200 rounded mb-1 sm:mb-1.5"></div>
+                  <div class="h-1.5 sm:h-2 bg-gray-200 rounded w-3/4 mx-auto mb-1 sm:mb-1.5"></div>
+                  <div class="h-1.5 sm:h-2 bg-accent-200 rounded w-1/2 mx-auto"></div>
+                </div>
+              </div>
+
+              <!-- Floating cursors - hidden on mobile -->
+              <div class="hidden sm:flex absolute top-10 right-20 items-center gap-1 animate-pulse">
+                <div class="w-4 h-4 bg-primary-400 rounded-full"></div>
+                <span class="text-xs bg-primary-400 text-white px-1.5 py-0.5 rounded">민지</span>
+              </div>
+              <div class="hidden sm:flex absolute bottom-16 left-24 items-center gap-1 animate-pulse">
+                <div class="w-4 h-4 bg-accent-400 rounded-full"></div>
+                <span class="text-xs bg-accent-400 text-white px-1.5 py-0.5 rounded">수아</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="flex justify-center gap-6 sm:gap-16 mt-10 sm:mt-16 pt-6 sm:pt-8 border-t border-gray-200">
+          <div class="text-center">
+            <div class="text-xl sm:text-3xl font-bold text-primary-400">1,200+</div>
+            <div class="text-xs sm:text-sm text-gray-500">틀 템플릿</div>
+          </div>
+          <div class="text-center">
+            <div class="text-xl sm:text-3xl font-bold text-primary-400">8,500+</div>
+            <div class="text-xs sm:text-sm text-gray-500">완성된 작품</div>
+          </div>
+          <div class="text-center">
+            <div class="text-xl sm:text-3xl font-bold text-primary-400">3,200+</div>
+            <div class="text-xs sm:text-sm text-gray-500">크리에이터</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- How it works -->
+    <section class="py-12 sm:py-20 px-4 bg-gradient-to-b from-white to-gray-50">
+      <div class="max-w-[1000px] mx-auto">
+        <div class="text-center mb-8 sm:mb-12">
+          <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 sm:mb-3">
+            <span class="text-accent-400">3단계</span>로 완성하는 페어틀
+          </h2>
+          <p class="text-sm sm:text-base text-gray-500">누구나 쉽게 시작할 수 있어요</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-8">
+          <div class="bg-white rounded-[16px] sm:rounded-[20px] p-4 sm:p-6 border border-gray-200 hover:shadow-lg transition-shadow">
+            <div class="flex items-center gap-3 sm:gap-4 mb-3 sm:mb-4">
+              <div class="w-12 sm:w-14 h-12 sm:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center">
+                🎨
+              </div>
+              <span class="text-3xl sm:text-4xl font-bold text-gray-200">01</span>
+            </div>
+            <h3 class="text-base sm:text-lg font-semibold text-gray-900 mb-1.5 sm:mb-2">틀 선택하기</h3>
+            <p class="text-xs sm:text-sm text-gray-500">마음에 드는 페어틀을 선택해요</p>
+          </div>
+
+          <div class="bg-white rounded-[16px] sm:rounded-[20px] p-4 sm:p-6 border border-gray-200 hover:shadow-lg transition-shadow">
+            <div class="flex items-center gap-3 sm:gap-4 mb-3 sm:mb-4">
+              <div class="w-12 sm:w-14 h-12 sm:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center">
+                👥
+              </div>
+              <span class="text-3xl sm:text-4xl font-bold text-gray-200">02</span>
+            </div>
+            <h3 class="text-base sm:text-lg font-semibold text-gray-900 mb-1.5 sm:mb-2">함께 채우기</h3>
+            <p class="text-xs sm:text-sm text-gray-500">친구를 초대하고 함께 편집해요</p>
+          </div>
+
+          <div class="bg-white rounded-[16px] sm:rounded-[20px] p-4 sm:p-6 border border-gray-200 hover:shadow-lg transition-shadow">
+            <div class="flex items-center gap-3 sm:gap-4 mb-3 sm:mb-4">
+              <div class="w-12 sm:w-14 h-12 sm:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center">
+                📤
+              </div>
+              <span class="text-3xl sm:text-4xl font-bold text-gray-200">03</span>
+            </div>
+            <h3 class="text-base sm:text-lg font-semibold text-gray-900 mb-1.5 sm:mb-2">저장하고 공유</h3>
+            <p class="text-xs sm:text-sm text-gray-500">완성된 작품을 저장하고 자랑해요</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Templates Section -->
+    <section class="py-12 sm:py-20 px-4">
+      <div class="max-w-[1200px] mx-auto">
+        <div class="flex justify-between items-center mb-6 sm:mb-8">
+          <div>
+            <h2 class="text-xl sm:text-2xl font-bold text-gray-900">
+              인기 <span class="text-accent-400">틀</span>
+            </h2>
+            <p class="text-gray-500 text-xs sm:text-sm mt-1">지금 가장 사랑받는 템플릿들</p>
+          </div>
+          <a href="#" class="text-xs sm:text-sm font-medium text-primary-400 hover:text-primary-500 transition-colors flex items-center gap-1">
+            모두 보기 <span>→</span>
+          </a>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+          <div class="group bg-white rounded-[20px] overflow-hidden border border-gray-200 hover:shadow-lg transition-all duration-200 hover:-translate-y-1">
+            <div class="aspect-[4/3] bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center text-5xl">💕</div>
+            <div class="p-4">
+              <h3 class="font-semibold text-gray-900 mb-2">커플 프로필 틀</h3>
+              <div class="flex items-center gap-3 text-sm text-gray-500 mb-3">
+                <span class="flex items-center gap-1">❤️ 1,234</span>
+                <span>by 딸기크림</span>
+              </div>
+              <div class="flex gap-2">
+                <span class="px-2 py-1 bg-primary-100 text-primary-500 text-xs rounded-full">커플</span>
+                <span class="px-2 py-1 bg-accent-100 text-accent-500 text-xs rounded-full">2인용</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="group bg-white rounded-[20px] overflow-hidden border border-gray-200 hover:shadow-lg transition-all duration-200 hover:-translate-y-1">
+            <div class="aspect-[4/3] bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center text-5xl">✨</div>
+            <div class="p-4">
+              <h3 class="font-semibold text-gray-900 mb-2">친구 관계도</h3>
+              <div class="flex items-center gap-3 text-sm text-gray-500 mb-3">
+                <span class="flex items-center gap-1">❤️ 892</span>
+                <span>by 페어리</span>
+              </div>
+              <div class="flex gap-2">
+                <span class="px-2 py-1 bg-primary-100 text-primary-500 text-xs rounded-full">친구</span>
+                <span class="px-2 py-1 bg-accent-100 text-accent-500 text-xs rounded-full">관계도</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="group bg-white rounded-[20px] overflow-hidden border border-gray-200 hover:shadow-lg transition-all duration-200 hover:-translate-y-1">
+            <div class="aspect-[4/3] bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center text-5xl">🌙</div>
+            <div class="p-4">
+              <h3 class="font-semibold text-gray-900 mb-2">OC 소개 카드</h3>
+              <div class="flex items-center gap-3 text-sm text-gray-500 mb-3">
+                <span class="flex items-center gap-1">❤️ 567</span>
+                <span>by 문라이트</span>
+              </div>
+              <div class="flex gap-2">
+                <span class="px-2 py-1 bg-primary-100 text-primary-500 text-xs rounded-full">프로필</span>
+                <span class="px-2 py-1 bg-accent-100 text-accent-500 text-xs rounded-full">1인용</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="py-12 sm:py-20 px-4 bg-gray-50">
+      <div class="max-w-[1200px] mx-auto">
+        <div class="text-center mb-8 sm:mb-12">
+          <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 sm:mb-3">
+            왜 <span class="text-primary-400">페어리</span>인가요?
+          </h2>
+          <p class="text-sm sm:text-base text-gray-500">자캐러를 위해 설계된 기능들</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-8">
+          <div class="bg-white rounded-[16px] sm:rounded-[20px] p-4 sm:p-6 border border-gray-200 hover:shadow-lg transition-shadow text-center">
+            <div class="w-12 sm:w-16 h-12 sm:h-16 mx-auto mb-3 sm:mb-4 rounded-[16px] sm:rounded-[20px] flex items-center justify-center bg-primary-100 text-2xl">
+              ✨
+            </div>
+            <h3 class="text-base sm:text-lg font-semibold text-gray-900 mb-1.5 sm:mb-2">웹에서 바로 편집</h3>
+            <p class="text-xs sm:text-sm text-gray-500">포토샵 없이도 예쁜 결과물을 만들 수 있어요</p>
+          </div>
+
+          <div class="bg-white rounded-[16px] sm:rounded-[20px] p-4 sm:p-6 border border-gray-200 hover:shadow-lg transition-shadow text-center">
+            <div class="w-12 sm:w-16 h-12 sm:h-16 mx-auto mb-3 sm:mb-4 rounded-[16px] sm:rounded-[20px] flex items-center justify-center bg-accent-100 text-2xl">
+              👥
+            </div>
+            <h3 class="text-base sm:text-lg font-semibold text-gray-900 mb-1.5 sm:mb-2">실시간 협업</h3>
+            <p class="text-xs sm:text-sm text-gray-500">친구와 함께 동시에 편집할 수 있어요</p>
+          </div>
+
+          <div class="bg-white rounded-[16px] sm:rounded-[20px] p-4 sm:p-6 border border-gray-200 hover:shadow-lg transition-shadow text-center">
+            <div class="w-12 sm:w-16 h-12 sm:h-16 mx-auto mb-3 sm:mb-4 rounded-[16px] sm:rounded-[20px] flex items-center justify-center bg-primary-100 text-2xl">
+              📥
+            </div>
+            <h3 class="text-base sm:text-lg font-semibold text-gray-900 mb-1.5 sm:mb-2">고화질 저장</h3>
+            <p class="text-xs sm:text-sm text-gray-500">완성된 작품을 PNG로 다운로드해요</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section class="py-12 sm:py-20 px-4">
+      <div class="max-w-[1200px] mx-auto">
+        <div class="text-center mb-8 sm:mb-12">
+          <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 sm:mb-3">
+            사용자들의 <span class="text-accent-400">이야기</span>
+          </h2>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+          <div class="bg-white rounded-[16px] sm:rounded-[20px] p-4 sm:p-6 border border-gray-200">
+            <p class="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">"드디어 포토샵 없이도 페어틀을 채울 수 있어요! 친구랑 실시간으로 하니까 더 재밌어요 💕"</p>
+            <div class="flex items-center gap-3">
+              <div class="w-8 sm:w-10 h-8 sm:h-10 rounded-full bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center text-base sm:text-xl">
+                🧚
+              </div>
+              <div>
+                <div class="text-sm sm:text-base font-medium text-gray-900">민지</div>
+                <div class="text-xs sm:text-sm text-gray-500">트위터 자캐러</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-[16px] sm:rounded-[20px] p-4 sm:p-6 border border-gray-200">
+            <p class="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">"제가 만든 틀을 다른 분들이 사용하는 걸 보니 뿌듯해요. 수익화도 기대되고요!"</p>
+            <div class="flex items-center gap-3">
+              <div class="w-8 sm:w-10 h-8 sm:h-10 rounded-full bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center text-base sm:text-xl">
+                🎨
+              </div>
+              <div>
+                <div class="text-sm sm:text-base font-medium text-gray-900">수아</div>
+                <div class="text-xs sm:text-sm text-gray-500">틀 크리에이터</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-[16px] sm:rounded-[20px] p-4 sm:p-6 border border-gray-200">
+            <p class="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">"모바일에서도 잘 되고, UI도 예뻐서 계속 쓰게 돼요. 최고예요!"</p>
+            <div class="flex items-center gap-3">
+              <div class="w-8 sm:w-10 h-8 sm:h-10 rounded-full bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center text-base sm:text-xl">
+                ✨
+              </div>
+              <div>
+                <div class="text-sm sm:text-base font-medium text-gray-900">하늘</div>
+                <div class="text-xs sm:text-sm text-gray-500">OC 창작러</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Pricing Preview -->
+    <section class="py-12 sm:py-20 px-4 bg-gray-50">
+      <div class="max-w-[900px] mx-auto">
+        <div class="text-center mb-8 sm:mb-12">
+          <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 sm:mb-3">
+            심플한 <span class="text-primary-400">요금제</span>
+          </h2>
+          <p class="text-sm sm:text-base text-gray-500">필요한 만큼만 사용하세요</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+          <div class="bg-white rounded-[20px] sm:rounded-[24px] p-5 sm:p-6 border-2 border-gray-200">
+            <h3 class="text-lg sm:text-xl font-bold text-gray-900">무료</h3>
+            <p class="text-xs sm:text-sm text-gray-500 mb-3 sm:mb-4">가볍게 시작하기</p>
+            <div class="mb-4 sm:mb-6">
+              <span class="text-2xl sm:text-3xl font-bold text-gray-900">₩0</span>
+            </div>
+            <ul class="space-y-2 sm:space-y-3 mb-4 sm:mb-6">
+              <li class="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
+                <span class="text-success">✓</span> 기본 틀 이용
+              </li>
+              <li class="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
+                <span class="text-success">✓</span> 월 3회 내보내기
+              </li>
+              <li class="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
+                <span class="text-success">✓</span> 워터마크 포함
+              </li>
+              <li class="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
+                <span class="text-success">✓</span> 2인 협업
+              </li>
+            </ul>
+            <button class="w-full px-4 py-2 border-2 border-gray-200 rounded-xl font-medium hover:border-primary-400 transition-colors">
+              무료로 시작
+            </button>
+          </div>
+
+          <div class="bg-white rounded-[20px] sm:rounded-[24px] p-5 sm:p-6 border-2 border-primary-400 shadow-lg">
+            <div class="inline-block px-3 py-1 bg-primary-400 text-white text-xs font-medium rounded-full mb-3 sm:mb-4">
+              인기
+            </div>
+            <h3 class="text-lg sm:text-xl font-bold text-gray-900">프리미엄</h3>
+            <p class="text-xs sm:text-sm text-gray-500 mb-3 sm:mb-4">본격적으로 즐기기</p>
+            <div class="mb-4 sm:mb-6">
+              <span class="text-2xl sm:text-3xl font-bold text-gray-900">₩3,900</span>
+              <span class="text-sm sm:text-base text-gray-500">/월</span>
+            </div>
+            <ul class="space-y-2 sm:space-y-3 mb-4 sm:mb-6">
+              <li class="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
+                <span class="text-success">✓</span> 모든 틀 이용
+              </li>
+              <li class="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
+                <span class="text-success">✓</span> 무제한 내보내기
+              </li>
+              <li class="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
+                <span class="text-success">✓</span> 워터마크 제거
+              </li>
+              <li class="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
+                <span class="text-success">✓</span> 고해상도 (2x)
+              </li>
+              <li class="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
+                <span class="text-success">✓</span> 우선 지원
+              </li>
+            </ul>
+            <button class="w-full px-4 py-2 bg-primary-400 text-white rounded-xl font-medium hover:bg-primary-500 transition-colors">
+              프리미엄 시작
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="py-12 sm:py-20 px-4">
+      <div class="max-w-[700px] mx-auto">
+        <div class="bg-gradient-to-br from-primary-200 via-primary-100 to-accent-200 rounded-[20px] sm:rounded-[32px] p-6 sm:p-12 text-center relative overflow-hidden">
+          <div class="hidden sm:block absolute top-4 left-8 text-4xl opacity-20">✨</div>
+          <div class="hidden sm:block absolute bottom-8 right-12 text-5xl opacity-20">💕</div>
+          <div class="hidden sm:block absolute top-12 right-20 text-3xl opacity-20">🧚</div>
+
+          <h2 class="text-xl sm:text-3xl font-bold text-gray-900 mb-3 sm:mb-4 relative">
+            지금 바로 시작해보세요
+          </h2>
+          <p class="text-sm sm:text-base text-gray-600 mb-6 sm:mb-8 relative">
+            무료로 시작하고, 친구와 함께 첫 작품을 완성해보세요.
+            <br class="hidden sm:block" />
+            <span class="sm:hidden"> </span>페어리가 여러분의 이야기를 기다리고 있어요.
+          </p>
+          <div class="flex flex-wrap gap-3 sm:gap-4 justify-center relative">
+            <button class="px-6 py-3 bg-primary-400 text-white rounded-xl font-medium hover:bg-primary-500 transition-colors flex items-center gap-2">
+              무료로 시작하기 <span>→</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-8 sm:py-12 px-4 border-t border-gray-200 bg-white">
+      <div class="max-w-[1200px] mx-auto">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 mb-6 sm:mb-8">
+          <div class="col-span-2 md:col-span-1 mb-2 sm:mb-0">
+            <a href="#" class="text-lg sm:text-xl font-bold text-gray-900">
+              <span class="text-primary-400">Pai</span>ry
+            </a>
+            <p class="text-xs sm:text-sm text-gray-500 mt-1.5 sm:mt-2">
+              페어를 완성하는 마법 ✨
+            </p>
+          </div>
+
+          <div>
+            <h4 class="text-sm sm:text-base font-semibold text-gray-900 mb-2 sm:mb-3">서비스</h4>
+            <ul class="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-gray-500">
+              <li><a href="#" class="hover:text-primary-400 transition-colors">틀 둘러보기</a></li>
+              <li><a href="#" class="hover:text-primary-400 transition-colors">시작하기</a></li>
+              <li><a href="#" class="hover:text-primary-400 transition-colors">요금제</a></li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 class="text-sm sm:text-base font-semibold text-gray-900 mb-2 sm:mb-3">지원</h4>
+            <ul class="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-gray-500">
+              <li><a href="#" class="hover:text-primary-400 transition-colors">도움말</a></li>
+              <li><a href="#" class="hover:text-primary-400 transition-colors">문의하기</a></li>
+              <li><a href="#" class="hover:text-primary-400 transition-colors">FAQ</a></li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 class="text-sm sm:text-base font-semibold text-gray-900 mb-2 sm:mb-3">법적 고지</h4>
+            <ul class="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-gray-500">
+              <li><a href="#" class="hover:text-primary-400 transition-colors">이용약관</a></li>
+              <li><a href="#" class="hover:text-primary-400 transition-colors">개인정보처리방침</a></li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="pt-6 sm:pt-8 border-t border-gray-200 flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4">
+          <p class="text-xs sm:text-sm text-gray-400">
+            © 2025 Pairy. All rights reserved.
+          </p>
+        </div>
+      </div>
+    </footer>
+  </div>
+</body>
+</html>
