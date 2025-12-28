@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Heart, Bookmark, Share2, ArrowLeft, Users, Download, Clock } from 'lucide-react'
+import { Heart, Bookmark, Share2, ArrowLeft, Users, Download, Clock, Sparkles, Twitter } from 'lucide-react'
 import { Button, Tag } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
 
@@ -16,6 +16,7 @@ const sampleTemplates: Record<string, {
   creatorId: string
   likeCount: number
   downloadCount: number
+  useCount: number // 사용 횟수 (작품 생성 수)
   tags: string[]
   emoji: string
   slots: number
@@ -29,6 +30,7 @@ const sampleTemplates: Record<string, {
     creatorId: 'strawberry123',
     likeCount: 1234,
     downloadCount: 567,
+    useCount: 2847,
     tags: ['커플', '2인용'],
     emoji: '💕',
     slots: 2,
@@ -42,6 +44,7 @@ const sampleTemplates: Record<string, {
     creatorId: 'fairy_art',
     likeCount: 892,
     downloadCount: 234,
+    useCount: 1523,
     tags: ['친구', '관계도'],
     emoji: '✨',
     slots: 4,
@@ -55,6 +58,7 @@ const sampleTemplates: Record<string, {
     creatorId: 'moonlight',
     likeCount: 567,
     downloadCount: 189,
+    useCount: 892,
     tags: ['프로필', '1인용', 'OC'],
     emoji: '🌙',
     slots: 1,
@@ -68,6 +72,7 @@ const sampleTemplates: Record<string, {
     creatorId: 'mintchoco',
     likeCount: 2341,
     downloadCount: 892,
+    useCount: 4123,
     tags: ['친구', '2인용'],
     emoji: '🍀',
     slots: 2,
@@ -81,6 +86,7 @@ const sampleTemplates: Record<string, {
     creatorId: 'roseberry',
     likeCount: 1567,
     downloadCount: 456,
+    useCount: 2156,
     tags: ['관계도', '3인용+'],
     emoji: '🔺',
     slots: 3,
@@ -94,6 +100,7 @@ const sampleTemplates: Record<string, {
     creatorId: 'skyblue',
     likeCount: 987,
     downloadCount: 321,
+    useCount: 1678,
     tags: ['프로필', '1인용', 'OC'],
     emoji: '📋',
     slots: 1,
@@ -107,6 +114,7 @@ const sampleTemplates: Record<string, {
     creatorId: 'cherryblossom',
     likeCount: 3456,
     downloadCount: 1234,
+    useCount: 5892,
     tags: ['팬아트', '커플', '2인용'],
     emoji: '🌸',
     slots: 2,
@@ -120,6 +128,7 @@ const sampleTemplates: Record<string, {
     creatorId: 'coconut',
     likeCount: 789,
     downloadCount: 234,
+    useCount: 945,
     tags: ['관계도', '3인용+'],
     emoji: '🥥',
     slots: 6,
@@ -168,6 +177,14 @@ export default function TemplateDetailClient({ templateId }: TemplateDetailClien
     } catch (err) {
       console.error('Failed to copy:', err)
     }
+  }
+
+  // 트위터 공유
+  const handleTwitterShare = () => {
+    const text = `${template.title} by @${template.creator}\n\n이 틀로 ${template.useCount.toLocaleString()}개의 작품이 만들어졌어요! ✨\n\n#페어리 #Pairy`
+    const url = window.location.href
+    const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`
+    window.open(twitterUrl, '_blank', 'width=600,height=400')
   }
 
   const handleStartWork = () => {
@@ -241,15 +258,25 @@ export default function TemplateDetailClient({ templateId }: TemplateDetailClien
 
               {/* Creator */}
               <Link
-                href={`/creators/${template.creatorId}`}
+                href={`/creator/${template.creatorId}`}
                 className="inline-flex items-center gap-2 text-gray-500 hover:text-primary-400 transition-colors mb-6"
               >
                 <div className="w-6 h-6 rounded-full bg-gradient-to-br from-primary-200 to-accent-200" />
                 <span className="text-sm">by {template.creator}</span>
               </Link>
 
+              {/* Usage Counter Badge */}
+              <div className="mb-4 p-3 bg-gradient-to-r from-accent-50 to-primary-50 rounded-xl border border-accent-100">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-accent-500" />
+                  <span className="text-sm text-gray-700">
+                    이 틀로 <span className="font-bold text-accent-600">{template.useCount.toLocaleString()}</span>개의 작품이 만들어졌어요!
+                  </span>
+                </div>
+              </div>
+
               {/* Stats */}
-              <div className="flex gap-6 mb-6 pb-6 border-b border-gray-200">
+              <div className="flex flex-wrap gap-4 mb-6 pb-6 border-b border-gray-200">
                 <div className="flex items-center gap-2 text-sm text-gray-500">
                   <Heart className="w-4 h-4" />
                   <span>{template.likeCount.toLocaleString()}</span>
@@ -301,6 +328,15 @@ export default function TemplateDetailClient({ templateId }: TemplateDetailClien
                   <Share2 className="w-5 h-5" />
                 </Button>
               </div>
+
+              {/* Twitter Share */}
+              <button
+                onClick={handleTwitterShare}
+                className="mt-4 w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-[#1DA1F2] hover:bg-[#1a8cd8] text-white font-medium transition-colors"
+              >
+                <Twitter className="w-5 h-5" />
+                트위터에 공유하기
+              </button>
             </div>
           </div>
         </div>
