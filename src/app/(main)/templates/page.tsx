@@ -2,170 +2,331 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
-import { Search, Heart, X, Plus, SlidersHorizontal } from 'lucide-react'
+import {
+  Search,
+  Heart,
+  X,
+  Plus,
+  SlidersHorizontal,
+  Download,
+  Eye,
+  CheckCircle,
+  Sparkles,
+  Image,
+  Pencil,
+  Users,
+  ScrollText,
+} from 'lucide-react'
 import { Button, Tag } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
+import {
+  RESOURCE_CATEGORIES,
+  CATEGORY_TAGS,
+  LICENSE_INFO,
+  type ResourceCategory,
+  type LicenseType,
+  type Resource,
+} from '@/types/resources'
 
-// 태그 목록
-const allTags = ['전체', '커플', '친구', '관계도', '프로필', '1인용', '2인용', '3인용+', 'OC', '팬아트']
-
-// 템플릿 타입
-interface Template {
-  id: string
-  title: string
-  creator: string
-  likeCount: number
-  tags: string[]
-  emoji: string
-  createdAt: string
+// 카테고리 아이콘 매핑
+const categoryIcons: Record<ResourceCategory, typeof Image> = {
+  imeres: Image,
+  tretle: Pencil,
+  pairtl: Users,
+  sessionlog: ScrollText,
 }
 
-// 더 많은 샘플 데이터
-const sampleTemplates: Template[] = [
+// 샘플 자료 데이터 (허브 형태)
+const sampleResources: Resource[] = [
   {
     id: '1',
     title: '커플 프로필 틀',
-    creator: '딸기크림',
-    likeCount: 1234,
+    description: '달달한 커플을 위한 프로필 틀이에요.',
+    category: 'pairtl',
     tags: ['커플', '2인용'],
-    emoji: '💕',
+    creator: {
+      id: 'strawberry123',
+      displayName: '딸기크림',
+      username: 'strawberry123',
+      isVerified: true,
+    },
+    fileInfo: {
+      format: ['png'],
+      width: 1200,
+      height: 900,
+      sizeKB: 450,
+      hasTransparency: true,
+    },
+    license: 'credit',
+    stats: { views: 5234, downloads: 1234, likes: 892, uses: 2847 },
+    thumbnailUrl: '',
+    previewUrls: [],
     createdAt: '2025-01-28',
+    updatedAt: '2025-01-28',
+    isPremium: false,
   },
   {
     id: '2',
-    title: '친구 관계도',
-    creator: '페어리',
-    likeCount: 892,
-    tags: ['친구', '관계도'],
-    emoji: '✨',
-    createdAt: '2025-01-27',
+    title: '벚꽃 이메레스 세트',
+    description: '봄 분위기의 벚꽃 배경 이미지 모음',
+    category: 'imeres',
+    tags: ['배경', '이펙트', '소스'],
+    creator: {
+      id: 'cherry_art',
+      displayName: '체리블라썸',
+      username: 'cherry_art',
+      isVerified: true,
+    },
+    fileInfo: {
+      format: ['png', 'psd'],
+      width: 2000,
+      height: 1500,
+      sizeKB: 2400,
+      hasTransparency: true,
+    },
+    license: 'credit',
+    stats: { views: 8923, downloads: 3456, likes: 1567, uses: 4521 },
+    thumbnailUrl: '',
+    previewUrls: [],
+    createdAt: '2025-01-26',
+    updatedAt: '2025-01-26',
+    isPremium: true,
   },
   {
     id: '3',
-    title: 'OC 소개 카드',
-    creator: '문라이트',
-    likeCount: 567,
-    tags: ['프로필', '1인용', 'OC'],
-    emoji: '🌙',
-    createdAt: '2025-01-26',
+    title: '전신 포즈 트레틀',
+    description: '다양한 전신 포즈 가이드 트레이싱 틀',
+    category: 'tretle',
+    tags: ['전신', '포즈'],
+    creator: {
+      id: 'moonlight',
+      displayName: '문라이트',
+      username: 'moonlight',
+      isVerified: false,
+    },
+    fileInfo: {
+      format: ['png', 'clip'],
+      width: 1500,
+      height: 2100,
+      sizeKB: 890,
+      hasTransparency: true,
+    },
+    license: 'noncommercial',
+    stats: { views: 4567, downloads: 892, likes: 567, uses: 1234 },
+    thumbnailUrl: '',
+    previewUrls: [],
+    createdAt: '2025-01-24',
+    updatedAt: '2025-01-24',
+    isPremium: false,
   },
   {
     id: '4',
-    title: '베프 케미 틀',
-    creator: '민트초코',
-    likeCount: 2341,
-    tags: ['친구', '2인용'],
-    emoji: '🍀',
-    createdAt: '2025-01-25',
+    title: 'TRPG 캐릭터 시트',
+    description: 'D&D 스타일 캐릭터 시트 템플릿',
+    category: 'sessionlog',
+    tags: ['TRPG', '캐릭터시트'],
+    creator: {
+      id: 'dice_master',
+      displayName: '다이스마스터',
+      username: 'dice_master',
+      isVerified: true,
+    },
+    fileInfo: {
+      format: ['png', 'psd'],
+      width: 1800,
+      height: 2400,
+      sizeKB: 1200,
+      hasTransparency: false,
+    },
+    license: 'free',
+    stats: { views: 3245, downloads: 1123, likes: 789, uses: 2156 },
+    thumbnailUrl: '',
+    previewUrls: [],
+    createdAt: '2025-01-22',
+    updatedAt: '2025-01-22',
+    isPremium: false,
   },
   {
     id: '5',
-    title: '삼각관계 틀',
-    creator: '로즈베리',
-    likeCount: 1567,
-    tags: ['관계도', '3인용+'],
-    emoji: '🔺',
-    createdAt: '2025-01-24',
+    title: '친구 관계도',
+    description: '친구들과의 관계를 한눈에 볼 수 있는 관계도 틀',
+    category: 'pairtl',
+    tags: ['친구', '관계도'],
+    creator: {
+      id: 'fairy_art',
+      displayName: '페어리',
+      username: 'fairy_art',
+      isVerified: true,
+    },
+    fileInfo: {
+      format: ['png'],
+      width: 1600,
+      height: 1200,
+      sizeKB: 680,
+      hasTransparency: true,
+    },
+    license: 'credit',
+    stats: { views: 4892, downloads: 892, likes: 456, uses: 1523 },
+    thumbnailUrl: '',
+    previewUrls: [],
+    createdAt: '2025-01-20',
+    updatedAt: '2025-01-20',
+    isPremium: false,
   },
   {
     id: '6',
-    title: '캐릭터 프로필 카드',
-    creator: '스카이블루',
-    likeCount: 987,
-    tags: ['프로필', '1인용', 'OC'],
-    emoji: '📋',
-    createdAt: '2025-01-23',
+    title: '손 포즈 모음 트레틀',
+    description: '다양한 손 포즈 레퍼런스 가이드',
+    category: 'tretle',
+    tags: ['손', '포즈'],
+    creator: {
+      id: 'hand_study',
+      displayName: '핸드스터디',
+      username: 'hand_study',
+      isVerified: false,
+    },
+    fileInfo: {
+      format: ['png'],
+      width: 2000,
+      height: 2000,
+      sizeKB: 1500,
+      hasTransparency: true,
+    },
+    license: 'credit',
+    stats: { views: 6789, downloads: 2341, likes: 1234, uses: 3456 },
+    thumbnailUrl: '',
+    previewUrls: [],
+    createdAt: '2025-01-18',
+    updatedAt: '2025-01-18',
+    isPremium: true,
   },
   {
     id: '7',
-    title: '팬아트 커플 틀',
-    creator: '체리블라썸',
-    likeCount: 3456,
-    tags: ['팬아트', '커플', '2인용'],
-    emoji: '🌸',
-    createdAt: '2025-01-22',
+    title: '네온 이펙트 세트',
+    description: '사이버펑크 느낌의 네온 이펙트 모음',
+    category: 'imeres',
+    tags: ['이펙트', '데코'],
+    creator: {
+      id: 'neon_dreams',
+      displayName: '네온드림',
+      username: 'neon_dreams',
+      isVerified: true,
+    },
+    fileInfo: {
+      format: ['png', 'psd'],
+      width: 1920,
+      height: 1080,
+      sizeKB: 3200,
+      hasTransparency: true,
+    },
+    license: 'paid',
+    price: 2000,
+    stats: { views: 12456, downloads: 567, likes: 2341, uses: 892 },
+    thumbnailUrl: '',
+    previewUrls: [],
+    createdAt: '2025-01-16',
+    updatedAt: '2025-01-16',
+    isPremium: true,
   },
   {
     id: '8',
-    title: '단체 관계도',
-    creator: '코코넛',
-    likeCount: 789,
-    tags: ['관계도', '3인용+'],
-    emoji: '🥥',
-    createdAt: '2025-01-21',
-  },
-  {
-    id: '9',
-    title: '캐릭터 TMI 틀',
-    creator: '라벤더',
-    likeCount: 1123,
-    tags: ['프로필', '1인용'],
-    emoji: '💜',
-    createdAt: '2025-01-20',
-  },
-  {
-    id: '10',
-    title: '소꿉친구 틀',
-    creator: '피치멜로우',
-    likeCount: 2156,
-    tags: ['친구', '2인용'],
-    emoji: '🍑',
-    createdAt: '2025-01-19',
-  },
-  {
-    id: '11',
-    title: '라이벌 관계도',
-    creator: '블랙체리',
-    likeCount: 1789,
-    tags: ['관계도', '2인용'],
-    emoji: '⚔️',
-    createdAt: '2025-01-18',
-  },
-  {
-    id: '12',
-    title: '최애 프로필',
-    creator: '스타더스트',
-    likeCount: 4521,
-    tags: ['팬아트', '1인용'],
-    emoji: '⭐',
-    createdAt: '2025-01-17',
+    title: '세션 기록 템플릿',
+    description: 'TRPG 세션 진행 기록용 템플릿',
+    category: 'sessionlog',
+    tags: ['세션기록', 'TRPG'],
+    creator: {
+      id: 'rpg_lover',
+      displayName: 'RPG러버',
+      username: 'rpg_lover',
+      isVerified: false,
+    },
+    fileInfo: {
+      format: ['png'],
+      width: 1200,
+      height: 1600,
+      sizeKB: 420,
+      hasTransparency: false,
+    },
+    license: 'free',
+    stats: { views: 2134, downloads: 456, likes: 234, uses: 789 },
+    thumbnailUrl: '',
+    previewUrls: [],
+    createdAt: '2025-01-14',
+    updatedAt: '2025-01-14',
+    isPremium: false,
   },
 ]
 
-type SortOption = 'popular' | 'recent' | 'likes'
+// 카테고리별 이모지 반환
+const getCategoryEmoji = (category: ResourceCategory) => {
+  return RESOURCE_CATEGORIES[category].emoji
+}
 
-export default function TemplatesPage() {
+// 라이선스 뱃지 컴포넌트
+function LicenseBadge({ license, price }: { license: LicenseType; price?: number }) {
+  const info = LICENSE_INFO[license]
+
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium',
+        license === 'free' && 'bg-green-100 text-green-700',
+        license === 'credit' && 'bg-blue-100 text-blue-700',
+        license === 'noncommercial' && 'bg-amber-100 text-amber-700',
+        license === 'paid' && 'bg-purple-100 text-purple-700'
+      )}
+    >
+      {info.icon} {license === 'paid' && price ? `₩${price.toLocaleString()}` : info.name}
+    </span>
+  )
+}
+
+export default function ResourceHubPage() {
   const [searchQuery, setSearchQuery] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState<ResourceCategory | 'all'>('all')
   const [selectedTags, setSelectedTags] = useState<string[]>([])
-  const [sortBy, setSortBy] = useState<SortOption>('popular')
+  const [sortBy, setSortBy] = useState<'popular' | 'recent' | 'downloads' | 'likes'>('popular')
   const [showAdvanced, setShowAdvanced] = useState(false)
+
+  // 현재 카테고리에 맞는 태그 목록
+  const availableTags = useMemo(() => {
+    if (selectedCategory === 'all') {
+      return Object.values(CATEGORY_TAGS).flat()
+    }
+    return CATEGORY_TAGS[selectedCategory]
+  }, [selectedCategory])
 
   // 태그 토글
   const toggleTag = (tag: string) => {
-    if (tag === '전체') {
-      setSelectedTags([])
-      return
-    }
-    setSelectedTags(prev =>
-      prev.includes(tag)
-        ? prev.filter(t => t !== tag)
-        : [...prev, tag]
+    setSelectedTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
     )
   }
 
-  // 필터링 및 정렬 (memoized)
-  const sortedTemplates = useMemo(() => {
+  // 카테고리 변경 시 태그 초기화
+  const handleCategoryChange = (category: ResourceCategory | 'all') => {
+    setSelectedCategory(category)
+    setSelectedTags([])
+  }
+
+  // 필터링 및 정렬
+  const filteredResources = useMemo(() => {
     // 필터링
-    const filtered = sampleTemplates.filter((template) => {
-      const matchesSearch = searchQuery === '' ||
-        template.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        template.creator.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        template.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
+    const filtered = sampleResources.filter((resource) => {
+      const matchesSearch =
+        searchQuery === '' ||
+        resource.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        resource.creator.displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        resource.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase()))
 
-      const matchesTags = selectedTags.length === 0 ||
-        selectedTags.some(tag => template.tags.includes(tag))
+      const matchesCategory =
+        selectedCategory === 'all' || resource.category === selectedCategory
 
-      return matchesSearch && matchesTags
+      const matchesTags =
+        selectedTags.length === 0 ||
+        selectedTags.some((tag) => resource.tags.includes(tag))
+
+      return matchesSearch && matchesCategory && matchesTags
     })
 
     // 정렬
@@ -173,45 +334,50 @@ export default function TemplatesPage() {
       switch (sortBy) {
         case 'recent':
           return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        case 'downloads':
+          return b.stats.downloads - a.stats.downloads
         case 'likes':
-          return b.likeCount - a.likeCount
+          return b.stats.likes - a.stats.likes
         case 'popular':
         default:
-          // 인기 = 좋아요 + 최신성 가중치
-          const aScore = a.likeCount + (new Date(a.createdAt).getTime() / 100000000)
-          const bScore = b.likeCount + (new Date(b.createdAt).getTime() / 100000000)
+          const aScore =
+            a.stats.downloads * 2 + a.stats.likes + a.stats.views * 0.1
+          const bScore =
+            b.stats.downloads * 2 + b.stats.likes + b.stats.views * 0.1
           return bScore - aScore
       }
     })
-  }, [searchQuery, selectedTags, sortBy])
+  }, [searchQuery, selectedCategory, selectedTags, sortBy])
 
   // 필터 초기화
   const resetFilters = () => {
     setSearchQuery('')
+    setSelectedCategory('all')
     setSelectedTags([])
     setSortBy('popular')
   }
 
-  const hasFilters = searchQuery !== '' || selectedTags.length > 0
+  const hasFilters =
+    searchQuery !== '' || selectedCategory !== 'all' || selectedTags.length > 0
 
   return (
     <div className="animate-fade-in">
-      {/* Header */}
+      {/* Hero - 자료 허브 */}
       <section className="py-8 sm:py-12 px-4 bg-gradient-to-b from-primary-100 to-white">
         <div className="max-w-[1200px] mx-auto">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">
-                틀 <span className="text-accent-400">둘러보기</span>
+                자료 <span className="text-accent-400">허브</span>
               </h1>
               <p className="text-gray-500 text-sm sm:text-base">
-                다양한 틀을 찾아보고, 마음에 드는 틀로 작업을 시작해보세요.
+                이메레스, 트레틀, 페어틀, 세션로그까지. 필요한 모든 자료를 한곳에서.
               </p>
             </div>
             <Button asChild className="shrink-0 w-full sm:w-auto">
               <Link href="/templates/new">
                 <Plus className="w-4 h-4 mr-1" />
-                새 템플릿 만들기
+                자료 업로드
               </Link>
             </Button>
           </div>
@@ -222,7 +388,7 @@ export default function TemplatesPage() {
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
                 type="text"
-                placeholder="틀 이름, 크리에이터, 태그 검색..."
+                placeholder="자료 이름, 크리에이터, 태그 검색..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-12 pr-4 py-3 rounded-full border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-primary-300 focus:border-transparent transition-all text-sm sm:text-base"
@@ -252,54 +418,82 @@ export default function TemplatesPage() {
         </div>
       </section>
 
-      {/* Tags & Filters */}
+      {/* Category Tabs */}
       <section className="border-b border-gray-100 bg-white sticky top-[65px] z-30">
         <div className="max-w-[1200px] mx-auto px-4">
-          {/* Quick Tags - Always visible */}
           <div className="py-3 flex gap-2 overflow-x-auto scrollbar-hide">
             <button
-              onClick={() => setSelectedTags([])}
+              onClick={() => handleCategoryChange('all')}
               className={cn(
-                'px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all',
-                selectedTags.length === 0
-                  ? 'bg-primary-400 text-white'
+                'px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all flex items-center gap-2',
+                selectedCategory === 'all'
+                  ? 'bg-gray-900 text-white'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               )}
             >
+              <Sparkles className="w-4 h-4" />
               전체
             </button>
-            {allTags.slice(1).map((tag) => (
-              <button
-                key={tag}
-                onClick={() => toggleTag(tag)}
-                className={cn(
-                  'px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all',
-                  selectedTags.includes(tag)
-                    ? 'bg-primary-400 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                )}
-              >
-                {tag}
-              </button>
-            ))}
+            {Object.entries(RESOURCE_CATEGORIES).map(([key, category]) => {
+              const Icon = categoryIcons[key as ResourceCategory]
+              return (
+                <button
+                  key={key}
+                  onClick={() => handleCategoryChange(key as ResourceCategory)}
+                  className={cn(
+                    'px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all flex items-center gap-2',
+                    selectedCategory === key
+                      ? `${category.bgColor} ${category.color}`
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  )}
+                >
+                  <Icon className="w-4 h-4" />
+                  {category.nameKo}
+                </button>
+              )
+            })}
           </div>
 
-          {/* Advanced Filters */}
-          <div className={cn(
-            'overflow-hidden transition-all duration-300',
-            showAdvanced ? 'max-h-24 py-3 border-t border-gray-100' : 'max-h-0'
-          )}>
+          {/* Tags & Advanced Filters */}
+          <div
+            className={cn(
+              'overflow-hidden transition-all duration-300',
+              showAdvanced ? 'max-h-40 py-3 border-t border-gray-100' : 'max-h-0'
+            )}
+          >
+            {/* Tags */}
+            <div className="flex gap-2 flex-wrap mb-3">
+              {availableTags.slice(0, 12).map((tag) => (
+                <button
+                  key={tag}
+                  onClick={() => toggleTag(tag)}
+                  className={cn(
+                    'px-3 py-1 rounded-full text-xs font-medium transition-all',
+                    selectedTags.includes(tag)
+                      ? 'bg-accent-400 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  )}
+                >
+                  {tag}
+                </button>
+              ))}
+            </div>
+
+            {/* Sort Options */}
             <div className="flex items-center gap-4">
               <span className="text-sm text-gray-500">정렬:</span>
               <div className="flex gap-2">
                 {[
                   { value: 'popular', label: '인기순' },
                   { value: 'recent', label: '최신순' },
+                  { value: 'downloads', label: '다운로드순' },
                   { value: 'likes', label: '좋아요순' },
                 ].map((option) => (
                   <button
                     key={option.value}
-                    onClick={() => setSortBy(option.value as SortOption)}
+                    onClick={() =>
+                      setSortBy(option.value as typeof sortBy)
+                    }
                     className={cn(
                       'px-3 py-1.5 rounded-lg text-sm font-medium transition-all',
                       sortBy === option.value
@@ -323,9 +517,9 @@ export default function TemplatesPage() {
           <div className="flex justify-between items-center mb-4 sm:mb-6">
             <div className="flex items-center gap-2 flex-wrap">
               <p className="text-sm text-gray-500">
-                {sortedTemplates.length}개의 틀
+                {filteredResources.length}개의 자료
               </p>
-              {selectedTags.map(tag => (
+              {selectedTags.map((tag) => (
                 <button
                   key={tag}
                   onClick={() => toggleTag(tag)}
@@ -346,52 +540,97 @@ export default function TemplatesPage() {
             </div>
             <select
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as SortOption)}
+              onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
               className="text-sm text-gray-600 bg-transparent border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary-300 sm:hidden"
             >
               <option value="popular">인기순</option>
               <option value="recent">최신순</option>
+              <option value="downloads">다운로드순</option>
               <option value="likes">좋아요순</option>
             </select>
           </div>
 
-          {/* Templates Grid */}
-          {sortedTemplates.length > 0 ? (
+          {/* Resources Grid */}
+          {filteredResources.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
-              {sortedTemplates.map((template) => (
+              {filteredResources.map((resource) => (
                 <Link
-                  key={template.id}
-                  href={`/templates/${template.id}`}
+                  key={resource.id}
+                  href={`/templates/${resource.id}`}
                   className="group bg-white rounded-[16px] sm:rounded-[20px] overflow-hidden border border-gray-200 hover:shadow-lg transition-all duration-200 hover:-translate-y-1"
                 >
                   {/* Preview */}
-                  <div className="aspect-[4/3] bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center text-4xl sm:text-5xl">
-                    {template.emoji}
+                  <div className="aspect-[4/3] bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center text-4xl sm:text-5xl relative">
+                    {getCategoryEmoji(resource.category)}
+
+                    {/* Premium Badge */}
+                    {resource.isPremium && (
+                      <div className="absolute top-2 left-2 px-2 py-0.5 bg-gradient-to-r from-amber-400 to-orange-400 text-white text-xs font-bold rounded-full flex items-center gap-1">
+                        <Sparkles className="w-3 h-3" />
+                        PRO
+                      </div>
+                    )}
+
+                    {/* Transparency Indicator */}
+                    {resource.fileInfo.hasTransparency && (
+                      <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-white/80 flex items-center justify-center" title="투명 배경">
+                        <div className="w-4 h-4 rounded-sm bg-[conic-gradient(#ccc_25%,#fff_25%,#fff_50%,#ccc_50%,#ccc_75%,#fff_75%)]" />
+                      </div>
+                    )}
+
+                    {/* Category Badge */}
+                    <div
+                      className={cn(
+                        'absolute bottom-2 left-2 px-2 py-0.5 rounded-full text-xs font-medium',
+                        RESOURCE_CATEGORIES[resource.category].bgColor,
+                        RESOURCE_CATEGORIES[resource.category].color
+                      )}
+                    >
+                      {RESOURCE_CATEGORIES[resource.category].nameKo}
+                    </div>
                   </div>
 
                   {/* Content */}
                   <div className="p-3 sm:p-4">
-                    <h3 className="font-semibold text-gray-900 mb-1 sm:mb-2 group-hover:text-primary-400 transition-colors text-sm sm:text-base line-clamp-1">
-                      {template.title}
-                    </h3>
-                    <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm text-gray-500 mb-2 sm:mb-3">
-                      <span className="flex items-center gap-1">
-                        <Heart className="w-3 h-3 sm:w-4 sm:h-4" />
-                        {template.likeCount.toLocaleString()}
-                      </span>
-                      <span className="truncate">by {template.creator}</span>
-                    </div>
-                    <div className="flex flex-wrap gap-1 sm:gap-2">
-                      {template.tags.slice(0, 2).map((tag, idx) => (
-                        <Tag key={tag} variant={idx === 0 ? 'primary' : 'accent'} className="!text-[10px] sm:!text-xs !px-2 !py-0.5">
-                          {tag}
-                        </Tag>
-                      ))}
-                      {template.tags.length > 2 && (
-                        <span className="text-[10px] sm:text-xs text-gray-400">
-                          +{template.tags.length - 2}
-                        </span>
+                    <div className="flex items-start justify-between gap-2 mb-1">
+                      <h3 className="font-semibold text-gray-900 group-hover:text-primary-400 transition-colors text-sm sm:text-base line-clamp-1 flex-1">
+                        {resource.title}
+                      </h3>
+                      {resource.creator.isVerified && (
+                        <CheckCircle className="w-4 h-4 text-blue-500 shrink-0" />
                       )}
+                    </div>
+
+                    {/* Creator */}
+                    <p className="text-xs text-gray-500 mb-2">
+                      by {resource.creator.displayName}
+                    </p>
+
+                    {/* Stats */}
+                    <div className="flex items-center gap-2 sm:gap-3 text-xs text-gray-400 mb-2">
+                      <span className="flex items-center gap-0.5">
+                        <Download className="w-3 h-3" />
+                        {resource.stats.downloads.toLocaleString()}
+                      </span>
+                      <span className="flex items-center gap-0.5">
+                        <Heart className="w-3 h-3" />
+                        {resource.stats.likes.toLocaleString()}
+                      </span>
+                      <span className="flex items-center gap-0.5">
+                        <Eye className="w-3 h-3" />
+                        {resource.stats.views.toLocaleString()}
+                      </span>
+                    </div>
+
+                    {/* License & File Info */}
+                    <div className="flex items-center justify-between">
+                      <LicenseBadge
+                        license={resource.license}
+                        price={resource.price}
+                      />
+                      <span className="text-xs text-gray-400">
+                        {resource.fileInfo.format[0].toUpperCase()}
+                      </span>
                     </div>
                   </div>
                 </Link>
@@ -404,25 +643,59 @@ export default function TemplatesPage() {
                 검색 결과가 없어요
               </h3>
               <p className="text-gray-500 mb-4">
-                다른 키워드나 태그로 검색해보세요.
+                다른 키워드나 카테고리로 검색해보세요.
               </p>
-              <Button
-                variant="secondary"
-                onClick={resetFilters}
-              >
+              <Button variant="secondary" onClick={resetFilters}>
                 필터 초기화
               </Button>
             </div>
           )}
 
           {/* Load More */}
-          {sortedTemplates.length > 0 && sortedTemplates.length >= 12 && (
+          {filteredResources.length > 0 && filteredResources.length >= 8 && (
             <div className="text-center mt-8 sm:mt-12">
-              <Button variant="outline">
-                더 보기
-              </Button>
+              <Button variant="outline">더 보기</Button>
             </div>
           )}
+        </div>
+      </section>
+
+      {/* Category Info Section */}
+      <section className="py-12 px-4 bg-gray-50">
+        <div className="max-w-[1200px] mx-auto">
+          <h2 className="text-xl font-bold text-gray-900 mb-6 text-center">
+            카테고리 <span className="text-accent-400">안내</span>
+          </h2>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {Object.entries(RESOURCE_CATEGORIES).map(([key, category]) => {
+              const Icon = categoryIcons[key as ResourceCategory]
+              return (
+                <button
+                  key={key}
+                  onClick={() => handleCategoryChange(key as ResourceCategory)}
+                  className={cn(
+                    'p-4 rounded-2xl border-2 text-left transition-all hover:shadow-md',
+                    selectedCategory === key
+                      ? 'border-primary-400 bg-primary-50'
+                      : 'border-gray-200 bg-white hover:border-gray-300'
+                  )}
+                >
+                  <div
+                    className={cn(
+                      'w-10 h-10 rounded-xl flex items-center justify-center mb-3',
+                      category.bgColor
+                    )}
+                  >
+                    <Icon className={cn('w-5 h-5', category.color)} />
+                  </div>
+                  <h3 className="font-bold text-gray-900 mb-1">
+                    {category.nameKo}
+                  </h3>
+                  <p className="text-xs text-gray-500">{category.description}</p>
+                </button>
+              )
+            })}
+          </div>
         </div>
       </section>
     </div>

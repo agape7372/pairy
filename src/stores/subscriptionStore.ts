@@ -4,10 +4,18 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
 // 구독 티어
-export type SubscriptionTier = 'free' | 'premium' | 'creator'
+export type SubscriptionTier = 'free' | 'premium' | 'creator' | 'duo'
 
 // 구독 주기
 export type BillingCycle = 'monthly' | 'yearly'
+
+// 듀오 파트너 상태
+export interface DuoPartner {
+  id: string
+  displayName: string
+  avatarUrl?: string
+  linkedAt: string
+}
 
 // 구독 상태
 export interface Subscription {
@@ -17,12 +25,17 @@ export interface Subscription {
   endDate: string | null
   isTrialActive: boolean
   trialEndDate: string | null
+  // Duo 전용 필드
+  duoPartner: DuoPartner | null
+  duoCredits: number // 듀오 보너스 크레딧 (다운로드 등에 사용)
+  duoInviteCode: string | null // 파트너 초대 코드
 }
 
 // 사용량 추적
 export interface Usage {
   exportsThisMonth: number
   savedWorks: number
+  downloadsThisMonth: number // 다운로드 횟수 추가
   lastResetDate: string
 }
 
@@ -30,33 +43,61 @@ export interface Usage {
 export const TIER_LIMITS = {
   free: {
     exportsPerMonth: 5,
+    downloadsPerMonth: 10,
     maxSavedWorks: 3,
     maxCollaborators: 2,
+    maxLibraryFolders: 3,
+    cloudStorageMB: 100,
     hasWatermark: true,
     canExportHighRes: false,
     canUploadTemplates: false,
     canAccessPremiumTemplates: false,
     canRemoveWatermark: false,
+    canAccessPaidResources: false,
   },
   premium: {
     exportsPerMonth: Infinity,
+    downloadsPerMonth: Infinity,
     maxSavedWorks: Infinity,
     maxCollaborators: 10,
+    maxLibraryFolders: 20,
+    cloudStorageMB: 1024,
     hasWatermark: false,
     canExportHighRes: true,
     canUploadTemplates: false,
     canAccessPremiumTemplates: true,
     canRemoveWatermark: true,
+    canAccessPaidResources: true,
+  },
+  duo: {
+    exportsPerMonth: Infinity,
+    downloadsPerMonth: Infinity,
+    maxSavedWorks: Infinity,
+    maxCollaborators: 2, // 듀오는 2인 전용
+    maxLibraryFolders: 30, // 공유 폴더 포함
+    cloudStorageMB: 2048, // 듀오 공유 스토리지
+    hasWatermark: false,
+    canExportHighRes: true,
+    canUploadTemplates: false,
+    canAccessPremiumTemplates: true,
+    canRemoveWatermark: true,
+    canAccessPaidResources: true,
+    hasDuoCredits: true, // 매월 보너스 크레딧
+    hasSharedLibrary: true, // 공유 서재
   },
   creator: {
     exportsPerMonth: Infinity,
+    downloadsPerMonth: Infinity,
     maxSavedWorks: Infinity,
     maxCollaborators: Infinity,
+    maxLibraryFolders: Infinity,
+    cloudStorageMB: 5120,
     hasWatermark: false,
     canExportHighRes: true,
     canUploadTemplates: true,
     canAccessPremiumTemplates: true,
     canRemoveWatermark: true,
+    canAccessPaidResources: true,
   },
 } as const
 
@@ -64,6 +105,11 @@ export const TIER_LIMITS = {
 export const PRICING = {
   premium: {
     monthly: 2900,
+  },
+  duo: {
+    monthly: 3900, // 2인 기준 (1인당 1,950원 - 프리미엄 대비 33% 할인)
+    perPerson: 1950,
+    bonusCredits: 5, // 매월 5크레딧 보너스
   },
   creator: {
     monthly: 4900,
@@ -84,8 +130,16 @@ interface SubscriptionState {
   cancelSubscription: () => void
   startTrial: () => void
 
+  // Duo 전용 액션
+  generateDuoInviteCode: () => string
+  linkDuoPartner: (partner: DuoPartner) => void
+  unlinkDuoPartner: () => void
+  useDuoCredit: () => boolean
+  addDuoCredits: (amount: number) => void
+
   // 사용량 추적
   incrementExports: () => boolean // 성공 여부 반환
+  incrementDownloads: () => boolean
   addSavedWork: () => boolean
   removeSavedWork: () => void
   resetMonthlyUsage: () => void
@@ -93,8 +147,10 @@ interface SubscriptionState {
   // 유틸리티
   canUseFeature: (feature: keyof typeof TIER_LIMITS.free) => boolean
   getRemainingExports: () => number
+  getRemainingDownloads: () => number
   getRemainingSavedWorks: () => number
   isSubscriptionActive: () => boolean
+  isDuoLinked: () => boolean
 
   // 데모 모드 토글
   toggleDemoMode: () => void
@@ -109,12 +165,26 @@ const initialSubscription: Subscription = {
   endDate: null,
   isTrialActive: false,
   trialEndDate: null,
+  duoPartner: null,
+  duoCredits: 0,
+  duoInviteCode: null,
 }
 
 const initialUsage: Usage = {
   exportsThisMonth: 0,
   savedWorks: 0,
+  downloadsThisMonth: 0,
   lastResetDate: new Date().toISOString().slice(0, 7), // YYYY-MM
+}
+
+// 랜덤 초대 코드 생성
+const generateInviteCode = () => {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  let code = 'PAIR-'
+  for (let i = 0; i < 6; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length))
+  }
+  return code
 }
 
 export const useSubscriptionStore = create<SubscriptionState>()(
@@ -139,6 +209,8 @@ export const useSubscriptionStore = create<SubscriptionState>()(
           endDate.setFullYear(endDate.getFullYear() + 1)
         }
 
+        const duoCredits = tier === 'duo' ? PRICING.duo.bonusCredits : 0
+
         set({
           subscription: {
             tier,
@@ -147,6 +219,9 @@ export const useSubscriptionStore = create<SubscriptionState>()(
             endDate: endDate.toISOString(),
             isTrialActive: false,
             trialEndDate: null,
+            duoPartner: null,
+            duoCredits,
+            duoInviteCode: tier === 'duo' ? generateInviteCode() : null,
           },
         })
       },
@@ -168,8 +243,54 @@ export const useSubscriptionStore = create<SubscriptionState>()(
             endDate: null,
             isTrialActive: true,
             trialEndDate: trialEnd.toISOString(),
+            duoPartner: null,
+            duoCredits: 0,
+            duoInviteCode: null,
           },
         })
+      },
+
+      // Duo 전용 액션
+      generateDuoInviteCode: () => {
+        const code = generateInviteCode()
+        set((state) => ({
+          subscription: { ...state.subscription, duoInviteCode: code },
+        }))
+        return code
+      },
+
+      linkDuoPartner: (partner) => {
+        set((state) => ({
+          subscription: { ...state.subscription, duoPartner: partner },
+        }))
+      },
+
+      unlinkDuoPartner: () => {
+        set((state) => ({
+          subscription: { ...state.subscription, duoPartner: null },
+        }))
+      },
+
+      useDuoCredit: () => {
+        const { subscription } = get()
+        if (subscription.duoCredits <= 0) return false
+
+        set((state) => ({
+          subscription: {
+            ...state.subscription,
+            duoCredits: state.subscription.duoCredits - 1,
+          },
+        }))
+        return true
+      },
+
+      addDuoCredits: (amount) => {
+        set((state) => ({
+          subscription: {
+            ...state.subscription,
+            duoCredits: state.subscription.duoCredits + amount,
+          },
+        }))
       },
 
       incrementExports: () => {
@@ -190,6 +311,29 @@ export const useSubscriptionStore = create<SubscriptionState>()(
           usage: {
             ...state.usage,
             exportsThisMonth: state.usage.exportsThisMonth + 1,
+          },
+        }))
+        return true
+      },
+
+      incrementDownloads: () => {
+        const { subscription, usage } = get()
+        const limits = TIER_LIMITS[subscription.tier]
+
+        // 월간 초기화 확인
+        const currentMonth = new Date().toISOString().slice(0, 7)
+        if (usage.lastResetDate !== currentMonth) {
+          get().resetMonthlyUsage()
+        }
+
+        if (usage.downloadsThisMonth >= limits.downloadsPerMonth) {
+          return false // 제한 초과
+        }
+
+        set((state) => ({
+          usage: {
+            ...state.usage,
+            downloadsThisMonth: state.usage.downloadsThisMonth + 1,
           },
         }))
         return true
@@ -222,11 +366,22 @@ export const useSubscriptionStore = create<SubscriptionState>()(
       },
 
       resetMonthlyUsage: () => {
+        const { subscription } = get()
+        // Duo 구독자는 매월 크레딧 보너스 지급
+        const bonusCredits = subscription.tier === 'duo' ? PRICING.duo.bonusCredits : 0
+
         set((state) => ({
           usage: {
             ...state.usage,
             exportsThisMonth: 0,
+            downloadsThisMonth: 0,
             lastResetDate: new Date().toISOString().slice(0, 7),
+          },
+          subscription: {
+            ...state.subscription,
+            duoCredits: state.subscription.tier === 'duo'
+              ? state.subscription.duoCredits + bonusCredits
+              : state.subscription.duoCredits,
           },
         }))
       },
@@ -242,6 +397,13 @@ export const useSubscriptionStore = create<SubscriptionState>()(
         const limits = TIER_LIMITS[subscription.tier]
         if (limits.exportsPerMonth === Infinity) return Infinity
         return Math.max(0, limits.exportsPerMonth - usage.exportsThisMonth)
+      },
+
+      getRemainingDownloads: () => {
+        const { subscription, usage } = get()
+        const limits = TIER_LIMITS[subscription.tier]
+        if (limits.downloadsPerMonth === Infinity) return Infinity
+        return Math.max(0, limits.downloadsPerMonth - usage.downloadsThisMonth)
       },
 
       getRemainingSavedWorks: () => {
@@ -267,6 +429,11 @@ export const useSubscriptionStore = create<SubscriptionState>()(
         }
 
         return false
+      },
+
+      isDuoLinked: () => {
+        const { subscription } = get()
+        return subscription.tier === 'duo' && subscription.duoPartner !== null
       },
 
       toggleDemoMode: () => {
@@ -312,5 +479,21 @@ export function useIsCreator() {
 
 export function useIsPremium() {
   const tier = useSubscriptionStore((state) => state.subscription.tier)
-  return tier === 'premium' || tier === 'creator'
+  return tier === 'premium' || tier === 'duo' || tier === 'creator'
+}
+
+export function useIsDuo() {
+  return useSubscriptionStore((state) => state.subscription.tier === 'duo')
+}
+
+export function useDuoPartner() {
+  return useSubscriptionStore((state) => state.subscription.duoPartner)
+}
+
+export function useDuoCredits() {
+  return useSubscriptionStore((state) => state.subscription.duoCredits)
+}
+
+export function useDuoInviteCode() {
+  return useSubscriptionStore((state) => state.subscription.duoInviteCode)
 }

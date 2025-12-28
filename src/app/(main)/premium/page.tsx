@@ -2,10 +2,10 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Check, Sparkles, Zap, Crown, ArrowRight } from 'lucide-react'
+import { Check, Sparkles, Zap, Crown, ArrowRight, Users, Gift, Heart } from 'lucide-react'
 import { Button } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
-import { useSubscriptionStore, PRICING } from '@/stores/subscriptionStore'
+import { useSubscriptionStore, PRICING, type SubscriptionTier } from '@/stores/subscriptionStore'
 import { UpgradeModal } from '@/components/premium/UpgradeModal'
 
 const getPlans = (currentTier: string) => [
@@ -15,19 +15,22 @@ const getPlans = (currentTier: string) => [
     period: '',
     description: '가볍게 시작하기',
     features: [
-      '기본 틀 이용',
+      '기본 자료 이용',
+      '월 10회 다운로드',
       '월 5회 내보내기',
-      '워터마크 포함',
-      '2인 협업',
+      '폴더 3개 생성',
+      '100MB 스토리지',
     ],
     limitations: [
-      '프리미엄 틀 이용 불가',
+      '프리미엄 자료 이용 불가',
       '고해상도 내보내기 불가',
     ],
     cta: currentTier === 'free' ? '현재 플랜' : '무료로 전환',
     variant: 'outline' as const,
     current: currentTier === 'free',
     tier: 'free' as const,
+    icon: null,
+    highlight: false,
   },
   {
     name: '프리미엄',
@@ -35,12 +38,14 @@ const getPlans = (currentTier: string) => [
     period: '/월',
     description: '본격적으로 즐기기',
     features: [
-      '모든 틀 이용',
+      '모든 자료 이용',
+      '무제한 다운로드',
       '무제한 내보내기',
       '워터마크 제거',
       '고해상도 (2x)',
+      '폴더 20개 생성',
+      '1GB 스토리지',
       '우선 고객 지원',
-      '신규 틀 우선 이용',
     ],
     limitations: [],
     cta: currentTier === 'premium' ? '현재 플랜' : '프리미엄 시작',
@@ -48,25 +53,55 @@ const getPlans = (currentTier: string) => [
     popular: true,
     current: currentTier === 'premium',
     tier: 'premium' as const,
+    icon: Sparkles,
+    highlight: true,
+  },
+  {
+    name: '듀오',
+    price: `₩${PRICING.duo.monthly.toLocaleString()}`,
+    period: '/월 (2인)',
+    pricePerPerson: `1인당 ₩${PRICING.duo.perPerson.toLocaleString()}`,
+    description: '페어와 함께하기',
+    features: [
+      '프리미엄 모든 기능',
+      '2인 동시 이용',
+      '공유 서재 & 폴더',
+      '2GB 공유 스토리지',
+      `매월 ${PRICING.duo.bonusCredits} 보너스 크레딧`,
+      '듀오 전용 배지',
+      '33% 할인 혜택',
+    ],
+    limitations: [],
+    cta: currentTier === 'duo' ? '현재 플랜' : '듀오 시작',
+    variant: 'accent' as const,
+    duo: true,
+    current: currentTier === 'duo',
+    tier: 'duo' as const,
+    icon: Heart,
+    highlight: false,
+    badge: '커플 추천',
   },
   {
     name: '크리에이터',
     price: `₩${PRICING.creator.monthly.toLocaleString()}`,
     period: '/월',
-    description: '틀 제작자를 위한',
+    description: '자료 제작자를 위한',
     features: [
       '프리미엄 모든 기능',
-      '틀 업로드 무제한',
+      '자료 업로드 무제한',
       '수익 배분 (70%)',
       '크리에이터 뱃지',
       '분석 대시보드',
+      '5GB 스토리지',
       '1:1 전담 지원',
     ],
     limitations: [],
     cta: currentTier === 'creator' ? '현재 플랜' : '크리에이터 신청',
-    variant: 'accent' as const,
+    variant: 'secondary' as const,
     current: currentTier === 'creator',
     tier: 'creator' as const,
+    icon: Crown,
+    highlight: false,
   },
 ]
 
@@ -80,6 +115,10 @@ const faqs = [
     a: '네, 언제든 자유롭게 구독을 해지할 수 있습니다. 해지 후에도 결제 기간까지는 프리미엄 기능을 이용할 수 있어요.',
   },
   {
+    q: '듀오 플랜은 어떻게 이용하나요?',
+    a: '듀오 구독 시 초대 코드가 생성됩니다. 이 코드를 파트너에게 공유하면 함께 이용할 수 있어요. 친구, 커플, 동료 누구나 가능합니다!',
+  },
+  {
     q: '환불 정책은 어떻게 되나요?',
     a: '결제 후 7일 이내에 서비스를 이용하지 않은 경우 전액 환불이 가능합니다.',
   },
@@ -91,21 +130,19 @@ const faqs = [
 
 export default function PremiumPage() {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
-  const [selectedTier, setSelectedTier] = useState<'premium' | 'creator'>('premium')
+  const [selectedTier, setSelectedTier] = useState<'premium' | 'creator' | 'duo'>('premium')
   const { subscription, subscribe, isDemoMode } = useSubscriptionStore()
 
   const plans = getPlans(subscription.tier)
 
-  const handleSelectPlan = (tier: 'free' | 'premium' | 'creator') => {
+  const handleSelectPlan = (tier: SubscriptionTier) => {
     if (tier === 'free' || tier === subscription.tier) return
 
     if (isDemoMode) {
-      // 데모 모드: 바로 구독 적용
       subscribe(tier, 'monthly')
-      alert(`${tier === 'premium' ? '프리미엄' : '크리에이터'} 구독이 활성화되었습니다! (데모 모드)`)
+      alert(`${tier === 'premium' ? '프리미엄' : tier === 'duo' ? '듀오' : '크리에이터'} 구독이 활성화되었습니다! (데모 모드)`)
     } else {
-      // 실제 모드: 모달 열기
-      setSelectedTier(tier)
+      setSelectedTier(tier as 'premium' | 'creator' | 'duo')
       setShowUpgradeModal(true)
     }
   }
@@ -123,31 +160,59 @@ export default function PremiumPage() {
             <span className="text-primary-400">프리미엄</span>으로 업그레이드
           </h1>
           <p className="text-lg text-gray-500">
-            워터마크 제거, 무제한 내보내기, 고해상도 저장까지.
+            무제한 다운로드, 워터마크 제거, 고해상도 저장까지.
             <br className="hidden sm:block" />
-            더 멋진 작품을 만들어보세요.
+            혼자 또는 함께, 더 멋진 작품을 만들어보세요.
           </p>
+        </div>
+      </section>
+
+      {/* Duo Highlight Banner */}
+      <section className="py-6 px-4 bg-gradient-to-r from-pink-50 via-rose-50 to-pink-50 border-y border-pink-100">
+        <div className="max-w-[1100px] mx-auto flex flex-col sm:flex-row items-center justify-center gap-4 text-center sm:text-left">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 to-rose-400 flex items-center justify-center">
+              <Heart className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h3 className="font-bold text-gray-900">듀오 플랜 출시!</h3>
+              <p className="text-sm text-gray-600">
+                페어와 함께 구독하면 1인당 ₩{PRICING.duo.perPerson.toLocaleString()}
+                <span className="text-pink-500 font-medium"> (33% 할인)</span>
+              </p>
+            </div>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="!border-pink-300 !text-pink-600 hover:!bg-pink-50"
+            onClick={() => handleSelectPlan('duo')}
+          >
+            <Users className="w-4 h-4 mr-1" />
+            듀오로 시작하기
+          </Button>
         </div>
       </section>
 
       {/* Pricing */}
       <section className="py-12 px-4">
-        <div className="max-w-[1100px] mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="max-w-[1200px] mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {plans.map((plan) => (
               <div
                 key={plan.name}
                 className={cn(
-                  'bg-white rounded-[24px] p-6 border-2 transition-all',
-                  plan.popular && !plan.current
-                    ? 'border-primary-400 shadow-lg md:scale-105'
+                  'bg-white rounded-[24px] p-6 border-2 transition-all relative',
+                  plan.highlight
+                    ? 'border-primary-400 shadow-lg lg:scale-105'
                     : plan.current
                     ? 'border-green-400 bg-green-50/30'
-                    : plan.variant === 'accent'
-                    ? 'border-accent-300'
+                    : plan.duo
+                    ? 'border-pink-300 bg-pink-50/30'
                     : 'border-gray-200'
                 )}
               >
+                {/* Badges */}
                 {plan.current && (
                   <div className="inline-flex items-center gap-1 px-3 py-1 bg-green-500 text-white text-xs font-medium rounded-full mb-4">
                     <Check className="w-3 h-3" />
@@ -160,19 +225,40 @@ export default function PremiumPage() {
                     인기
                   </div>
                 )}
-                {plan.variant === 'accent' && !plan.popular && !plan.current && (
-                  <div className="inline-flex items-center gap-1 px-3 py-1 bg-accent-400 text-white text-xs font-medium rounded-full mb-4">
+                {plan.badge && !plan.current && (
+                  <div className="inline-flex items-center gap-1 px-3 py-1 bg-gradient-to-r from-pink-400 to-rose-400 text-white text-xs font-medium rounded-full mb-4">
+                    <Heart className="w-3 h-3" />
+                    {plan.badge}
+                  </div>
+                )}
+                {plan.tier === 'creator' && !plan.popular && !plan.current && !plan.badge && (
+                  <div className="inline-flex items-center gap-1 px-3 py-1 bg-amber-400 text-white text-xs font-medium rounded-full mb-4">
                     <Zap className="w-3 h-3" />
                     크리에이터
                   </div>
                 )}
-                <h3 className="text-xl font-bold text-gray-900">{plan.name}</h3>
+
+                {/* Icon & Name */}
+                <div className="flex items-center gap-2 mb-1">
+                  {plan.icon && <plan.icon className="w-5 h-5 text-primary-400" />}
+                  <h3 className="text-xl font-bold text-gray-900">{plan.name}</h3>
+                </div>
                 <p className="text-sm text-gray-500 mb-4">{plan.description}</p>
+
+                {/* Price */}
                 <div className="mb-6">
-                  <span className="text-3xl font-bold text-gray-900">{plan.price}</span>
-                  <span className="text-gray-500">{plan.period}</span>
+                  <div className="flex items-end gap-1">
+                    <span className="text-3xl font-bold text-gray-900">{plan.price}</span>
+                    <span className="text-gray-500 mb-1">{plan.period}</span>
+                  </div>
+                  {plan.pricePerPerson && (
+                    <p className="text-sm text-pink-500 font-medium mt-1">
+                      {plan.pricePerPerson}
+                    </p>
+                  )}
                 </div>
 
+                {/* Features */}
                 <ul className="space-y-3 mb-6">
                   {plan.features.map((feature) => (
                     <li key={feature} className="flex items-center gap-2 text-sm text-gray-600">
@@ -187,9 +273,13 @@ export default function PremiumPage() {
                   ))}
                 </ul>
 
+                {/* CTA */}
                 <Button
-                  variant={plan.current ? 'ghost' : plan.variant === 'accent' ? 'secondary' : plan.variant}
-                  className="w-full"
+                  variant={plan.current ? 'ghost' : plan.duo ? 'secondary' : plan.variant === 'accent' ? 'secondary' : plan.variant}
+                  className={cn(
+                    'w-full',
+                    plan.duo && !plan.current && '!bg-gradient-to-r !from-pink-400 !to-rose-400 !text-white !border-none hover:!from-pink-500 hover:!to-rose-500'
+                  )}
                   disabled={plan.current}
                   onClick={() => handleSelectPlan(plan.tier)}
                 >
@@ -208,6 +298,54 @@ export default function PremiumPage() {
               </p>
             </div>
           )}
+        </div>
+      </section>
+
+      {/* Duo Feature Detail */}
+      <section className="py-12 px-4 bg-gradient-to-b from-pink-50 to-white">
+        <div className="max-w-[800px] mx-auto text-center">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-pink-100 rounded-full text-sm text-pink-700 mb-6">
+            <Users className="w-4 h-4" />
+            <span>듀오 플랜 상세</span>
+          </div>
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">
+            페어와 함께하면 더 <span className="text-pink-500">특별해요</span>
+          </h2>
+          <p className="text-gray-500 mb-8">
+            친구, 연인, 동료... 창작을 함께하는 누구든 함께 할 수 있어요
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="p-6 bg-white rounded-2xl border border-pink-100">
+              <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-pink-100 flex items-center justify-center">
+                <Gift className="w-6 h-6 text-pink-500" />
+              </div>
+              <h3 className="font-bold text-gray-900 mb-2">매월 보너스 크레딧</h3>
+              <p className="text-sm text-gray-500">
+                매월 {PRICING.duo.bonusCredits}개의 보너스 크레딧으로 유료 자료 할인 구매
+              </p>
+            </div>
+
+            <div className="p-6 bg-white rounded-2xl border border-pink-100">
+              <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-pink-100 flex items-center justify-center">
+                <Users className="w-6 h-6 text-pink-500" />
+              </div>
+              <h3 className="font-bold text-gray-900 mb-2">공유 서재</h3>
+              <p className="text-sm text-gray-500">
+                다운로드한 자료를 공유 폴더로 함께 관리
+              </p>
+            </div>
+
+            <div className="p-6 bg-white rounded-2xl border border-pink-100">
+              <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-pink-100 flex items-center justify-center">
+                <Heart className="w-6 h-6 text-pink-500" />
+              </div>
+              <h3 className="font-bold text-gray-900 mb-2">듀오 배지</h3>
+              <p className="text-sm text-gray-500">
+                프로필에 표시되는 귀여운 듀오 전용 배지
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 

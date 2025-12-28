@@ -3,145 +3,318 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Heart, Bookmark, Share2, ArrowLeft, Users, Download, Clock, Sparkles, Twitter } from 'lucide-react'
+import {
+  Heart,
+  Bookmark,
+  Share2,
+  ArrowLeft,
+  Download,
+  Clock,
+  Sparkles,
+  Twitter,
+  CheckCircle,
+  Eye,
+  FileImage,
+  Maximize,
+  Shield,
+  AlertCircle,
+  FolderPlus,
+} from 'lucide-react'
 import { Button, Tag } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
+import {
+  RESOURCE_CATEGORIES,
+  LICENSE_INFO,
+  FILE_FORMAT_INFO,
+  type ResourceCategory,
+  type LicenseType,
+  type Resource,
+} from '@/types/resources'
+import { useSubscriptionStore } from '@/stores/subscriptionStore'
 
-// 임시 샘플 데이터 (실제로는 Supabase에서 가져옴)
-const sampleTemplates: Record<string, {
-  id: string
-  title: string
-  description: string
-  creator: string
-  creatorId: string
-  likeCount: number
-  downloadCount: number
-  useCount: number // 사용 횟수 (작품 생성 수)
-  tags: string[]
-  emoji: string
-  slots: number
-  createdAt: string
-}> = {
+// 샘플 자료 데이터 (확장된 형태)
+const sampleResources: Record<string, Resource> = {
   '1': {
     id: '1',
     title: '커플 프로필 틀',
     description: '달달한 커플을 위한 프로필 틀이에요. 두 사람의 정보와 함께 케미를 보여줄 수 있어요. 프로필 사진, 이름, 좋아하는 것, 싫어하는 것, 그리고 둘만의 특별한 이야기를 담아보세요!',
-    creator: '딸기크림',
-    creatorId: 'strawberry123',
-    likeCount: 1234,
-    downloadCount: 567,
-    useCount: 2847,
+    category: 'pairtl',
     tags: ['커플', '2인용'],
-    emoji: '💕',
-    slots: 2,
-    createdAt: '2025-01-15',
+    creator: {
+      id: 'strawberry123',
+      displayName: '딸기크림',
+      username: 'strawberry123',
+      isVerified: true,
+    },
+    fileInfo: {
+      format: ['png'],
+      width: 1200,
+      height: 900,
+      sizeKB: 450,
+      hasTransparency: true,
+    },
+    license: 'credit',
+    stats: { views: 5234, downloads: 1234, likes: 892, uses: 2847 },
+    thumbnailUrl: '',
+    previewUrls: [],
+    createdAt: '2025-01-28',
+    updatedAt: '2025-01-28',
+    isPremium: false,
   },
   '2': {
     id: '2',
-    title: '친구 관계도',
-    description: '친구들과의 관계를 한눈에 볼 수 있는 관계도 틀이에요. 각자의 역할과 서로의 관계를 재미있게 표현해보세요.',
-    creator: '페어리',
-    creatorId: 'fairy_art',
-    likeCount: 892,
-    downloadCount: 234,
-    useCount: 1523,
-    tags: ['친구', '관계도'],
-    emoji: '✨',
-    slots: 4,
-    createdAt: '2025-01-10',
+    title: '벚꽃 이메레스 세트',
+    description: '봄 분위기의 벚꽃 배경 이미지 모음입니다. 고화질 PNG와 PSD 파일로 제공되어 자유롭게 편집하실 수 있어요.',
+    category: 'imeres',
+    tags: ['배경', '이펙트', '소스'],
+    creator: {
+      id: 'cherry_art',
+      displayName: '체리블라썸',
+      username: 'cherry_art',
+      isVerified: true,
+    },
+    fileInfo: {
+      format: ['png', 'psd'],
+      width: 2000,
+      height: 1500,
+      sizeKB: 2400,
+      hasTransparency: true,
+    },
+    license: 'credit',
+    stats: { views: 8923, downloads: 3456, likes: 1567, uses: 4521 },
+    thumbnailUrl: '',
+    previewUrls: [],
+    createdAt: '2025-01-26',
+    updatedAt: '2025-01-26',
+    isPremium: true,
   },
   '3': {
     id: '3',
-    title: 'OC 소개 카드',
-    description: '자신만의 OC(오리지널 캐릭터)를 소개하는 카드에요. 캐릭터의 기본 정보부터 성격, 배경 스토리까지 담을 수 있어요.',
-    creator: '문라이트',
-    creatorId: 'moonlight',
-    likeCount: 567,
-    downloadCount: 189,
-    useCount: 892,
-    tags: ['프로필', '1인용', 'OC'],
-    emoji: '🌙',
-    slots: 1,
-    createdAt: '2025-01-08',
+    title: '전신 포즈 트레틀',
+    description: '다양한 전신 포즈 가이드입니다. 서 있는 포즈, 앉은 포즈, 동적 포즈까지 다양하게 포함되어 있어요.',
+    category: 'tretle',
+    tags: ['전신', '포즈'],
+    creator: {
+      id: 'moonlight',
+      displayName: '문라이트',
+      username: 'moonlight',
+      isVerified: false,
+    },
+    fileInfo: {
+      format: ['png', 'clip'],
+      width: 1500,
+      height: 2100,
+      sizeKB: 890,
+      hasTransparency: true,
+    },
+    license: 'noncommercial',
+    stats: { views: 4567, downloads: 892, likes: 567, uses: 1234 },
+    thumbnailUrl: '',
+    previewUrls: [],
+    createdAt: '2025-01-24',
+    updatedAt: '2025-01-24',
+    isPremium: false,
   },
   '4': {
     id: '4',
-    title: '베프 케미 틀',
-    description: '베스트 프렌드와의 케미를 보여줄 수 있는 틀이에요. 서로의 공통점과 차이점, 그리고 함께한 추억을 담아보세요.',
-    creator: '민트초코',
-    creatorId: 'mintchoco',
-    likeCount: 2341,
-    downloadCount: 892,
-    useCount: 4123,
-    tags: ['친구', '2인용'],
-    emoji: '🍀',
-    slots: 2,
-    createdAt: '2025-01-12',
+    title: 'TRPG 캐릭터 시트',
+    description: 'D&D 스타일의 캐릭터 시트 템플릿입니다. 스탯, 스킬, 배경 스토리 등을 정리할 수 있어요.',
+    category: 'sessionlog',
+    tags: ['TRPG', '캐릭터시트'],
+    creator: {
+      id: 'dice_master',
+      displayName: '다이스마스터',
+      username: 'dice_master',
+      isVerified: true,
+    },
+    fileInfo: {
+      format: ['png', 'psd'],
+      width: 1800,
+      height: 2400,
+      sizeKB: 1200,
+      hasTransparency: false,
+    },
+    license: 'free',
+    stats: { views: 3245, downloads: 1123, likes: 789, uses: 2156 },
+    thumbnailUrl: '',
+    previewUrls: [],
+    createdAt: '2025-01-22',
+    updatedAt: '2025-01-22',
+    isPremium: false,
   },
   '5': {
     id: '5',
-    title: '삼각관계 틀',
-    description: '복잡한 삼각관계를 표현할 수 있는 틀이에요. 세 사람 사이의 미묘한 감정선을 담아보세요.',
-    creator: '로즈베리',
-    creatorId: 'roseberry',
-    likeCount: 1567,
-    downloadCount: 456,
-    useCount: 2156,
-    tags: ['관계도', '3인용+'],
-    emoji: '🔺',
-    slots: 3,
-    createdAt: '2025-01-05',
+    title: '친구 관계도',
+    description: '친구들과의 관계를 한눈에 볼 수 있는 관계도 틀이에요.',
+    category: 'pairtl',
+    tags: ['친구', '관계도'],
+    creator: {
+      id: 'fairy_art',
+      displayName: '페어리',
+      username: 'fairy_art',
+      isVerified: true,
+    },
+    fileInfo: {
+      format: ['png'],
+      width: 1600,
+      height: 1200,
+      sizeKB: 680,
+      hasTransparency: true,
+    },
+    license: 'credit',
+    stats: { views: 4892, downloads: 892, likes: 456, uses: 1523 },
+    thumbnailUrl: '',
+    previewUrls: [],
+    createdAt: '2025-01-20',
+    updatedAt: '2025-01-20',
+    isPremium: false,
   },
   '6': {
     id: '6',
-    title: '캐릭터 프로필 카드',
-    description: '캐릭터의 기본 정보를 깔끔하게 정리할 수 있는 프로필 카드에요. 이름, 나이, 성격 등 핵심 정보를 담아보세요.',
-    creator: '스카이블루',
-    creatorId: 'skyblue',
-    likeCount: 987,
-    downloadCount: 321,
-    useCount: 1678,
-    tags: ['프로필', '1인용', 'OC'],
-    emoji: '📋',
-    slots: 1,
-    createdAt: '2025-01-03',
+    title: '손 포즈 모음 트레틀',
+    description: '다양한 손 포즈 레퍼런스 가이드',
+    category: 'tretle',
+    tags: ['손', '포즈'],
+    creator: {
+      id: 'hand_study',
+      displayName: '핸드스터디',
+      username: 'hand_study',
+      isVerified: false,
+    },
+    fileInfo: {
+      format: ['png'],
+      width: 2000,
+      height: 2000,
+      sizeKB: 1500,
+      hasTransparency: true,
+    },
+    license: 'credit',
+    stats: { views: 6789, downloads: 2341, likes: 1234, uses: 3456 },
+    thumbnailUrl: '',
+    previewUrls: [],
+    createdAt: '2025-01-18',
+    updatedAt: '2025-01-18',
+    isPremium: true,
   },
   '7': {
     id: '7',
-    title: '팬아트 커플 틀',
-    description: '좋아하는 작품의 커플을 표현할 수 있는 팬아트 전용 틀이에요. 공식 커플도 비공식 커플도 모두 환영!',
-    creator: '체리블라썸',
-    creatorId: 'cherryblossom',
-    likeCount: 3456,
-    downloadCount: 1234,
-    useCount: 5892,
-    tags: ['팬아트', '커플', '2인용'],
-    emoji: '🌸',
-    slots: 2,
-    createdAt: '2025-01-18',
+    title: '네온 이펙트 세트',
+    description: '사이버펑크 느낌의 네온 이펙트 모음',
+    category: 'imeres',
+    tags: ['이펙트', '데코'],
+    creator: {
+      id: 'neon_dreams',
+      displayName: '네온드림',
+      username: 'neon_dreams',
+      isVerified: true,
+    },
+    fileInfo: {
+      format: ['png', 'psd'],
+      width: 1920,
+      height: 1080,
+      sizeKB: 3200,
+      hasTransparency: true,
+    },
+    license: 'paid',
+    price: 2000,
+    stats: { views: 12456, downloads: 567, likes: 2341, uses: 892 },
+    thumbnailUrl: '',
+    previewUrls: [],
+    createdAt: '2025-01-16',
+    updatedAt: '2025-01-16',
+    isPremium: true,
   },
   '8': {
     id: '8',
-    title: '단체 관계도',
-    description: '여러 캐릭터들의 관계를 한눈에 볼 수 있는 단체 관계도에요. 복잡한 인물 관계를 정리하기 좋아요.',
-    creator: '코코넛',
-    creatorId: 'coconut',
-    likeCount: 789,
-    downloadCount: 234,
-    useCount: 945,
-    tags: ['관계도', '3인용+'],
-    emoji: '🥥',
-    slots: 6,
-    createdAt: '2025-01-01',
+    title: '세션 기록 템플릿',
+    description: 'TRPG 세션 진행 기록용 템플릿',
+    category: 'sessionlog',
+    tags: ['세션기록', 'TRPG'],
+    creator: {
+      id: 'rpg_lover',
+      displayName: 'RPG러버',
+      username: 'rpg_lover',
+      isVerified: false,
+    },
+    fileInfo: {
+      format: ['png'],
+      width: 1200,
+      height: 1600,
+      sizeKB: 420,
+      hasTransparency: false,
+    },
+    license: 'free',
+    stats: { views: 2134, downloads: 456, likes: 234, uses: 789 },
+    thumbnailUrl: '',
+    previewUrls: [],
+    createdAt: '2025-01-14',
+    updatedAt: '2025-01-14',
+    isPremium: false,
   },
 }
 
-// 관련 틀 추천
-const relatedTemplates = [
-  { id: '4', title: '베프 케미 틀', emoji: '🍀', likeCount: 2341 },
-  { id: '5', title: '삼각관계 틀', emoji: '🔺', likeCount: 1567 },
-  { id: '7', title: '팬아트 커플 틀', emoji: '🌸', likeCount: 3456 },
-]
+// 관련 자료
+const getRelatedResources = (category: ResourceCategory, excludeId: string) => {
+  return Object.values(sampleResources)
+    .filter(r => r.category === category && r.id !== excludeId)
+    .slice(0, 3)
+}
+
+// 라이선스 배지 컴포넌트
+function LicenseBadge({ license, size = 'md' }: { license: LicenseType; size?: 'sm' | 'md' }) {
+  const info = LICENSE_INFO[license]
+
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center gap-1 rounded-lg font-medium',
+        size === 'sm' ? 'px-2 py-0.5 text-xs' : 'px-3 py-1 text-sm',
+        license === 'free' && 'bg-green-100 text-green-700',
+        license === 'credit' && 'bg-blue-100 text-blue-700',
+        license === 'noncommercial' && 'bg-amber-100 text-amber-700',
+        license === 'paid' && 'bg-purple-100 text-purple-700'
+      )}
+    >
+      {info.icon} {info.name}
+    </span>
+  )
+}
+
+// 투명도 토글 미리보기 컴포넌트
+function TransparencyPreview({ hasTransparency }: { hasTransparency: boolean }) {
+  const [showTransparency, setShowTransparency] = useState(false)
+
+  return (
+    <div className="relative">
+      <div
+        className={cn(
+          'aspect-[4/3] rounded-[24px] flex items-center justify-center text-8xl shadow-lg overflow-hidden',
+          showTransparency && hasTransparency
+            ? 'bg-[conic-gradient(#e0e0e0_25%,#fff_25%,#fff_50%,#e0e0e0_50%,#e0e0e0_75%,#fff_75%)] bg-[length:20px_20px]'
+            : 'bg-gradient-to-br from-primary-200 to-accent-200'
+        )}
+      >
+        <span className="drop-shadow-lg">💕</span>
+      </div>
+
+      {/* 투명도 토글 버튼 */}
+      {hasTransparency && (
+        <button
+          onClick={() => setShowTransparency(!showTransparency)}
+          className={cn(
+            'absolute bottom-4 right-4 px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5',
+            showTransparency
+              ? 'bg-gray-900 text-white'
+              : 'bg-white/90 text-gray-700 hover:bg-white'
+          )}
+        >
+          <div className="w-4 h-4 rounded-sm bg-[conic-gradient(#ccc_25%,#fff_25%,#fff_50%,#ccc_50%,#ccc_75%,#fff_75%)] border border-gray-300" />
+          {showTransparency ? '투명도 확인 중' : '투명도 확인'}
+        </button>
+      )}
+    </div>
+  )
+}
 
 interface TemplateDetailClientProps {
   templateId: string
@@ -149,25 +322,31 @@ interface TemplateDetailClientProps {
 
 export default function TemplateDetailClient({ templateId }: TemplateDetailClientProps) {
   const router = useRouter()
+  const { subscription, incrementDownloads, getRemainingDownloads } = useSubscriptionStore()
 
   const [isLiked, setIsLiked] = useState(false)
   const [isBookmarked, setIsBookmarked] = useState(false)
   const [showShareToast, setShowShareToast] = useState(false)
+  const [showAddToLibrary, setShowAddToLibrary] = useState(false)
 
-  const template = sampleTemplates[templateId]
+  const resource = sampleResources[templateId]
 
-  if (!template) {
+  if (!resource) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center px-4">
         <div className="text-6xl mb-4">🤔</div>
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">틀을 찾을 수 없어요</h1>
-        <p className="text-gray-500 mb-6">요청하신 틀이 존재하지 않거나 삭제되었을 수 있어요.</p>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">자료를 찾을 수 없어요</h1>
+        <p className="text-gray-500 mb-6">요청하신 자료가 존재하지 않거나 삭제되었을 수 있어요.</p>
         <Button asChild>
-          <Link href="/templates">틀 둘러보기로 돌아가기</Link>
+          <Link href="/templates">자료 허브로 돌아가기</Link>
         </Button>
       </div>
     )
   }
+
+  const categoryInfo = RESOURCE_CATEGORIES[resource.category]
+  const licenseInfo = LICENSE_INFO[resource.license]
+  const relatedResources = getRelatedResources(resource.category, resource.id)
 
   const handleShare = async () => {
     try {
@@ -179,17 +358,49 @@ export default function TemplateDetailClient({ templateId }: TemplateDetailClien
     }
   }
 
-  // 트위터 공유
   const handleTwitterShare = () => {
-    const text = `${template.title} by @${template.creator}\n\n이 틀로 ${template.useCount.toLocaleString()}개의 작품이 만들어졌어요! ✨\n\n#페어리 #Pairy`
+    const text = `${resource.title} by @${resource.creator.username}\n\n${resource.stats.downloads.toLocaleString()}회 다운로드된 인기 자료!\n\n#페어리 #Pairy #${categoryInfo.nameKo}`
     const url = window.location.href
     const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`
     window.open(twitterUrl, '_blank', 'width=600,height=400')
   }
 
+  const handleDownload = () => {
+    // 유료 자료 체크
+    if (resource.license === 'paid') {
+      alert('유료 자료입니다. 구매 후 다운로드할 수 있어요.')
+      return
+    }
+
+    // 프리미엄 자료 체크
+    if (resource.isPremium && subscription.tier === 'free') {
+      alert('프리미엄 자료입니다. 업그레이드 후 다운로드할 수 있어요.')
+      return
+    }
+
+    // 다운로드 횟수 체크
+    if (!incrementDownloads()) {
+      alert('이번 달 다운로드 횟수를 모두 사용했어요. 프리미엄으로 업그레이드하세요!')
+      return
+    }
+
+    // 다운로드 성공 (데모)
+    alert('다운로드가 시작되었습니다! (데모 모드)')
+  }
+
   const handleStartWork = () => {
     router.push(`/editor/new?template=${templateId}`)
   }
+
+  const handleAddToLibrary = () => {
+    setShowAddToLibrary(true)
+    setTimeout(() => {
+      setShowAddToLibrary(false)
+      alert('내 서재에 추가되었습니다!')
+    }, 500)
+  }
+
+  const remainingDownloads = getRemainingDownloads()
 
   return (
     <div className="animate-fade-in">
@@ -203,7 +414,7 @@ export default function TemplateDetailClient({ templateId }: TemplateDetailClien
 
       {/* Breadcrumb */}
       <div className="bg-gray-50 border-b border-gray-200">
-        <div className="max-w-[1200px] mx-auto px-4 py-3">
+        <div className="max-w-[1200px] mx-auto px-4 py-3 flex items-center justify-between">
           <button
             onClick={() => router.back()}
             className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 transition-colors"
@@ -211,6 +422,15 @@ export default function TemplateDetailClient({ templateId }: TemplateDetailClien
             <ArrowLeft className="w-4 h-4" />
             뒤로 가기
           </button>
+
+          {/* 카테고리 배지 */}
+          <div className={cn(
+            'flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium',
+            categoryInfo.bgColor,
+            categoryInfo.color
+          )}>
+            {categoryInfo.emoji} {categoryInfo.nameKo}
+          </div>
         </div>
       </div>
 
@@ -220,9 +440,7 @@ export default function TemplateDetailClient({ templateId }: TemplateDetailClien
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
             {/* Preview */}
             <div className="lg:col-span-3">
-              <div className="aspect-[4/3] bg-gradient-to-br from-primary-200 to-accent-200 rounded-[24px] flex items-center justify-center text-8xl shadow-lg">
-                {template.emoji}
-              </div>
+              <TransparencyPreview hasTransparency={resource.fileInfo.hasTransparency} />
 
               {/* Preview Thumbnails */}
               <div className="flex gap-3 mt-4">
@@ -234,7 +452,7 @@ export default function TemplateDetailClient({ templateId }: TemplateDetailClien
                       i === 1 ? 'ring-2 ring-primary-400' : 'opacity-60 hover:opacity-100'
                     )}
                   >
-                    {template.emoji}
+                    💕
                   </div>
                 ))}
               </div>
@@ -244,68 +462,187 @@ export default function TemplateDetailClient({ templateId }: TemplateDetailClien
             <div className="lg:col-span-2">
               {/* Tags */}
               <div className="flex flex-wrap gap-2 mb-4">
-                {template.tags.map((tag, idx) => (
+                {resource.tags.map((tag, idx) => (
                   <Tag key={tag} variant={idx === 0 ? 'primary' : 'accent'}>
                     {tag}
                   </Tag>
                 ))}
+                {resource.isPremium && (
+                  <Tag variant="accent" className="!bg-gradient-to-r from-amber-100 to-orange-100 !text-orange-700">
+                    <Sparkles className="w-3 h-3 mr-1" />
+                    PRO
+                  </Tag>
+                )}
               </div>
 
               {/* Title */}
               <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                {template.title}
+                {resource.title}
               </h1>
 
               {/* Creator */}
               <Link
-                href={`/creator/${template.creatorId}`}
-                className="inline-flex items-center gap-2 text-gray-500 hover:text-primary-400 transition-colors mb-6"
+                href={`/creator/${resource.creator.username}`}
+                className="inline-flex items-center gap-2 text-gray-500 hover:text-primary-400 transition-colors mb-4"
               >
                 <div className="w-6 h-6 rounded-full bg-gradient-to-br from-primary-200 to-accent-200" />
-                <span className="text-sm">by {template.creator}</span>
+                <span className="text-sm">by {resource.creator.displayName}</span>
+                {resource.creator.isVerified && (
+                  <CheckCircle className="w-4 h-4 text-blue-500" />
+                )}
               </Link>
 
-              {/* Usage Counter Badge */}
-              <div className="mb-4 p-3 bg-gradient-to-r from-accent-50 to-primary-50 rounded-xl border border-accent-100">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-accent-500" />
-                  <span className="text-sm text-gray-700">
-                    이 틀로 <span className="font-bold text-accent-600">{template.useCount.toLocaleString()}</span>개의 작품이 만들어졌어요!
-                  </span>
-                </div>
-              </div>
-
               {/* Stats */}
-              <div className="flex flex-wrap gap-4 mb-6 pb-6 border-b border-gray-200">
-                <div className="flex items-center gap-2 text-sm text-gray-500">
-                  <Heart className="w-4 h-4" />
-                  <span>{template.likeCount.toLocaleString()}</span>
-                </div>
+              <div className="flex flex-wrap gap-4 mb-4 pb-4 border-b border-gray-200">
                 <div className="flex items-center gap-2 text-sm text-gray-500">
                   <Download className="w-4 h-4" />
-                  <span>{template.downloadCount.toLocaleString()}</span>
+                  <span>{resource.stats.downloads.toLocaleString()}</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-gray-500">
-                  <Users className="w-4 h-4" />
-                  <span>{template.slots}인용</span>
+                  <Heart className="w-4 h-4" />
+                  <span>{resource.stats.likes.toLocaleString()}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-gray-500">
+                  <Eye className="w-4 h-4" />
+                  <span>{resource.stats.views.toLocaleString()}</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-gray-500">
                   <Clock className="w-4 h-4" />
-                  <span>{template.createdAt}</span>
+                  <span>{resource.createdAt}</span>
                 </div>
               </div>
 
+              {/* File Info */}
+              <div className="mb-4 p-4 bg-gray-50 rounded-xl">
+                <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                  <FileImage className="w-4 h-4" />
+                  파일 정보
+                </h4>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <span className="text-gray-500">포맷:</span>
+                    <span className="ml-2 font-medium text-gray-900">
+                      {resource.fileInfo.format.map(f => f.toUpperCase()).join(', ')}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">크기:</span>
+                    <span className="ml-2 font-medium text-gray-900">
+                      {resource.fileInfo.sizeKB > 1000
+                        ? `${(resource.fileInfo.sizeKB / 1024).toFixed(1)}MB`
+                        : `${resource.fileInfo.sizeKB}KB`}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Maximize className="w-4 h-4 text-gray-500" />
+                    <span className="font-medium text-gray-900">
+                      {resource.fileInfo.width} × {resource.fileInfo.height}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {resource.fileInfo.hasTransparency ? (
+                      <>
+                        <div className="w-4 h-4 rounded-sm bg-[conic-gradient(#ccc_25%,#fff_25%,#fff_50%,#ccc_50%,#ccc_75%,#fff_75%)] border border-gray-300" />
+                        <span className="font-medium text-gray-900">투명 배경</span>
+                      </>
+                    ) : (
+                      <>
+                        <div className="w-4 h-4 rounded-sm bg-white border border-gray-300" />
+                        <span className="font-medium text-gray-900">배경 포함</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* License Info */}
+              <div className="mb-4 p-4 bg-gray-50 rounded-xl">
+                <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                  <Shield className="w-4 h-4" />
+                  이용 조건
+                </h4>
+                <div className="flex items-start gap-3">
+                  <LicenseBadge license={resource.license} />
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-600 mb-2">{licenseInfo.description}</p>
+                    {licenseInfo.requirements.length > 0 && (
+                      <ul className="text-xs text-gray-500 space-y-1">
+                        {licenseInfo.requirements.map((req) => (
+                          <li key={req} className="flex items-center gap-1">
+                            <AlertCircle className="w-3 h-3" />
+                            {req}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+                {resource.license === 'paid' && resource.price && (
+                  <div className="mt-3 pt-3 border-t border-gray-200">
+                    <span className="text-2xl font-bold text-gray-900">
+                      ₩{resource.price.toLocaleString()}
+                    </span>
+                  </div>
+                )}
+              </div>
+
               {/* Description */}
-              <p className="text-gray-600 mb-8 leading-relaxed">
-                {template.description}
+              <p className="text-gray-600 mb-6 leading-relaxed">
+                {resource.description}
               </p>
+
+              {/* Download Limit Warning */}
+              {subscription.tier === 'free' && remainingDownloads <= 5 && (
+                <div className={cn(
+                  'mb-4 p-3 rounded-xl flex items-center justify-between',
+                  remainingDownloads === 0 ? 'bg-red-50 border border-red-200' : 'bg-amber-50 border border-amber-200'
+                )}>
+                  <span className={cn(
+                    'text-sm',
+                    remainingDownloads === 0 ? 'text-red-700' : 'text-amber-700'
+                  )}>
+                    {remainingDownloads === 0
+                      ? '이번 달 다운로드 횟수를 모두 사용했어요'
+                      : `이번 달 다운로드 ${remainingDownloads}회 남았어요`}
+                  </span>
+                  <Button size="sm" variant={remainingDownloads === 0 ? 'primary' : 'outline'} asChild>
+                    <Link href="/premium">무제한</Link>
+                  </Button>
+                </div>
+              )}
 
               {/* Actions */}
               <div className="flex gap-3 mb-4">
-                <Button size="lg" className="flex-1" onClick={handleStartWork}>
-                  이 틀로 시작하기
+                <Button
+                  size="lg"
+                  className="flex-1"
+                  onClick={handleDownload}
+                  disabled={resource.license === 'paid'}
+                >
+                  <Download className="w-5 h-5 mr-2" />
+                  {resource.license === 'paid' ? `₩${resource.price?.toLocaleString()} 구매` : '다운로드'}
+                </Button>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  onClick={handleAddToLibrary}
+                  className={cn(showAddToLibrary && 'animate-pulse')}
+                >
+                  <FolderPlus className="w-5 h-5" />
                 </Button>
               </div>
+
+              {/* 에디터로 시작하기 (페어틀 전용) */}
+              {resource.category === 'pairtl' && (
+                <Button
+                  size="lg"
+                  variant="secondary"
+                  className="w-full mb-4"
+                  onClick={handleStartWork}
+                >
+                  이 틀로 에디터에서 시작하기
+                </Button>
+              )}
 
               <div className="flex gap-3">
                 <Button
@@ -342,37 +679,57 @@ export default function TemplateDetailClient({ templateId }: TemplateDetailClien
         </div>
       </section>
 
-      {/* Related Templates */}
-      <section className="py-12 px-4 bg-gray-50">
-        <div className="max-w-[1200px] mx-auto">
-          <h2 className="text-xl font-bold text-gray-900 mb-6">
-            비슷한 <span className="text-accent-400">틀</span>
-          </h2>
+      {/* Related Resources */}
+      {relatedResources.length > 0 && (
+        <section className="py-12 px-4 bg-gray-50">
+          <div className="max-w-[1200px] mx-auto">
+            <h2 className="text-xl font-bold text-gray-900 mb-6">
+              비슷한 <span className="text-accent-400">{categoryInfo.nameKo}</span>
+            </h2>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {relatedTemplates.map((related) => (
-              <Link
-                key={related.id}
-                href={`/templates/${related.id}`}
-                className="group bg-white rounded-[20px] overflow-hidden border border-gray-200 hover:shadow-lg transition-all duration-200 hover:-translate-y-1"
-              >
-                <div className="aspect-[4/3] bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center text-5xl">
-                  {related.emoji}
-                </div>
-                <div className="p-4">
-                  <h3 className="font-semibold text-gray-900 group-hover:text-primary-400 transition-colors">
-                    {related.title}
-                  </h3>
-                  <div className="flex items-center gap-1 text-sm text-gray-500 mt-2">
-                    <Heart className="w-4 h-4" />
-                    <span>{related.likeCount.toLocaleString()}</span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {relatedResources.map((related) => (
+                <Link
+                  key={related.id}
+                  href={`/templates/${related.id}`}
+                  className="group bg-white rounded-[20px] overflow-hidden border border-gray-200 hover:shadow-lg transition-all duration-200 hover:-translate-y-1"
+                >
+                  <div className="aspect-[4/3] bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center text-5xl relative">
+                    {RESOURCE_CATEGORIES[related.category].emoji}
+                    {related.isPremium && (
+                      <div className="absolute top-2 left-2 px-2 py-0.5 bg-gradient-to-r from-amber-400 to-orange-400 text-white text-xs font-bold rounded-full flex items-center gap-1">
+                        <Sparkles className="w-3 h-3" />
+                        PRO
+                      </div>
+                    )}
                   </div>
-                </div>
-              </Link>
-            ))}
+                  <div className="p-4">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-semibold text-gray-900 group-hover:text-primary-400 transition-colors flex-1">
+                        {related.title}
+                      </h3>
+                      {related.creator.isVerified && (
+                        <CheckCircle className="w-4 h-4 text-blue-500" />
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 mb-2">by {related.creator.displayName}</p>
+                    <div className="flex items-center gap-3 text-sm text-gray-500">
+                      <span className="flex items-center gap-1">
+                        <Download className="w-4 h-4" />
+                        {related.stats.downloads.toLocaleString()}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Heart className="w-4 h-4" />
+                        {related.stats.likes.toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
     </div>
   )
 }
