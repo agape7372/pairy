@@ -8,14 +8,11 @@ import { cn } from '@/lib/utils/cn'
 import { useSubscriptionStore, PRICING } from '@/stores/subscriptionStore'
 import { UpgradeModal } from '@/components/premium/UpgradeModal'
 
-type BillingCycle = 'monthly' | 'yearly'
-
-const getPlans = (billingCycle: BillingCycle, currentTier: string) => [
+const getPlans = (currentTier: string) => [
   {
     name: '무료',
     price: '₩0',
     period: '',
-    monthlyEquivalent: null,
     description: '가볍게 시작하기',
     features: [
       '기본 틀 이용',
@@ -34,14 +31,8 @@ const getPlans = (billingCycle: BillingCycle, currentTier: string) => [
   },
   {
     name: '프리미엄',
-    price: billingCycle === 'yearly'
-      ? `₩${PRICING.premium.yearly.toLocaleString()}`
-      : `₩${PRICING.premium.monthly.toLocaleString()}`,
-    period: billingCycle === 'yearly' ? '/년' : '/월',
-    monthlyEquivalent: billingCycle === 'yearly'
-      ? Math.floor(PRICING.premium.yearly / 12)
-      : null,
-    savings: billingCycle === 'yearly' ? PRICING.premium.yearlySavings : null,
+    price: `₩${PRICING.premium.monthly.toLocaleString()}`,
+    period: '/월',
     description: '본격적으로 즐기기',
     features: [
       '모든 틀 이용',
@@ -60,14 +51,8 @@ const getPlans = (billingCycle: BillingCycle, currentTier: string) => [
   },
   {
     name: '크리에이터',
-    price: billingCycle === 'yearly'
-      ? `₩${PRICING.creator.yearly.toLocaleString()}`
-      : `₩${PRICING.creator.monthly.toLocaleString()}`,
-    period: billingCycle === 'yearly' ? '/년' : '/월',
-    monthlyEquivalent: billingCycle === 'yearly'
-      ? Math.floor(PRICING.creator.yearly / 12)
-      : null,
-    savings: billingCycle === 'yearly' ? PRICING.creator.yearlySavings : null,
+    price: `₩${PRICING.creator.monthly.toLocaleString()}`,
+    period: '/월',
     description: '틀 제작자를 위한',
     features: [
       '프리미엄 모든 기능',
@@ -105,19 +90,18 @@ const faqs = [
 ]
 
 export default function PremiumPage() {
-  const [billingCycle, setBillingCycle] = useState<BillingCycle>('yearly')
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [selectedTier, setSelectedTier] = useState<'premium' | 'creator'>('premium')
   const { subscription, subscribe, isDemoMode } = useSubscriptionStore()
 
-  const plans = getPlans(billingCycle, subscription.tier)
+  const plans = getPlans(subscription.tier)
 
   const handleSelectPlan = (tier: 'free' | 'premium' | 'creator') => {
     if (tier === 'free' || tier === subscription.tier) return
 
     if (isDemoMode) {
       // 데모 모드: 바로 구독 적용
-      subscribe(tier, billingCycle)
+      subscribe(tier, 'monthly')
       alert(`${tier === 'premium' ? '프리미엄' : '크리에이터'} 구독이 활성화되었습니다! (데모 모드)`)
     } else {
       // 실제 모드: 모달 열기
@@ -138,40 +122,11 @@ export default function PremiumPage() {
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 mb-4">
             <span className="text-primary-400">프리미엄</span>으로 업그레이드
           </h1>
-          <p className="text-lg text-gray-500 mb-8">
+          <p className="text-lg text-gray-500">
             워터마크 제거, 무제한 내보내기, 고해상도 저장까지.
             <br className="hidden sm:block" />
             더 멋진 작품을 만들어보세요.
           </p>
-
-          {/* Billing Cycle Toggle */}
-          <div className="inline-flex items-center gap-2 p-1 bg-gray-100 rounded-full">
-            <button
-              onClick={() => setBillingCycle('monthly')}
-              className={cn(
-                'px-5 py-2 rounded-full text-sm font-medium transition-all',
-                billingCycle === 'monthly'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
-              )}
-            >
-              월간 결제
-            </button>
-            <button
-              onClick={() => setBillingCycle('yearly')}
-              className={cn(
-                'px-5 py-2 rounded-full text-sm font-medium transition-all relative',
-                billingCycle === 'yearly'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
-              )}
-            >
-              연간 결제
-              <span className="absolute -top-1 -right-1 px-1.5 py-0.5 bg-accent-400 text-white text-[10px] font-bold rounded-full">
-                2개월 무료
-              </span>
-            </button>
-          </div>
         </div>
       </section>
 
@@ -213,16 +168,10 @@ export default function PremiumPage() {
                 )}
                 <h3 className="text-xl font-bold text-gray-900">{plan.name}</h3>
                 <p className="text-sm text-gray-500 mb-4">{plan.description}</p>
-                <div className="mb-2">
+                <div className="mb-6">
                   <span className="text-3xl font-bold text-gray-900">{plan.price}</span>
                   <span className="text-gray-500">{plan.period}</span>
                 </div>
-                {plan.monthlyEquivalent && (
-                  <p className="text-sm text-accent-500 mb-4">
-                    월 ₩{plan.monthlyEquivalent.toLocaleString()} · ₩{plan.savings?.toLocaleString()} 절약
-                  </p>
-                )}
-                {!plan.monthlyEquivalent && <div className="h-6 mb-4" />}
 
                 <ul className="space-y-3 mb-6">
                   {plan.features.map((feature) => (

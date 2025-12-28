@@ -128,24 +128,16 @@ export default function SubscriptionPage() {
 
           {/* Subscription Details */}
           {subscription.tier !== 'free' && (
-            <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200">
-              <div>
-                <p className="text-sm text-gray-500 mb-1">결제 주기</p>
-                <p className="font-medium text-gray-900">
-                  {subscription.billingCycle === 'yearly' ? '연간' : '월간'}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500 mb-1">
-                  {subscription.isTrialActive ? '체험 종료일' : '다음 결제일'}
-                </p>
-                <p className="font-medium text-gray-900">
-                  {formatDate(subscription.isTrialActive
-                    ? subscription.trialEndDate
-                    : subscription.endDate
-                  )}
-                </p>
-              </div>
+            <div className="pt-4 border-t border-gray-200">
+              <p className="text-sm text-gray-500 mb-1">
+                {subscription.isTrialActive ? '체험 종료일' : '다음 결제일'}
+              </p>
+              <p className="font-medium text-gray-900">
+                {formatDate(subscription.isTrialActive
+                  ? subscription.trialEndDate
+                  : subscription.endDate
+                )}
+              </p>
             </div>
           )}
         </div>

@@ -10,7 +10,6 @@ import {
   PRICING,
   TIER_LIMITS,
   type SubscriptionTier,
-  type BillingCycle,
 } from '@/stores/subscriptionStore'
 
 interface UpgradeModalProps {
@@ -29,21 +28,16 @@ export function UpgradeModal({
   const [selectedTier, setSelectedTier] = useState<'premium' | 'creator'>(
     requiredTier === 'creator' ? 'creator' : 'premium'
   )
-  const [billingCycle, setBillingCycle] = useState<BillingCycle>('yearly')
   const { subscribe, startTrial, isDemoMode } = useSubscriptionStore()
 
   if (!isOpen) return null
 
-  const price = PRICING[selectedTier]
-  const currentPrice = billingCycle === 'yearly' ? price.yearly : price.monthly
-  const monthlyEquivalent = billingCycle === 'yearly'
-    ? Math.floor(price.yearly / 12)
-    : price.monthly
+  const price = PRICING[selectedTier].monthly
 
   const handleSubscribe = () => {
     if (isDemoMode) {
       // 데모 모드: 바로 구독 적용
-      subscribe(selectedTier, billingCycle)
+      subscribe(selectedTier, 'monthly')
       onClose()
       // 성공 토스트 표시
       alert(`${selectedTier === 'premium' ? '프리미엄' : '크리에이터'} 구독이 활성화되었습니다! (데모 모드)`)
@@ -146,50 +140,14 @@ export function UpgradeModal({
           </button>
         </div>
 
-        {/* Billing Cycle Toggle */}
-        <div className="flex items-center justify-center gap-3 mb-6">
-          <button
-            onClick={() => setBillingCycle('monthly')}
-            className={cn(
-              'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
-              billingCycle === 'monthly'
-                ? 'bg-gray-900 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            )}
-          >
-            월간
-          </button>
-          <button
-            onClick={() => setBillingCycle('yearly')}
-            className={cn(
-              'px-4 py-2 rounded-lg text-sm font-medium transition-colors relative',
-              billingCycle === 'yearly'
-                ? 'bg-gray-900 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            )}
-          >
-            연간
-            <span className="absolute -top-2 -right-2 px-1.5 py-0.5 bg-accent-400 text-white text-[10px] font-bold rounded-full">
-              2개월 무료
-            </span>
-          </button>
-        </div>
-
         {/* Price Display */}
         <div className="text-center mb-6 p-4 bg-gray-50 rounded-xl">
           <div className="flex items-end justify-center gap-1">
             <span className="text-3xl font-bold text-gray-900">
-              ₩{currentPrice.toLocaleString()}
+              ₩{price.toLocaleString()}
             </span>
-            <span className="text-gray-500 mb-1">
-              /{billingCycle === 'yearly' ? '년' : '월'}
-            </span>
+            <span className="text-gray-500 mb-1">/월</span>
           </div>
-          {billingCycle === 'yearly' && (
-            <p className="text-sm text-accent-500 mt-1">
-              월 ₩{monthlyEquivalent.toLocaleString()} · ₩{price.yearlySavings.toLocaleString()} 절약
-            </p>
-          )}
         </div>
 
         {/* Features List */}
