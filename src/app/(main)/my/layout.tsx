@@ -2,7 +2,7 @@
 
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { User, FileText, Bookmark, Settings } from 'lucide-react'
+import { User, FileText, Bookmark, Settings, Crown, BarChart3 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { useUser } from '@/hooks/useUser'
 import { IS_DEMO_MODE } from '@/lib/supabase/client'
@@ -11,6 +11,8 @@ const tabs = [
   { href: '/my', label: '프로필', icon: User, exact: true },
   { href: '/my/works', label: '내 작업', icon: FileText },
   { href: '/my/bookmarks', label: '북마크', icon: Bookmark },
+  { href: '/my/subscription', label: '구독', icon: Crown },
+  { href: '/my/creator', label: '크리에이터', icon: BarChart3 },
   { href: '/my/settings', label: '설정', icon: Settings },
 ]
 

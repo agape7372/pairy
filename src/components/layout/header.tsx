@@ -7,6 +7,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
 import { useUser } from '@/hooks/useUser'
+import { NotificationBell } from '@/components/notifications/NotificationPanel'
 
 const navLinks = [
   { href: '/templates', label: '틀 둘러보기' },
@@ -61,7 +62,12 @@ export function Header() {
             {isLoading ? (
               <div className="w-9 h-9 rounded-full bg-gray-200 animate-pulse" />
             ) : user ? (
-              <div className="relative">
+              <>
+                {/* Notification Bell */}
+                <NotificationBell />
+
+                {/* User Avatar */}
+                <div className="relative">
                 <button
                   onClick={() => setShowUserMenu(!showUserMenu)}
                   className="w-9 h-9 rounded-full bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center overflow-hidden hover:ring-2 hover:ring-primary-300 transition-all"
@@ -106,6 +112,7 @@ export function Header() {
                   </>
                 )}
               </div>
+              </>
             ) : (
               <>
                 <Button variant="ghost" size="sm" asChild>

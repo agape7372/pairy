@@ -1,10 +1,14 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { Check, Sparkles, Zap, Crown, ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui'
+import { cn } from '@/lib/utils/cn'
+import { useSubscriptionStore, PRICING } from '@/stores/subscriptionStore'
+import { UpgradeModal } from '@/components/premium/UpgradeModal'
 
-const plans = [
+const getPlans = (currentTier: string) => [
   {
     name: '무료',
     price: '₩0',
@@ -12,7 +16,7 @@ const plans = [
     description: '가볍게 시작하기',
     features: [
       '기본 틀 이용',
-      '월 3회 내보내기',
+      '월 5회 내보내기',
       '워터마크 포함',
       '2인 협업',
     ],
@@ -20,13 +24,14 @@ const plans = [
       '프리미엄 틀 이용 불가',
       '고해상도 내보내기 불가',
     ],
-    cta: '현재 플랜',
+    cta: currentTier === 'free' ? '현재 플랜' : '무료로 전환',
     variant: 'outline' as const,
-    current: true,
+    current: currentTier === 'free',
+    tier: 'free' as const,
   },
   {
     name: '프리미엄',
-    price: '₩3,900',
+    price: `₩${PRICING.premium.monthly.toLocaleString()}`,
     period: '/월',
     description: '본격적으로 즐기기',
     features: [
@@ -38,13 +43,15 @@ const plans = [
       '신규 틀 우선 이용',
     ],
     limitations: [],
-    cta: '프리미엄 시작',
+    cta: currentTier === 'premium' ? '현재 플랜' : '프리미엄 시작',
     variant: 'primary' as const,
     popular: true,
+    current: currentTier === 'premium',
+    tier: 'premium' as const,
   },
   {
     name: '크리에이터',
-    price: '₩9,900',
+    price: `₩${PRICING.creator.monthly.toLocaleString()}`,
     period: '/월',
     description: '틀 제작자를 위한',
     features: [
@@ -56,8 +63,10 @@ const plans = [
       '1:1 전담 지원',
     ],
     limitations: [],
-    cta: '크리에이터 신청',
+    cta: currentTier === 'creator' ? '현재 플랜' : '크리에이터 신청',
     variant: 'accent' as const,
+    current: currentTier === 'creator',
+    tier: 'creator' as const,
   },
 ]
 
@@ -81,6 +90,26 @@ const faqs = [
 ]
 
 export default function PremiumPage() {
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+  const [selectedTier, setSelectedTier] = useState<'premium' | 'creator'>('premium')
+  const { subscription, subscribe, isDemoMode } = useSubscriptionStore()
+
+  const plans = getPlans(subscription.tier)
+
+  const handleSelectPlan = (tier: 'free' | 'premium' | 'creator') => {
+    if (tier === 'free' || tier === subscription.tier) return
+
+    if (isDemoMode) {
+      // 데모 모드: 바로 구독 적용
+      subscribe(tier, 'monthly')
+      alert(`${tier === 'premium' ? '프리미엄' : '크리에이터'} 구독이 활성화되었습니다! (데모 모드)`)
+    } else {
+      // 실제 모드: 모달 열기
+      setSelectedTier(tier)
+      setShowUpgradeModal(true)
+    }
+  }
+
   return (
     <div className="animate-fade-in">
       {/* Hero */}
@@ -93,7 +122,7 @@ export default function PremiumPage() {
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 mb-4">
             <span className="text-primary-400">프리미엄</span>으로 업그레이드
           </h1>
-          <p className="text-lg text-gray-500 mb-8">
+          <p className="text-lg text-gray-500">
             워터마크 제거, 무제한 내보내기, 고해상도 저장까지.
             <br className="hidden sm:block" />
             더 멋진 작품을 만들어보세요.
@@ -108,21 +137,30 @@ export default function PremiumPage() {
             {plans.map((plan) => (
               <div
                 key={plan.name}
-                className={`bg-white rounded-[24px] p-6 border-2 transition-all ${
-                  plan.popular
-                    ? 'border-primary-400 shadow-lg scale-105'
+                className={cn(
+                  'bg-white rounded-[24px] p-6 border-2 transition-all',
+                  plan.popular && !plan.current
+                    ? 'border-primary-400 shadow-lg md:scale-105'
+                    : plan.current
+                    ? 'border-green-400 bg-green-50/30'
                     : plan.variant === 'accent'
                     ? 'border-accent-300'
                     : 'border-gray-200'
-                }`}
+                )}
               >
-                {plan.popular && (
+                {plan.current && (
+                  <div className="inline-flex items-center gap-1 px-3 py-1 bg-green-500 text-white text-xs font-medium rounded-full mb-4">
+                    <Check className="w-3 h-3" />
+                    현재 구독 중
+                  </div>
+                )}
+                {plan.popular && !plan.current && (
                   <div className="inline-flex items-center gap-1 px-3 py-1 bg-primary-400 text-white text-xs font-medium rounded-full mb-4">
                     <Crown className="w-3 h-3" />
                     인기
                   </div>
                 )}
-                {plan.variant === 'accent' && !plan.popular && (
+                {plan.variant === 'accent' && !plan.popular && !plan.current && (
                   <div className="inline-flex items-center gap-1 px-3 py-1 bg-accent-400 text-white text-xs font-medium rounded-full mb-4">
                     <Zap className="w-3 h-3" />
                     크리에이터
@@ -153,11 +191,7 @@ export default function PremiumPage() {
                   variant={plan.current ? 'ghost' : plan.variant === 'accent' ? 'secondary' : plan.variant}
                   className="w-full"
                   disabled={plan.current}
-                  onClick={() => {
-                    if (!plan.current) {
-                      alert('결제 기능은 준비 중입니다.')
-                    }
-                  }}
+                  onClick={() => handleSelectPlan(plan.tier)}
                 >
                   {plan.cta}
                   {!plan.current && <ArrowRight className="w-4 h-4 ml-1" />}
@@ -165,8 +199,24 @@ export default function PremiumPage() {
               </div>
             ))}
           </div>
+
+          {/* Demo Mode Indicator */}
+          {isDemoMode && (
+            <div className="mt-8 p-4 bg-amber-50 border border-amber-200 rounded-xl text-center">
+              <p className="text-sm text-amber-700">
+                🎮 <span className="font-medium">데모 모드</span>: 플랜을 선택하면 실제 결제 없이 기능을 체험할 수 있어요
+              </p>
+            </div>
+          )}
         </div>
       </section>
+
+      {/* Upgrade Modal */}
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        requiredTier={selectedTier}
+      />
 
       {/* FAQ */}
       <section className="py-12 sm:py-20 px-4 bg-gray-50">

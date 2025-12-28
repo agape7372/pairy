@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { X, Download, Image, FileImage, Loader2, AtSign, Twitter } from 'lucide-react'
+import { X, Download, Image, FileImage, Loader2, AtSign, Twitter, Crown, Lock } from 'lucide-react'
 import { Button } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
 import {
@@ -11,6 +11,7 @@ import {
   downloadBlob,
   generateFilename,
 } from '@/lib/utils/export'
+import { useSubscriptionStore, TIER_LIMITS } from '@/stores/subscriptionStore'
 
 interface ExportDialogProps {
   isOpen: boolean
@@ -39,6 +40,18 @@ export function ExportDialog({
   const [includeCredit, setIncludeCredit] = useState(true) // 크레딧 포함 여부
   const [shareToTwitter, setShareToTwitter] = useState(false) // 트위터 공유
 
+  // 구독 상태 가져오기
+  const {
+    subscription,
+    getRemainingExports,
+    incrementExports,
+  } = useSubscriptionStore()
+
+  const limits = TIER_LIMITS[subscription.tier]
+  const remainingExports = getRemainingExports()
+  const canExportHighRes = limits.canExportHighRes
+  const hasWatermark = limits.hasWatermark
+
   if (!isOpen) return null
 
   // 크레딧 텍스트 생성
@@ -62,31 +75,54 @@ export function ExportDialog({
       return
     }
 
+    // 내보내기 횟수 체크
+    if (remainingExports <= 0) {
+      setError('이번 달 내보내기 횟수를 모두 사용했습니다. 프리미엄으로 업그레이드하세요!')
+      return
+    }
+
     try {
       setIsExporting(true)
       setError(null)
 
-      // 크레딧 워터마크 옵션
-      const watermarkOption = includeCredit && creatorName
-        ? {
-            text: getCreditText(),
-            position: 'bottom-right' as const,
-            opacity: 0.7,
-            fontSize: 14,
-            color: '#666666',
-          }
-        : undefined
+      // 실제 적용할 스케일 (무료 사용자는 1x만 가능)
+      const actualScale = canExportHighRes ? scale : 1
+
+      // 워터마크 설정 (무료 사용자는 항상 워터마크 포함)
+      let watermarkOption
+      if (hasWatermark) {
+        // 무료 사용자: 강제 워터마크
+        watermarkOption = {
+          text: '페어리에서 만듦 ✨ pairy.app',
+          position: 'bottom-right' as const,
+          opacity: 0.8,
+          fontSize: 16,
+          color: '#888888',
+        }
+      } else if (includeCredit && creatorName) {
+        // 프리미엄 사용자: 선택적 크레딧
+        watermarkOption = {
+          text: getCreditText(),
+          position: 'bottom-right' as const,
+          opacity: 0.7,
+          fontSize: 14,
+          color: '#666666',
+        }
+      }
 
       const blob = await captureElementAsImage(canvasRef.current, {
         format,
         quality,
-        scale,
+        scale: actualScale,
         backgroundColor: format === 'jpg' ? '#FFFFFF' : undefined,
         watermark: watermarkOption,
       })
 
-      const filename = generateFilename(title, format, scale)
+      const filename = generateFilename(title, format, actualScale)
       downloadBlob(blob, filename)
+
+      // 내보내기 횟수 증가
+      incrementExports()
 
       // 트위터 공유 옵션이 선택된 경우
       if (shareToTwitter) {
@@ -208,22 +244,84 @@ export function ExportDialog({
             해상도
           </label>
           <div className="grid grid-cols-2 gap-3">
-            {scaleOptions.map((option) => (
-              <button
-                key={option.value}
-                onClick={() => setScale(option.value)}
-                className={cn(
-                  'py-3 px-4 rounded-xl text-sm font-medium transition-all',
-                  scale === option.value
-                    ? 'bg-primary-400 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                )}
-              >
-                {option.label}
-              </button>
-            ))}
+            {scaleOptions.map((option) => {
+              const isLocked = option.value === 2 && !canExportHighRes
+              return (
+                <button
+                  key={option.value}
+                  onClick={() => !isLocked && setScale(option.value)}
+                  disabled={isLocked}
+                  className={cn(
+                    'py-3 px-4 rounded-xl text-sm font-medium transition-all relative',
+                    isLocked
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      : scale === option.value
+                      ? 'bg-primary-400 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  )}
+                >
+                  {option.label}
+                  {isLocked && (
+                    <Lock className="w-3 h-3 absolute top-1 right-1 text-gray-400" />
+                  )}
+                </button>
+              )
+            })}
           </div>
+          {!canExportHighRes && (
+            <p className="text-xs text-gray-500 mt-2 flex items-center gap-1">
+              <Crown className="w-3 h-3 text-primary-400" />
+              고해상도 내보내기는 프리미엄 기능이에요
+            </p>
+          )}
         </div>
+
+        {/* Export Limit Info */}
+        {limits.exportsPerMonth !== Infinity && (
+          <div className={cn(
+            'mb-6 p-3 rounded-xl border',
+            remainingExports <= 1
+              ? 'bg-red-50 border-red-200'
+              : remainingExports <= 3
+              ? 'bg-amber-50 border-amber-200'
+              : 'bg-gray-50 border-gray-200'
+          )}>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">이번 달 남은 내보내기</span>
+              <span className={cn(
+                'text-sm font-bold',
+                remainingExports <= 1 ? 'text-red-600' :
+                remainingExports <= 3 ? 'text-amber-600' : 'text-gray-900'
+              )}>
+                {remainingExports}회
+              </span>
+            </div>
+            {remainingExports <= 3 && (
+              <a
+                href="/premium"
+                className="text-xs text-primary-500 hover:underline mt-1 inline-block"
+              >
+                프리미엄으로 무제한 내보내기 →
+              </a>
+            )}
+          </div>
+        )}
+
+        {/* Watermark Notice for Free Users */}
+        {hasWatermark && (
+          <div className="mb-6 p-3 bg-gray-50 rounded-xl border border-gray-200">
+            <p className="text-sm text-gray-600 flex items-center gap-2">
+              <span>📎</span>
+              <span>무료 플랜에서는 워터마크가 포함돼요</span>
+            </p>
+            <a
+              href="/premium"
+              className="text-xs text-primary-500 hover:underline mt-1 inline-block"
+            >
+              워터마크 제거하기 →
+            </a>
+          </div>
+        )}
 
         {/* Creator Options */}
         {creatorName && (
