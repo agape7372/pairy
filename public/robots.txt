@@ -1,0 +1,15 @@
+# Pairy Robots.txt
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://pairy.app/sitemap.xml
+
+# Disallow editor routes (dynamic content)
+Disallow: /editor/
+Disallow: /collab/
+Disallow: /auth/
+
+# Allow template pages
+Allow: /templates/
+Allow: /creator/
