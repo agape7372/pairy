@@ -4,21 +4,22 @@ import { Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Loader2 } from 'lucide-react'
+import { ArrowLeft, Loader2, HelpCircle } from 'lucide-react'
 import { Button } from '@/components/ui'
 import { useUser } from '@/hooks/useUser'
 import { isSupabaseConfigured } from '@/lib/supabase/client'
+import { getIcon, getIconColor, type IconName } from '@/lib/utils/icons'
 
 // 임시 템플릿 데이터
-const templates: Record<string, { title: string; emoji: string }> = {
-  '1': { title: '커플 프로필 틀', emoji: '💕' },
-  '2': { title: '친구 관계도', emoji: '✨' },
-  '3': { title: 'OC 소개 카드', emoji: '🌙' },
-  '4': { title: '베프 케미 틀', emoji: '🍀' },
-  '5': { title: '삼각관계 틀', emoji: '🔺' },
-  '6': { title: '캐릭터 프로필 카드', emoji: '📋' },
-  '7': { title: '팬아트 커플 틀', emoji: '🌸' },
-  '8': { title: '단체 관계도', emoji: '🥥' },
+const templates: Record<string, { title: string; icon: IconName }> = {
+  '1': { title: '커플 프로필 틀', icon: 'heart' },
+  '2': { title: '친구 관계도', icon: 'sparkles' },
+  '3': { title: 'OC 소개 카드', icon: 'moon' },
+  '4': { title: '베프 케미 틀', icon: 'clover' },
+  '5': { title: '삼각관계 틀', icon: 'triangle' },
+  '6': { title: '캐릭터 프로필 카드', icon: 'file' },
+  '7': { title: '팬아트 커플 틀', icon: 'flower' },
+  '8': { title: '단체 관계도', icon: 'users' },
 }
 
 function NewEditorContent() {
@@ -82,7 +83,9 @@ function NewEditorContent() {
   if (!template) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center px-4">
-        <div className="text-6xl mb-4">🤔</div>
+        <div className="w-16 h-16 mb-4 rounded-full bg-gray-100 flex items-center justify-center">
+          <HelpCircle className="w-8 h-8 text-gray-400" strokeWidth={1.5} />
+        </div>
         <h1 className="text-2xl font-bold text-gray-900 mb-2">
           템플릿을 찾을 수 없어요
         </h1>
@@ -116,8 +119,12 @@ function NewEditorContent() {
         {/* Template Info */}
         <div className="bg-white rounded-[20px] border border-gray-200 p-6 mb-6">
           <div className="flex items-center gap-4">
-            <div className="w-20 h-20 rounded-[16px] bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center text-4xl">
-              {template.emoji}
+            <div className="w-20 h-20 rounded-[16px] bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center">
+              {(() => {
+                const TemplateIcon = getIcon(template.icon)
+                const templateColor = getIconColor(template.icon)
+                return <TemplateIcon className={`w-10 h-10 ${templateColor}`} strokeWidth={1.5} />
+              })()}
             </div>
             <div>
               <p className="text-sm text-gray-500 mb-1">선택한 틀</p>

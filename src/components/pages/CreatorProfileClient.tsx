@@ -13,16 +13,18 @@ import {
   Twitter,
   ExternalLink,
   Calendar,
+  HelpCircle,
 } from 'lucide-react'
 import { Button, Tag } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
+import { getIcon, getIconColor, type IconName } from '@/lib/utils/icons'
 
 // 크리에이터 샘플 데이터
 const creatorsData: Record<string, {
   username: string
   displayName: string
   bio: string
-  avatarEmoji: string
+  avatarIcon: IconName
   joinedAt: string
   twitterHandle?: string
   stats: {
@@ -34,7 +36,7 @@ const creatorsData: Record<string, {
   templates: Array<{
     id: string
     title: string
-    emoji: string
+    icon: IconName
     likeCount: number
     useCount: number
     tags: string[]
@@ -43,8 +45,8 @@ const creatorsData: Record<string, {
   strawberry123: {
     username: 'strawberry123',
     displayName: '딸기크림',
-    bio: '달달한 커플 틀 전문 크리에이터입니다. 사랑스러운 관계를 표현하는 틀을 주로 만들어요 💕',
-    avatarEmoji: '🍓',
+    bio: '달달한 커플 틀 전문 크리에이터입니다. 사랑스러운 관계를 표현하는 틀을 주로 만들어요.',
+    avatarIcon: 'heart',
     joinedAt: '2024-06-15',
     twitterHandle: 'strawberry_pairy',
     stats: {
@@ -54,16 +56,16 @@ const creatorsData: Record<string, {
       followers: 2341,
     },
     templates: [
-      { id: '1', title: '커플 프로필 틀', emoji: '💕', likeCount: 1234, useCount: 2847, tags: ['커플', '2인용'] },
-      { id: '9', title: '기념일 카드', emoji: '🎂', likeCount: 892, useCount: 1523, tags: ['커플', '기념일'] },
-      { id: '10', title: '러브레터 틀', emoji: '💌', likeCount: 567, useCount: 987, tags: ['커플', '1인용'] },
+      { id: '1', title: '커플 프로필 틀', icon: 'heart', likeCount: 1234, useCount: 2847, tags: ['커플', '2인용'] },
+      { id: '9', title: '기념일 카드', icon: 'calendar', likeCount: 892, useCount: 1523, tags: ['커플', '기념일'] },
+      { id: '10', title: '러브레터 틀', icon: 'mail', likeCount: 567, useCount: 987, tags: ['커플', '1인용'] },
     ],
   },
   fairy_art: {
     username: 'fairy_art',
     displayName: '페어리',
-    bio: '친구들과의 소중한 추억을 담는 관계도 틀을 만들고 있어요. 복잡한 관계도 예쁘게! ✨',
-    avatarEmoji: '🧚',
+    bio: '친구들과의 소중한 추억을 담는 관계도 틀을 만들고 있어요. 복잡한 관계도 예쁘게!',
+    avatarIcon: 'sparkles',
     joinedAt: '2024-03-01',
     twitterHandle: 'fairy_art_kr',
     stats: {
@@ -73,15 +75,15 @@ const creatorsData: Record<string, {
       followers: 1567,
     },
     templates: [
-      { id: '2', title: '친구 관계도', emoji: '✨', likeCount: 892, useCount: 1523, tags: ['친구', '관계도'] },
-      { id: '11', title: '우정 프로필', emoji: '🌟', likeCount: 543, useCount: 876, tags: ['친구', '2인용'] },
+      { id: '2', title: '친구 관계도', icon: 'sparkles', likeCount: 892, useCount: 1523, tags: ['친구', '관계도'] },
+      { id: '11', title: '우정 프로필', icon: 'star', likeCount: 543, useCount: 876, tags: ['친구', '2인용'] },
     ],
   },
   moonlight: {
     username: 'moonlight',
     displayName: '문라이트',
-    bio: 'OC 덕후입니다. 캐릭터 소개에 진심인 사람 🌙',
-    avatarEmoji: '🌙',
+    bio: 'OC 덕후입니다. 캐릭터 소개에 진심인 사람.',
+    avatarIcon: 'moon',
     joinedAt: '2024-07-20',
     stats: {
       totalTemplates: 5,
@@ -90,14 +92,14 @@ const creatorsData: Record<string, {
       followers: 876,
     },
     templates: [
-      { id: '3', title: 'OC 소개 카드', emoji: '🌙', likeCount: 567, useCount: 892, tags: ['프로필', '1인용', 'OC'] },
+      { id: '3', title: 'OC 소개 카드', icon: 'moon', likeCount: 567, useCount: 892, tags: ['프로필', '1인용', 'OC'] },
     ],
   },
   mintchoco: {
     username: 'mintchoco',
     displayName: '민트초코',
-    bio: '베프와의 케미를 세상에 알리고 싶어서 틀을 만들기 시작했어요 🍀',
-    avatarEmoji: '🍀',
+    bio: '베프와의 케미를 세상에 알리고 싶어서 틀을 만들기 시작했어요.',
+    avatarIcon: 'clover',
     joinedAt: '2024-05-10',
     twitterHandle: 'mintchoco_design',
     stats: {
@@ -107,14 +109,14 @@ const creatorsData: Record<string, {
       followers: 4123,
     },
     templates: [
-      { id: '4', title: '베프 케미 틀', emoji: '🍀', likeCount: 2341, useCount: 4123, tags: ['친구', '2인용'] },
+      { id: '4', title: '베프 케미 틀', icon: 'clover', likeCount: 2341, useCount: 4123, tags: ['친구', '2인용'] },
     ],
   },
   roseberry: {
     username: 'roseberry',
     displayName: '로즈베리',
-    bio: '복잡한 관계도 아름답게, 삼각관계 전문 크리에이터 🔺',
-    avatarEmoji: '🌹',
+    bio: '복잡한 관계도 아름답게, 삼각관계 전문 크리에이터.',
+    avatarIcon: 'flower',
     joinedAt: '2024-04-05',
     stats: {
       totalTemplates: 7,
@@ -123,14 +125,14 @@ const creatorsData: Record<string, {
       followers: 2156,
     },
     templates: [
-      { id: '5', title: '삼각관계 틀', emoji: '🔺', likeCount: 1567, useCount: 2156, tags: ['관계도', '3인용+'] },
+      { id: '5', title: '삼각관계 틀', icon: 'triangle', likeCount: 1567, useCount: 2156, tags: ['관계도', '3인용+'] },
     ],
   },
   skyblue: {
     username: 'skyblue',
     displayName: '스카이블루',
-    bio: '깔끔하고 정돈된 캐릭터 프로필 카드를 만들어요 📋',
-    avatarEmoji: '☁️',
+    bio: '깔끔하고 정돈된 캐릭터 프로필 카드를 만들어요.',
+    avatarIcon: 'cloud',
     joinedAt: '2024-08-12',
     stats: {
       totalTemplates: 4,
@@ -139,14 +141,14 @@ const creatorsData: Record<string, {
       followers: 987,
     },
     templates: [
-      { id: '6', title: '캐릭터 프로필 카드', emoji: '📋', likeCount: 987, useCount: 1678, tags: ['프로필', '1인용', 'OC'] },
+      { id: '6', title: '캐릭터 프로필 카드', icon: 'file', likeCount: 987, useCount: 1678, tags: ['프로필', '1인용', 'OC'] },
     ],
   },
   cherryblossom: {
     username: 'cherryblossom',
     displayName: '체리블라썸',
-    bio: '팬아트 전문! 좋아하는 캐릭터들의 케미를 담아요 🌸',
-    avatarEmoji: '🌸',
+    bio: '팬아트 전문! 좋아하는 캐릭터들의 케미를 담아요.',
+    avatarIcon: 'flower',
     joinedAt: '2024-02-14',
     twitterHandle: 'cherry_blossom_art',
     stats: {
@@ -156,14 +158,14 @@ const creatorsData: Record<string, {
       followers: 6789,
     },
     templates: [
-      { id: '7', title: '팬아트 커플 틀', emoji: '🌸', likeCount: 3456, useCount: 5892, tags: ['팬아트', '커플', '2인용'] },
+      { id: '7', title: '팬아트 커플 틀', icon: 'flower', likeCount: 3456, useCount: 5892, tags: ['팬아트', '커플', '2인용'] },
     ],
   },
   coconut: {
     username: 'coconut',
     displayName: '코코넛',
-    bio: '단체 관계도의 달인, 복잡한 캐릭터 관계를 정리해드려요 🥥',
-    avatarEmoji: '🥥',
+    bio: '단체 관계도의 달인, 복잡한 캐릭터 관계를 정리해드려요.',
+    avatarIcon: 'users',
     joinedAt: '2024-01-20',
     stats: {
       totalTemplates: 6,
@@ -172,7 +174,7 @@ const creatorsData: Record<string, {
       followers: 1234,
     },
     templates: [
-      { id: '8', title: '단체 관계도', emoji: '🥥', likeCount: 789, useCount: 945, tags: ['관계도', '3인용+'] },
+      { id: '8', title: '단체 관계도', icon: 'users', likeCount: 789, useCount: 945, tags: ['관계도', '3인용+'] },
     ],
   },
 }
@@ -190,7 +192,9 @@ export default function CreatorProfileClient({ username }: CreatorProfileClientP
   if (!creator) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center px-4">
-        <div className="text-6xl mb-4">🤔</div>
+        <div className="w-16 h-16 mb-4 rounded-full bg-gray-100 flex items-center justify-center">
+          <HelpCircle className="w-8 h-8 text-gray-400" strokeWidth={1.5} />
+        </div>
         <h1 className="text-2xl font-bold text-gray-900 mb-2">크리에이터를 찾을 수 없어요</h1>
         <p className="text-gray-500 mb-6">요청하신 크리에이터가 존재하지 않거나 탈퇴했을 수 있어요.</p>
         <Button asChild>
@@ -228,8 +232,12 @@ export default function CreatorProfileClient({ username }: CreatorProfileClientP
         <div className="max-w-[1200px] mx-auto">
           <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
             {/* Avatar */}
-            <div className="w-32 h-32 rounded-full bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center text-6xl border-4 border-white shadow-lg">
-              {creator.avatarEmoji}
+            <div className="w-32 h-32 rounded-full bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center border-4 border-white shadow-lg">
+              {(() => {
+                const AvatarIcon = getIcon(creator.avatarIcon)
+                const avatarColor = getIconColor(creator.avatarIcon)
+                return <AvatarIcon className={cn('w-16 h-16', avatarColor)} strokeWidth={1.5} />
+              })()}
             </div>
 
             {/* Info */}
@@ -316,14 +324,17 @@ export default function CreatorProfileClient({ username }: CreatorProfileClientP
           </h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {creator.templates.map((template) => (
+            {creator.templates.map((template) => {
+              const TemplateIcon = getIcon(template.icon)
+              const templateColor = getIconColor(template.icon)
+              return (
               <Link
                 key={template.id}
                 href={`/templates/${template.id}`}
                 className="group bg-white rounded-[20px] overflow-hidden border border-gray-200 hover:shadow-lg transition-all duration-200 hover:-translate-y-1"
               >
-                <div className="aspect-[4/3] bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center text-5xl">
-                  {template.emoji}
+                <div className="aspect-[4/3] bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center">
+                  <TemplateIcon className={cn('w-16 h-16', templateColor)} strokeWidth={1.5} />
                 </div>
                 <div className="p-4">
                   <h3 className="font-semibold text-gray-900 group-hover:text-primary-400 transition-colors mb-2">
@@ -348,7 +359,7 @@ export default function CreatorProfileClient({ username }: CreatorProfileClientP
                   </div>
                 </div>
               </Link>
-            ))}
+            )})}
           </div>
 
           {/* More templates CTA */}

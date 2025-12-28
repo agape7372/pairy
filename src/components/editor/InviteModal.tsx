@@ -43,7 +43,7 @@ export function InviteModal({
   }
 
   const shareToTwitter = () => {
-    const text = `함께 페어틀을 완성해요! 🎨\n초대 코드: ${inviteCode}`
+    const text = `함께 페어틀을 완성해요!\n초대 코드: ${inviteCode}`
     const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(inviteLink)}`
     window.open(url, '_blank')
   }

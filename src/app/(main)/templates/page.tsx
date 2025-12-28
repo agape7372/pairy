@@ -27,6 +27,7 @@ import {
   type LicenseType,
   type Resource,
 } from '@/types/resources'
+import { getIcon, getIconColor } from '@/lib/utils/icons'
 
 // 카테고리 아이콘 매핑
 const categoryIcons: Record<ResourceCategory, typeof Image> = {
@@ -257,14 +258,18 @@ const sampleResources: Resource[] = [
   },
 ]
 
-// 카테고리별 이모지 반환
-const getCategoryEmoji = (category: ResourceCategory) => {
-  return RESOURCE_CATEGORIES[category].emoji
+// 카테고리별 아이콘 컴포넌트 반환
+const CategoryIcon = ({ category }: { category: ResourceCategory }) => {
+  const iconName = RESOURCE_CATEGORIES[category].icon
+  const IconComponent = getIcon(iconName)
+  const iconColor = getIconColor(iconName)
+  return <IconComponent className={cn('w-12 h-12 sm:w-16 sm:h-16', iconColor)} strokeWidth={1.5} />
 }
 
 // 라이선스 뱃지 컴포넌트
 function LicenseBadge({ license, price }: { license: LicenseType; price?: number }) {
   const info = LICENSE_INFO[license]
+  const IconComponent = getIcon(info.icon)
 
   return (
     <span
@@ -276,7 +281,8 @@ function LicenseBadge({ license, price }: { license: LicenseType; price?: number
         license === 'paid' && 'bg-purple-100 text-purple-700'
       )}
     >
-      {info.icon} {license === 'paid' && price ? `₩${price.toLocaleString()}` : info.name}
+      <IconComponent className="w-3 h-3" strokeWidth={1.5} />
+      {license === 'paid' && price ? `₩${price.toLocaleString()}` : info.name}
     </span>
   )
 }
@@ -560,8 +566,8 @@ export default function ResourceHubPage() {
                   className="group bg-white rounded-[16px] sm:rounded-[20px] overflow-hidden border border-gray-200 hover:shadow-lg transition-all duration-200 hover:-translate-y-1"
                 >
                   {/* Preview */}
-                  <div className="aspect-[4/3] bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center text-4xl sm:text-5xl relative">
-                    {getCategoryEmoji(resource.category)}
+                  <div className="aspect-[4/3] bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center relative">
+                    <CategoryIcon category={resource.category} />
 
                     {/* Premium Badge */}
                     {resource.isPremium && (

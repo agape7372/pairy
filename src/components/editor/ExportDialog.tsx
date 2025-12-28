@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { X, Download, Image, FileImage, Loader2, AtSign, Twitter, Crown, Lock } from 'lucide-react'
+import { X, Download, Image, FileImage, Loader2, AtSign, Twitter, Crown, Lock, Paperclip } from 'lucide-react'
 import { Button } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
 import {
@@ -56,15 +56,15 @@ export function ExportDialog({
 
   // 크레딧 텍스트 생성
   const getCreditText = () => {
-    if (!creatorName) return '페어리에서 만듦 ✨'
+    if (!creatorName) return '페어리에서 만듦 - pairy.app'
     return `틀: ${templateTitle || '페어리 틀'} by @${creatorName}`
   }
 
   // 트위터 공유 URL 생성
   const getTwitterShareUrl = (imageUrl?: string) => {
     const text = creatorName
-      ? `${templateTitle || '페어리'}로 만든 나의 작품! ✨\n\n틀 by @${creatorName}\n#페어리 #Pairy`
-      : `페어리로 만든 나의 작품! ✨\n\n#페어리 #Pairy`
+      ? `${templateTitle || '페어리'}로 만든 나의 작품!\n\n틀 by @${creatorName}\n#페어리 #Pairy`
+      : `페어리로 만든 나의 작품!\n\n#페어리 #Pairy`
     const url = 'https://pairy.app'
     return `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`
   }
@@ -93,7 +93,7 @@ export function ExportDialog({
       if (hasWatermark) {
         // 무료 사용자: 강제 워터마크
         watermarkOption = {
-          text: '페어리에서 만듦 ✨ pairy.app',
+          text: '페어리에서 만듦 - pairy.app',
           position: 'bottom-right' as const,
           opacity: 0.8,
           fontSize: 16,
@@ -311,7 +311,7 @@ export function ExportDialog({
         {hasWatermark && (
           <div className="mb-6 p-3 bg-gray-50 rounded-xl border border-gray-200">
             <p className="text-sm text-gray-600 flex items-center gap-2">
-              <span>📎</span>
+              <Paperclip className="w-4 h-4 text-gray-400" strokeWidth={1.5} />
               <span>무료 플랜에서는 워터마크가 포함돼요</span>
             </p>
             <a

@@ -15,10 +15,12 @@ import {
   Calendar,
   Download,
   Crown,
+  Lightbulb,
 } from 'lucide-react'
 import { Button } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
 import { useSubscriptionStore, TIER_LIMITS } from '@/stores/subscriptionStore'
+import { getIcon, getIconColor, type IconName } from '@/lib/utils/icons'
 
 // 목업 통계 데이터
 const mockStats = {
@@ -47,7 +49,7 @@ const myTemplates = [
   {
     id: '1',
     title: '커플 프로필 틀',
-    emoji: '💕',
+    icon: 'heart' as IconName,
     views: 5234,
     uses: 1523,
     likes: 456,
@@ -57,7 +59,7 @@ const myTemplates = [
   {
     id: '2',
     title: '친구 관계도',
-    emoji: '✨',
+    icon: 'sparkles' as IconName,
     views: 3892,
     uses: 1234,
     likes: 312,
@@ -67,7 +69,7 @@ const myTemplates = [
   {
     id: '3',
     title: 'OC 소개 카드',
-    emoji: '🌙',
+    icon: 'moon' as IconName,
     views: 2456,
     uses: 756,
     likes: 234,
@@ -264,13 +266,16 @@ export default function CreatorDashboardPage() {
         </div>
 
         <div className="space-y-4">
-          {myTemplates.map((template) => (
+          {myTemplates.map((template) => {
+            const IconComponent = getIcon(template.icon)
+            const iconColor = getIconColor(template.icon)
+            return (
             <div
               key={template.id}
               className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
             >
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center text-2xl">
-                {template.emoji}
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center">
+                <IconComponent className={`w-6 h-6 ${iconColor}`} strokeWidth={1.5} />
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="font-medium text-gray-900 truncate">{template.title}</h3>
@@ -306,7 +311,7 @@ export default function CreatorDashboardPage() {
                 </div>
               </div>
             </div>
-          ))}
+          )})}
         </div>
       </div>
 
@@ -345,7 +350,10 @@ export default function CreatorDashboardPage() {
 
       {/* Tips */}
       <div className="bg-gradient-to-r from-accent-50 to-primary-50 rounded-[20px] p-6 border border-accent-100">
-        <h3 className="font-bold text-gray-900 mb-3">💡 수익 올리는 팁</h3>
+        <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+          <Lightbulb className="w-5 h-5 text-yellow-500" strokeWidth={1.5} />
+          수익 올리는 팁
+        </h3>
         <ul className="space-y-2 text-sm text-gray-600">
           <li>• 시즌별/이벤트 테마 틀을 만들어보세요 (크리스마스, 발렌타인 등)</li>
           <li>• 트위터에서 틀을 홍보하면 사용자가 늘어나요</li>

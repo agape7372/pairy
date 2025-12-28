@@ -2,17 +2,18 @@
 
 import { useState, useCallback } from 'react'
 import Link from 'next/link'
-import { Plus, MoreVertical, Trash2, Edit2, Share2, Clock, Eye, EyeOff, X, Check, AlertTriangle } from 'lucide-react'
+import { Plus, MoreVertical, Trash2, Edit2, Share2, Clock, Eye, EyeOff, X, Check, AlertTriangle, FileText } from 'lucide-react'
 import { Button, Tag } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
 import { copyToClipboard } from '@/lib/utils/clipboard'
+import { getIcon, getIconColor, type IconName } from '@/lib/utils/icons'
 
 // 작품 타입 정의
 interface Work {
   id: string
   title: string
   templateTitle: string
-  emoji: string
+  icon: IconName
   status: 'completed' | 'draft'
   isPublic: boolean
   updatedAt: string
@@ -24,7 +25,7 @@ const initialWorks: Work[] = [
     id: '1',
     title: '우리 커플 프로필',
     templateTitle: '커플 프로필 틀',
-    emoji: '💕',
+    icon: 'heart',
     status: 'completed',
     isPublic: true,
     updatedAt: '2025-01-20',
@@ -33,7 +34,7 @@ const initialWorks: Work[] = [
     id: '2',
     title: '친구들 관계도',
     templateTitle: '친구 관계도',
-    emoji: '✨',
+    icon: 'sparkles',
     status: 'draft',
     isPublic: false,
     updatedAt: '2025-01-18',
@@ -42,7 +43,7 @@ const initialWorks: Work[] = [
     id: '3',
     title: '내 OC 소개',
     templateTitle: 'OC 소개 카드',
-    emoji: '🌙',
+    icon: 'moon',
     status: 'draft',
     isPublic: false,
     updatedAt: '2025-01-15',
@@ -208,8 +209,12 @@ export default function MyWorksPage() {
             >
               {/* Preview */}
               <Link href={`/editor/${work.id}`}>
-                <div className="aspect-[4/3] bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center text-5xl relative">
-                  {work.emoji}
+                <div className="aspect-[4/3] bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center relative">
+                  {(() => {
+                    const IconComponent = getIcon(work.icon)
+                    const iconColor = getIconColor(work.icon)
+                    return <IconComponent className={`w-16 h-16 ${iconColor}`} strokeWidth={1.5} />
+                  })()}
                   {work.status === 'draft' && (
                     <div className="absolute top-3 left-3">
                       <Tag variant="outline">작성 중</Tag>
@@ -315,7 +320,9 @@ export default function MyWorksPage() {
         </div>
       ) : (
         <div className="text-center py-16 bg-gray-50 rounded-[20px]">
-          <div className="text-6xl mb-4">📝</div>
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center">
+            <FileText className="w-8 h-8 text-primary-400" strokeWidth={1.5} />
+          </div>
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
             {filter === 'all' ? '아직 작업이 없어요' : '해당하는 작업이 없어요'}
           </h3>

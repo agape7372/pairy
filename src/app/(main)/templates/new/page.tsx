@@ -15,13 +15,12 @@ import {
   Upload,
   FileImage,
   Sparkles,
+  User,
 } from 'lucide-react'
 import { Button, useToast } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
 import { IS_DEMO_MODE } from '@/lib/supabase/client'
-
-// 이모지 옵션
-const EMOJI_OPTIONS = ['💕', '✨', '🌙', '🍀', '🔺', '📋', '🌸', '🥥', '💜', '🎀', '⭐', '🌈', '🎨', '🎭', '🎮', '🎵']
+import { getIcon, getIconColor, TEMPLATE_ICON_OPTIONS, type IconName } from '@/lib/utils/icons'
 
 // 태그 옵션
 const TAG_OPTIONS = ['커플', '친구', '관계도', '프로필', '1인용', '2인용', '3인용+', 'OC', '팬아트']
@@ -51,7 +50,7 @@ export default function NewTemplatePage() {
   // 템플릿 기본 정보
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
-  const [selectedEmoji, setSelectedEmoji] = useState('💕')
+  const [selectedIcon, setSelectedIcon] = useState<IconName>('heart')
   const [selectedTags, setSelectedTags] = useState<string[]>([])
 
   // 슬롯과 필드
@@ -153,7 +152,7 @@ export default function NewTemplatePage() {
       const templateData = {
         title,
         description,
-        emoji: selectedEmoji,
+        icon: selectedIcon,
         tags: selectedTags,
         slots,
         fields,
@@ -206,26 +205,30 @@ export default function NewTemplatePage() {
             <div className="bg-white rounded-[20px] border border-gray-200 p-6">
               <h2 className="text-sm font-semibold text-gray-900 mb-4">기본 정보</h2>
 
-              {/* 이모지 선택 */}
+              {/* 아이콘 선택 */}
               <div className="mb-4">
                 <label className="block text-xs font-medium text-gray-500 mb-2">
                   아이콘
                 </label>
                 <div className="flex flex-wrap gap-2">
-                  {EMOJI_OPTIONS.map((emoji) => (
-                    <button
-                      key={emoji}
-                      onClick={() => setSelectedEmoji(emoji)}
-                      className={cn(
-                        'w-10 h-10 rounded-xl text-xl flex items-center justify-center transition-all',
-                        selectedEmoji === emoji
-                          ? 'bg-primary-200 ring-2 ring-primary-400'
-                          : 'bg-gray-100 hover:bg-gray-200'
-                      )}
-                    >
-                      {emoji}
-                    </button>
-                  ))}
+                  {TEMPLATE_ICON_OPTIONS.map((iconName) => {
+                    const IconComponent = getIcon(iconName)
+                    const iconColor = getIconColor(iconName)
+                    return (
+                      <button
+                        key={iconName}
+                        onClick={() => setSelectedIcon(iconName)}
+                        className={cn(
+                          'w-10 h-10 rounded-xl flex items-center justify-center transition-all',
+                          selectedIcon === iconName
+                            ? 'bg-primary-200 ring-2 ring-primary-400'
+                            : 'bg-gray-100 hover:bg-gray-200'
+                        )}
+                      >
+                        <IconComponent className={cn('w-5 h-5', iconColor)} strokeWidth={1.5} />
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
 
@@ -354,9 +357,13 @@ export default function NewTemplatePage() {
             <div className="bg-white rounded-[20px] border border-gray-200 p-6">
               <h2 className="text-sm font-semibold text-gray-900 mb-4">미리보기</h2>
               <div className="aspect-[3/2] bg-gradient-to-br from-primary-100 to-accent-100 rounded-xl relative overflow-hidden">
-                {/* 중앙 이모지 */}
-                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-6xl opacity-30">
-                  {selectedEmoji}
+                {/* 중앙 아이콘 */}
+                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 opacity-20">
+                  {(() => {
+                    const PreviewIcon = getIcon(selectedIcon)
+                    const previewColor = getIconColor(selectedIcon)
+                    return <PreviewIcon className={cn('w-24 h-24', previewColor)} strokeWidth={1.5} />
+                  })()}
                 </div>
                 {/* 슬롯 표시 */}
                 {slots.map((slot) => (
@@ -379,8 +386,8 @@ export default function NewTemplatePage() {
                     }}
                   >
                     <p className="text-xs text-gray-500 mb-2">{slot.label}</p>
-                    <div className="w-10 h-10 mx-auto rounded-full bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center text-lg">
-                      👤
+                    <div className="w-10 h-10 mx-auto rounded-full bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center">
+                      <User className="w-5 h-5 text-primary-500" strokeWidth={1.5} />
                     </div>
                     <div className="mt-2 text-center space-y-1">
                       {fields
@@ -513,8 +520,12 @@ export default function NewTemplatePage() {
 
             {/* Preview Content */}
             <div className="aspect-[3/2] bg-gradient-to-br from-primary-100 to-accent-100 rounded-xl relative overflow-hidden mb-4">
-              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-6xl opacity-30">
-                {selectedEmoji}
+              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 opacity-20">
+                {(() => {
+                  const ModalPreviewIcon = getIcon(selectedIcon)
+                  const modalPreviewColor = getIconColor(selectedIcon)
+                  return <ModalPreviewIcon className={cn('w-24 h-24', modalPreviewColor)} strokeWidth={1.5} />
+                })()}
               </div>
               {slots.map((slot) => (
                 <div
@@ -530,8 +541,8 @@ export default function NewTemplatePage() {
                   }}
                 >
                   <p className="text-xs text-gray-500 mb-2">{slot.label}</p>
-                  <div className="w-12 h-12 mx-auto rounded-full bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center text-xl">
-                    👤
+                  <div className="w-12 h-12 mx-auto rounded-full bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center">
+                    <User className="w-6 h-6 text-primary-500" strokeWidth={1.5} />
                   </div>
                   <div className="mt-2 text-center space-y-1">
                     {fields
@@ -548,7 +559,13 @@ export default function NewTemplatePage() {
             </div>
 
             <div className="flex items-center gap-4 text-sm text-gray-600">
-              <span className="text-2xl">{selectedEmoji}</span>
+              <div className="w-10 h-10 rounded-xl bg-primary-100 flex items-center justify-center">
+                {(() => {
+                  const InfoIcon = getIcon(selectedIcon)
+                  const infoColor = getIconColor(selectedIcon)
+                  return <InfoIcon className={cn('w-5 h-5', infoColor)} strokeWidth={1.5} />
+                })()}
+              </div>
               <div>
                 <p className="font-semibold text-gray-900">{title || '제목 없음'}</p>
                 <p className="text-xs text-gray-400">{selectedTags.join(', ') || '태그 없음'}</p>

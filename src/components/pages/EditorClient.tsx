@@ -30,6 +30,7 @@ import {
   Lock,
   Unlock,
   Layers,
+  User,
 } from 'lucide-react'
 import { Button, ImageUpload } from '@/components/ui'
 import { ExportDialog } from '@/components/editor'
@@ -39,6 +40,7 @@ import { useEditorStore, useCanUndo, useCanRedo, useIsDirty, useIsSaving } from 
 import { useAutoSave } from '@/hooks/useAutoSave'
 import { IS_DEMO_MODE } from '@/lib/supabase/client'
 import { copyToClipboard } from '@/lib/utils/clipboard'
+import { getIcon, getIconColor, type IconName } from '@/lib/utils/icons'
 
 // 폰트 옵션
 const FONT_OPTIONS = [
@@ -95,7 +97,7 @@ interface TemplateField {
 interface Template {
   id: string
   title: string
-  emoji: string
+  icon: IconName
   slots: TemplateSlot[]
   fields: TemplateField[]
 }
@@ -112,7 +114,7 @@ const templates: Record<string, Template> = {
   '1': {
     id: '1',
     title: '커플 프로필 틀',
-    emoji: '💕',
+    icon: 'heart',
     slots: [
       { id: 'slot1', label: '사람 1', x: 50, y: 50 },
       { id: 'slot2', label: '사람 2', x: 350, y: 50 },
@@ -127,7 +129,7 @@ const templates: Record<string, Template> = {
   '2': {
     id: '2',
     title: '친구 관계도',
-    emoji: '✨',
+    icon: 'sparkles',
     slots: [
       { id: 'slot1', label: '친구 1', x: 50, y: 50 },
       { id: 'slot2', label: '친구 2', x: 350, y: 50 },
@@ -142,7 +144,7 @@ const templates: Record<string, Template> = {
   '3': {
     id: '3',
     title: 'OC 소개 카드',
-    emoji: '🌙',
+    icon: 'moon',
     slots: [
       { id: 'slot1', label: '캐릭터', x: 200, y: 50 },
     ],
@@ -155,7 +157,7 @@ const templates: Record<string, Template> = {
   '4': {
     id: '4',
     title: '베프 케미 틀',
-    emoji: '🍀',
+    icon: 'clover',
     slots: [
       { id: 'slot1', label: '베프 1', x: 50, y: 50 },
       { id: 'slot2', label: '베프 2', x: 350, y: 50 },
@@ -170,7 +172,7 @@ const templates: Record<string, Template> = {
   '5': {
     id: '5',
     title: '삼각관계 틀',
-    emoji: '🔺',
+    icon: 'triangle',
     slots: [
       { id: 'slot1', label: '인물 1', x: 200, y: 20 },
       { id: 'slot2', label: '인물 2', x: 50, y: 180 },
@@ -185,7 +187,7 @@ const templates: Record<string, Template> = {
   '6': {
     id: '6',
     title: '캐릭터 프로필 카드',
-    emoji: '📋',
+    icon: 'file',
     slots: [
       { id: 'slot1', label: '캐릭터', x: 200, y: 50 },
     ],
@@ -198,7 +200,7 @@ const templates: Record<string, Template> = {
   '7': {
     id: '7',
     title: '팬아트 커플 틀',
-    emoji: '🌸',
+    icon: 'flower',
     slots: [
       { id: 'slot1', label: '캐릭터 1', x: 50, y: 50 },
       { id: 'slot2', label: '캐릭터 2', x: 350, y: 50 },
@@ -213,7 +215,7 @@ const templates: Record<string, Template> = {
   '8': {
     id: '8',
     title: '단체 관계도',
-    emoji: '🥥',
+    icon: 'users',
     slots: [
       { id: 'slot1', label: '멤버 1', x: 50, y: 50 },
       { id: 'slot2', label: '멤버 2', x: 220, y: 50 },
@@ -599,9 +601,13 @@ export default function EditorClient({ workId }: EditorClientProps) {
                 className="w-[320px] h-[220px] sm:w-[600px] sm:h-[400px] relative transition-colors"
                 style={{ backgroundColor }}
               >
-                {/* Center Emoji */}
-                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-5xl opacity-30">
-                  {currentTemplate.emoji}
+                {/* Center Icon */}
+                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 opacity-20">
+                  {(() => {
+                    const CenterIcon = getIcon(currentTemplate.icon)
+                    const centerColor = getIconColor(currentTemplate.icon)
+                    return <CenterIcon className={cn('w-20 h-20', centerColor)} strokeWidth={1.5} />
+                  })()}
                 </div>
                 {/* Slots - zIndex 및 visibility 적용 */}
                 {currentTemplate.slots
@@ -636,7 +642,7 @@ export default function EditorClient({ workId }: EditorClientProps) {
                     <p className="text-[10px] sm:text-xs text-gray-400 mb-1 sm:mb-2">{slot.label}</p>
 
                     {/* Profile Image */}
-                    <div className="w-10 h-10 sm:w-20 sm:h-20 mx-auto mb-1 sm:mb-3 rounded-full bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center text-xl sm:text-3xl overflow-hidden">
+                    <div className="w-10 h-10 sm:w-20 sm:h-20 mx-auto mb-1 sm:mb-3 rounded-full bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center overflow-hidden">
                       {slotImages[slot.id] ? (
                         <img
                           src={slotImages[slot.id]!}
@@ -644,7 +650,7 @@ export default function EditorClient({ workId }: EditorClientProps) {
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        '👤'
+                        <User className="w-5 h-5 sm:w-10 sm:h-10 text-primary-400" strokeWidth={1.5} />
                       )}
                     </div>
 

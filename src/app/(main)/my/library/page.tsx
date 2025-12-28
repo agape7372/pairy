@@ -25,12 +25,13 @@ import { Button, useToast } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
 import { useSubscriptionStore, TIER_LIMITS, PRICING } from '@/stores/subscriptionStore'
 import { RESOURCE_CATEGORIES, type ResourceCategory } from '@/types/resources'
+import { getIcon, getIconColor, type IconName } from '@/lib/utils/icons'
 
 // 폴더 타입
 interface LibraryFolder {
   id: string
   name: string
-  emoji: string
+  icon: IconName
   itemCount: number
   isShared: boolean // 듀오 공유 폴더
   createdAt: string
@@ -49,10 +50,10 @@ interface DownloadItem {
 
 // 샘플 폴더 데이터
 const sampleFolders: LibraryFolder[] = [
-  { id: '1', name: '커플 자료', emoji: '💕', itemCount: 12, isShared: false, createdAt: '2025-01-25' },
-  { id: '2', name: '트레이싱', emoji: '✏️', itemCount: 8, isShared: false, createdAt: '2025-01-20' },
-  { id: '3', name: 'TRPG 세션', emoji: '🎲', itemCount: 5, isShared: true, createdAt: '2025-01-15' },
-  { id: '4', name: '배경 모음', emoji: '🌸', itemCount: 15, isShared: false, createdAt: '2025-01-10' },
+  { id: '1', name: '커플 자료', icon: 'heart', itemCount: 12, isShared: false, createdAt: '2025-01-25' },
+  { id: '2', name: '트레이싱', icon: 'pencil', itemCount: 8, isShared: false, createdAt: '2025-01-20' },
+  { id: '3', name: 'TRPG 세션', icon: 'scroll', itemCount: 5, isShared: true, createdAt: '2025-01-15' },
+  { id: '4', name: '배경 모음', icon: 'flower', itemCount: 15, isShared: false, createdAt: '2025-01-10' },
 ]
 
 // 샘플 다운로드 기록
@@ -300,9 +301,13 @@ export default function MyLibraryPage() {
                   {/* Folder Icon */}
                   <div className={cn(
                     'flex items-center justify-center rounded-xl bg-gray-100 group-hover:bg-primary-100 transition-colors',
-                    viewMode === 'grid' ? 'w-full aspect-square mb-3 text-4xl' : 'w-12 h-12 text-2xl shrink-0'
+                    viewMode === 'grid' ? 'w-full aspect-square mb-3' : 'w-12 h-12 shrink-0'
                   )}>
-                    {folder.emoji}
+                    {(() => {
+                      const FolderIcon = getIcon(folder.icon)
+                      const folderIconColor = getIconColor(folder.icon)
+                      return <FolderIcon className={cn(folderIconColor, viewMode === 'grid' ? 'w-12 h-12' : 'w-6 h-6')} strokeWidth={1.5} />
+                    })()}
                   </div>
 
                   <div className={cn(viewMode === 'list' && 'flex-1')}>
@@ -377,10 +382,13 @@ export default function MyLibraryPage() {
                 >
                   {/* Thumbnail */}
                   <div className={cn(
-                    'w-12 h-12 rounded-xl flex items-center justify-center text-2xl shrink-0',
+                    'w-12 h-12 rounded-xl flex items-center justify-center shrink-0',
                     categoryInfo.bgColor
                   )}>
-                    {categoryInfo.emoji}
+                    {(() => {
+                      const CategoryIcon = getIcon(categoryInfo.icon)
+                      return <CategoryIcon className={cn('w-6 h-6', categoryInfo.color)} strokeWidth={1.5} />
+                    })()}
                   </div>
 
                   {/* Info */}

@@ -1,3 +1,5 @@
+import type { IconName } from '@/lib/utils/icons'
+
 // 자료 카테고리 타입
 export type ResourceCategory = 'imeres' | 'tretle' | 'pairtl' | 'sessionlog'
 
@@ -7,7 +9,7 @@ export const RESOURCE_CATEGORIES: Record<ResourceCategory, {
   name: string
   nameKo: string
   description: string
-  emoji: string
+  icon: IconName
   color: string
   bgColor: string
 }> = {
@@ -16,7 +18,7 @@ export const RESOURCE_CATEGORIES: Record<ResourceCategory, {
     name: 'Imeres',
     nameKo: '이메레스',
     description: '이미지 리소스, 배경, 소스 자료',
-    emoji: '🖼️',
+    icon: 'image',
     color: 'text-blue-600',
     bgColor: 'bg-blue-100',
   },
@@ -25,7 +27,7 @@ export const RESOURCE_CATEGORIES: Record<ResourceCategory, {
     name: 'Tretle',
     nameKo: '트레틀',
     description: '트레이싱 틀, 밑그림 가이드',
-    emoji: '✏️',
+    icon: 'pencil',
     color: 'text-purple-600',
     bgColor: 'bg-purple-100',
   },
@@ -34,7 +36,7 @@ export const RESOURCE_CATEGORIES: Record<ResourceCategory, {
     name: 'Pairtl',
     nameKo: '페어틀',
     description: '2인+ 협업용 프로필, 관계도 틀',
-    emoji: '💕',
+    icon: 'heart',
     color: 'text-primary-600',
     bgColor: 'bg-primary-100',
   },
@@ -43,7 +45,7 @@ export const RESOURCE_CATEGORIES: Record<ResourceCategory, {
     name: 'Session Log',
     nameKo: '세션로그',
     description: 'TRPG, 세션 기록용 템플릿',
-    emoji: '📜',
+    icon: 'scroll',
     color: 'text-amber-600',
     bgColor: 'bg-amber-100',
   },
@@ -56,35 +58,35 @@ export const LICENSE_INFO: Record<LicenseType, {
   id: LicenseType
   name: string
   description: string
-  icon: string
+  icon: IconName
   requirements: string[]
 }> = {
   free: {
     id: 'free',
     name: '자유 이용',
     description: '출처 표기 없이 자유롭게 사용 가능',
-    icon: '✅',
+    icon: 'check',
     requirements: [],
   },
   credit: {
     id: 'credit',
     name: '출처 표기',
     description: '크리에이터 출처 표기 필수',
-    icon: '📝',
+    icon: 'file',
     requirements: ['크리에이터 이름/ID 표기'],
   },
   noncommercial: {
     id: 'noncommercial',
     name: '비상업적 이용',
     description: '비상업적 용도로만 사용 가능',
-    icon: '🚫',
+    icon: 'ban',
     requirements: ['크리에이터 출처 표기', '상업적 사용 금지'],
   },
   paid: {
     id: 'paid',
     name: '유료 자료',
     description: '구매 후 이용 가능',
-    icon: '💰',
+    icon: 'coins',
     requirements: ['구매 필수', '재배포 금지'],
   },
 }

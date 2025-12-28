@@ -19,6 +19,7 @@ import {
   Shield,
   AlertCircle,
   FolderPlus,
+  HelpCircle,
 } from 'lucide-react'
 import { Button, Tag, useToast } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
@@ -32,6 +33,7 @@ import {
   type Resource,
 } from '@/types/resources'
 import { useSubscriptionStore } from '@/stores/subscriptionStore'
+import { getIcon, getIconColor } from '@/lib/utils/icons'
 
 // 샘플 자료 데이터 (확장된 형태)
 const sampleResources: Record<string, Resource> = {
@@ -264,6 +266,7 @@ const getRelatedResources = (category: ResourceCategory, excludeId: string) => {
 // 라이선스 배지 컴포넌트
 function LicenseBadge({ license, size = 'md' }: { license: LicenseType; size?: 'sm' | 'md' }) {
   const info = LICENSE_INFO[license]
+  const IconComponent = getIcon(info.icon)
 
   return (
     <span
@@ -276,26 +279,29 @@ function LicenseBadge({ license, size = 'md' }: { license: LicenseType; size?: '
         license === 'paid' && 'bg-purple-100 text-purple-700'
       )}
     >
-      {info.icon} {info.name}
+      <IconComponent className="w-3.5 h-3.5" strokeWidth={1.5} /> {info.name}
     </span>
   )
 }
 
 // 투명도 토글 미리보기 컴포넌트
-function TransparencyPreview({ hasTransparency }: { hasTransparency: boolean }) {
+function TransparencyPreview({ hasTransparency, category }: { hasTransparency: boolean; category: ResourceCategory }) {
   const [showTransparency, setShowTransparency] = useState(false)
+  const categoryInfo = RESOURCE_CATEGORIES[category]
+  const PreviewIcon = getIcon(categoryInfo.icon)
+  const previewColor = getIconColor(categoryInfo.icon)
 
   return (
     <div className="relative">
       <div
         className={cn(
-          'aspect-[4/3] rounded-[24px] flex items-center justify-center text-8xl shadow-lg overflow-hidden',
+          'aspect-[4/3] rounded-[24px] flex items-center justify-center shadow-lg overflow-hidden',
           showTransparency && hasTransparency
             ? 'bg-[conic-gradient(#e0e0e0_25%,#fff_25%,#fff_50%,#e0e0e0_50%,#e0e0e0_75%,#fff_75%)] bg-[length:20px_20px]'
             : 'bg-gradient-to-br from-primary-200 to-accent-200'
         )}
       >
-        <span className="drop-shadow-lg">💕</span>
+        <PreviewIcon className={cn('w-24 h-24 drop-shadow-lg', previewColor)} strokeWidth={1.5} />
       </div>
 
       {/* 투명도 토글 버튼 */}
@@ -337,7 +343,9 @@ export default function TemplateDetailClient({ templateId }: TemplateDetailClien
   if (!resource) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center px-4">
-        <div className="text-6xl mb-4">🤔</div>
+        <div className="w-16 h-16 mb-4 rounded-full bg-gray-100 flex items-center justify-center">
+          <HelpCircle className="w-8 h-8 text-gray-400" strokeWidth={1.5} />
+        </div>
         <h1 className="text-2xl font-bold text-gray-900 mb-2">자료를 찾을 수 없어요</h1>
         <p className="text-gray-500 mb-6">요청하신 자료가 존재하지 않거나 삭제되었을 수 있어요.</p>
         <Button asChild>
@@ -440,7 +448,11 @@ export default function TemplateDetailClient({ templateId }: TemplateDetailClien
             categoryInfo.bgColor,
             categoryInfo.color
           )}>
-            {categoryInfo.emoji} {categoryInfo.nameKo}
+            {(() => {
+              const BadgeIcon = getIcon(categoryInfo.icon)
+              return <BadgeIcon className="w-3.5 h-3.5" strokeWidth={1.5} />
+            })()}
+            {categoryInfo.nameKo}
           </div>
         </div>
       </div>
@@ -451,21 +463,25 @@ export default function TemplateDetailClient({ templateId }: TemplateDetailClien
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
             {/* Preview */}
             <div className="lg:col-span-3">
-              <TransparencyPreview hasTransparency={resource.fileInfo.hasTransparency} />
+              <TransparencyPreview hasTransparency={resource.fileInfo.hasTransparency} category={resource.category} />
 
               {/* Preview Thumbnails */}
               <div className="flex gap-3 mt-4">
-                {[1, 2, 3].map((i) => (
-                  <div
-                    key={i}
-                    className={cn(
-                      'w-20 h-16 rounded-lg bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center text-2xl cursor-pointer transition-all',
-                      i === 1 ? 'ring-2 ring-primary-400' : 'opacity-60 hover:opacity-100'
-                    )}
-                  >
-                    💕
-                  </div>
-                ))}
+                {[1, 2, 3].map((i) => {
+                  const ThumbIcon = getIcon(categoryInfo.icon)
+                  const thumbColor = getIconColor(categoryInfo.icon)
+                  return (
+                    <div
+                      key={i}
+                      className={cn(
+                        'w-20 h-16 rounded-lg bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center cursor-pointer transition-all',
+                        i === 1 ? 'ring-2 ring-primary-400' : 'opacity-60 hover:opacity-100'
+                      )}
+                    >
+                      <ThumbIcon className={cn('w-6 h-6', thumbColor)} strokeWidth={1.5} />
+                    </div>
+                  )
+                })}
               </div>
             </div>
 
@@ -699,14 +715,18 @@ export default function TemplateDetailClient({ templateId }: TemplateDetailClien
             </h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {relatedResources.map((related) => (
+              {relatedResources.map((related) => {
+                const relatedCategoryInfo = RESOURCE_CATEGORIES[related.category]
+                const RelatedIcon = getIcon(relatedCategoryInfo.icon)
+                const relatedIconColor = getIconColor(relatedCategoryInfo.icon)
+                return (
                 <Link
                   key={related.id}
                   href={`/templates/${related.id}`}
                   className="group bg-white rounded-[20px] overflow-hidden border border-gray-200 hover:shadow-lg transition-all duration-200 hover:-translate-y-1"
                 >
-                  <div className="aspect-[4/3] bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center text-5xl relative">
-                    {RESOURCE_CATEGORIES[related.category].emoji}
+                  <div className="aspect-[4/3] bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center relative">
+                    <RelatedIcon className={cn('w-16 h-16', relatedIconColor)} strokeWidth={1.5} />
                     {related.isPremium && (
                       <div className="absolute top-2 left-2 px-2 py-0.5 bg-gradient-to-r from-amber-400 to-orange-400 text-white text-xs font-bold rounded-full flex items-center gap-1">
                         <Sparkles className="w-3 h-3" />
@@ -736,7 +756,7 @@ export default function TemplateDetailClient({ templateId }: TemplateDetailClien
                     </div>
                   </div>
                 </Link>
-              ))}
+              )})}
             </div>
           </div>
         </section>
