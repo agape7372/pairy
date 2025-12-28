@@ -328,6 +328,7 @@ export default function TemplateDetailClient({ templateId }: TemplateDetailClien
   const [isBookmarked, setIsBookmarked] = useState(false)
   const [showShareToast, setShowShareToast] = useState(false)
   const [showAddToLibrary, setShowAddToLibrary] = useState(false)
+  const [isDownloading, setIsDownloading] = useState(false)
 
   const resource = sampleResources[templateId]
 
@@ -366,6 +367,9 @@ export default function TemplateDetailClient({ templateId }: TemplateDetailClien
   }
 
   const handleDownload = () => {
+    // 중복 클릭 방지
+    if (isDownloading) return
+
     // 유료 자료 체크
     if (resource.license === 'paid') {
       alert('유료 자료입니다. 구매 후 다운로드할 수 있어요.')
@@ -384,8 +388,13 @@ export default function TemplateDetailClient({ templateId }: TemplateDetailClien
       return
     }
 
-    // 다운로드 성공 (데모)
-    alert('다운로드가 시작되었습니다! (데모 모드)')
+    // 다운로드 진행
+    setIsDownloading(true)
+    // 데모: 0.5초 후 완료
+    setTimeout(() => {
+      setIsDownloading(false)
+      alert('다운로드가 시작되었습니다! (데모 모드)')
+    }, 500)
   }
 
   const handleStartWork = () => {
@@ -617,10 +626,10 @@ export default function TemplateDetailClient({ templateId }: TemplateDetailClien
                   size="lg"
                   className="flex-1"
                   onClick={handleDownload}
-                  disabled={resource.license === 'paid'}
+                  disabled={resource.license === 'paid' || isDownloading}
                 >
-                  <Download className="w-5 h-5 mr-2" />
-                  {resource.license === 'paid' ? `₩${resource.price?.toLocaleString()} 구매` : '다운로드'}
+                  <Download className={cn('w-5 h-5 mr-2', isDownloading && 'animate-bounce')} />
+                  {isDownloading ? '다운로드 중...' : resource.license === 'paid' ? `₩${resource.price?.toLocaleString()} 구매` : '다운로드'}
                 </Button>
                 <Button
                   size="lg"

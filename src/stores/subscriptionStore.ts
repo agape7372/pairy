@@ -54,6 +54,8 @@ export const TIER_LIMITS = {
     canAccessPremiumTemplates: false,
     canRemoveWatermark: false,
     canAccessPaidResources: false,
+    hasDuoCredits: false,
+    hasSharedLibrary: false,
   },
   premium: {
     exportsPerMonth: Infinity,
@@ -68,6 +70,8 @@ export const TIER_LIMITS = {
     canAccessPremiumTemplates: true,
     canRemoveWatermark: true,
     canAccessPaidResources: true,
+    hasDuoCredits: false,
+    hasSharedLibrary: false,
   },
   duo: {
     exportsPerMonth: Infinity,
@@ -98,6 +102,8 @@ export const TIER_LIMITS = {
     canAccessPremiumTemplates: true,
     canRemoveWatermark: true,
     canAccessPaidResources: true,
+    hasDuoCredits: false,
+    hasSharedLibrary: false,
   },
 } as const
 
@@ -294,13 +300,16 @@ export const useSubscriptionStore = create<SubscriptionState>()(
       },
 
       incrementExports: () => {
-        const { subscription, usage } = get()
+        const { subscription } = get()
         const limits = TIER_LIMITS[subscription.tier]
 
         // 월간 초기화 확인
         const currentMonth = new Date().toISOString().slice(0, 7)
+        let { usage } = get()
         if (usage.lastResetDate !== currentMonth) {
           get().resetMonthlyUsage()
+          // 리셋 후 최신 usage 다시 가져오기
+          usage = get().usage
         }
 
         if (usage.exportsThisMonth >= limits.exportsPerMonth) {
@@ -317,13 +326,16 @@ export const useSubscriptionStore = create<SubscriptionState>()(
       },
 
       incrementDownloads: () => {
-        const { subscription, usage } = get()
+        const { subscription } = get()
         const limits = TIER_LIMITS[subscription.tier]
 
         // 월간 초기화 확인
         const currentMonth = new Date().toISOString().slice(0, 7)
+        let { usage } = get()
         if (usage.lastResetDate !== currentMonth) {
           get().resetMonthlyUsage()
+          // 리셋 후 최신 usage 다시 가져오기
+          usage = get().usage
         }
 
         if (usage.downloadsThisMonth >= limits.downloadsPerMonth) {
@@ -389,7 +401,12 @@ export const useSubscriptionStore = create<SubscriptionState>()(
       canUseFeature: (feature) => {
         const { subscription } = get()
         const limits = TIER_LIMITS[subscription.tier]
-        return limits[feature] as boolean
+        const value = limits[feature]
+        // 숫자인 경우 0보다 크거나 Infinity면 true
+        if (typeof value === 'number') {
+          return value > 0 || value === Infinity
+        }
+        return Boolean(value)
       },
 
       getRemainingExports: () => {

@@ -291,7 +291,7 @@ export default function MyLibraryPage() {
                   key={folder.id}
                   onClick={() => setSelectedFolder(folder.id)}
                   className={cn(
-                    'group bg-white rounded-2xl border-2 transition-all cursor-pointer hover:shadow-md',
+                    'group bg-white rounded-2xl border-2 transition-all cursor-pointer hover:shadow-md relative',
                     viewMode === 'grid' ? 'p-4' : 'p-3 flex items-center gap-4',
                     selectedFolder === folder.id ? 'border-primary-400' : 'border-gray-200 hover:border-gray-300'
                   )}
