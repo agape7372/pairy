@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
+import { copyToClipboard } from '@/lib/utils/clipboard'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 
 // 세션 상태 타입
@@ -389,13 +390,8 @@ export function useCollabSession(options: UseCollabSessionOptions = {}): UseColl
   const copyInviteLink = useCallback(async (): Promise<boolean> => {
     if (!session) return false
 
-    try {
-      const link = getInviteLink()
-      await navigator.clipboard.writeText(link)
-      return true
-    } catch {
-      return false
-    }
+    const link = getInviteLink()
+    return await copyToClipboard(link)
   }, [session])
 
   // 초대 링크 가져오기

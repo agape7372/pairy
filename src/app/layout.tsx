@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import { Providers } from '@/components/providers/Providers'
 
 // 기본 URL (배포 환경에 맞게 설정)
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://pairy.app'
@@ -72,7 +73,9 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-screen flex flex-col antialiased font-sans">
-        {children}
+        <Providers>
+          {children}
+        </Providers>
       </body>
     </html>
   )

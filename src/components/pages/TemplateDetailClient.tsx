@@ -20,8 +20,9 @@ import {
   AlertCircle,
   FolderPlus,
 } from 'lucide-react'
-import { Button, Tag } from '@/components/ui'
+import { Button, Tag, useToast } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
+import { copyToClipboard } from '@/lib/utils/clipboard'
 import {
   RESOURCE_CATEGORIES,
   LICENSE_INFO,
@@ -322,6 +323,7 @@ interface TemplateDetailClientProps {
 
 export default function TemplateDetailClient({ templateId }: TemplateDetailClientProps) {
   const router = useRouter()
+  const toast = useToast()
   const { subscription, incrementDownloads, getRemainingDownloads } = useSubscriptionStore()
 
   const [isLiked, setIsLiked] = useState(false)
@@ -350,12 +352,12 @@ export default function TemplateDetailClient({ templateId }: TemplateDetailClien
   const relatedResources = getRelatedResources(resource.category, resource.id)
 
   const handleShare = async () => {
-    try {
-      await navigator.clipboard.writeText(window.location.href)
+    const success = await copyToClipboard(window.location.href)
+    if (success) {
       setShowShareToast(true)
       setTimeout(() => setShowShareToast(false), 2000)
-    } catch (err) {
-      console.error('Failed to copy:', err)
+    } else {
+      toast.error('링크 복사에 실패했어요')
     }
   }
 
@@ -372,19 +374,19 @@ export default function TemplateDetailClient({ templateId }: TemplateDetailClien
 
     // 유료 자료 체크
     if (resource.license === 'paid') {
-      alert('유료 자료입니다. 구매 후 다운로드할 수 있어요.')
+      toast.warning('유료 자료입니다. 구매 후 다운로드할 수 있어요.')
       return
     }
 
     // 프리미엄 자료 체크
     if (resource.isPremium && subscription.tier === 'free') {
-      alert('프리미엄 자료입니다. 업그레이드 후 다운로드할 수 있어요.')
+      toast.warning('프리미엄 자료입니다. 업그레이드 후 다운로드할 수 있어요.')
       return
     }
 
     // 다운로드 횟수 체크
     if (!incrementDownloads()) {
-      alert('이번 달 다운로드 횟수를 모두 사용했어요. 프리미엄으로 업그레이드하세요!')
+      toast.error('이번 달 다운로드 횟수를 모두 사용했어요. 프리미엄으로 업그레이드하세요!')
       return
     }
 
@@ -393,7 +395,7 @@ export default function TemplateDetailClient({ templateId }: TemplateDetailClien
     // 데모: 0.5초 후 완료
     setTimeout(() => {
       setIsDownloading(false)
-      alert('다운로드가 시작되었습니다! (데모 모드)')
+      toast.success('다운로드가 시작되었습니다!')
     }, 500)
   }
 
@@ -405,7 +407,7 @@ export default function TemplateDetailClient({ templateId }: TemplateDetailClien
     setShowAddToLibrary(true)
     setTimeout(() => {
       setShowAddToLibrary(false)
-      alert('내 서재에 추가되었습니다!')
+      toast.success('내 서재에 추가되었습니다!')
     }, 500)
   }
 

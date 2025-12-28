@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { X, Crown, Zap, Check, Sparkles, Heart, Users } from 'lucide-react'
-import { Button } from '@/components/ui'
+import { Button, useToast } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
 import {
   useSubscriptionStore,
@@ -29,6 +29,7 @@ export function UpgradeModal({
     requiredTier === 'creator' ? 'creator' : requiredTier === 'duo' ? 'duo' : 'premium'
   )
   const { subscribe, startTrial, isDemoMode } = useSubscriptionStore()
+  const toast = useToast()
 
   if (!isOpen) return null
 
@@ -38,20 +39,19 @@ export function UpgradeModal({
     if (isDemoMode) {
       // 데모 모드: 바로 구독 적용
       subscribe(selectedTier, 'monthly')
-      onClose()
-      // 성공 토스트 표시
       const tierName = selectedTier === 'premium' ? '프리미엄' : selectedTier === 'duo' ? '듀오' : '크리에이터'
-      alert(`${tierName} 구독이 활성화되었습니다! (데모 모드)`)
+      toast.success(`${tierName} 구독이 활성화되었습니다!`)
+      onClose()
     } else {
       // 실제 모드: 결제 페이지로 이동 (추후 구현)
-      alert('결제 기능은 준비 중입니다.')
+      toast.info('결제 기능은 준비 중입니다.')
     }
   }
 
   const handleStartTrial = () => {
     startTrial()
+    toast.success('7일 무료 체험이 시작되었습니다!')
     onClose()
-    alert('7일 무료 체험이 시작되었습니다! (데모 모드)')
   }
 
   const features = {

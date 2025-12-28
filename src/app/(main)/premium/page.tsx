@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { Check, Sparkles, Zap, Crown, ArrowRight, Users, Gift, Heart } from 'lucide-react'
-import { Button } from '@/components/ui'
+import { Button, useToast } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
 import { useSubscriptionStore, PRICING, type SubscriptionTier } from '@/stores/subscriptionStore'
 import { UpgradeModal } from '@/components/premium/UpgradeModal'
@@ -132,6 +132,7 @@ export default function PremiumPage() {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [selectedTier, setSelectedTier] = useState<'premium' | 'creator' | 'duo'>('premium')
   const { subscription, subscribe, isDemoMode } = useSubscriptionStore()
+  const toast = useToast()
 
   const plans = getPlans(subscription.tier)
 
@@ -140,7 +141,8 @@ export default function PremiumPage() {
 
     if (isDemoMode) {
       subscribe(tier, 'monthly')
-      alert(`${tier === 'premium' ? '프리미엄' : tier === 'duo' ? '듀오' : '크리에이터'} 구독이 활성화되었습니다! (데모 모드)`)
+      const tierName = tier === 'premium' ? '프리미엄' : tier === 'duo' ? '듀오' : '크리에이터'
+      toast.success(`${tierName} 구독이 활성화되었습니다!`)
     } else {
       setSelectedTier(tier as 'premium' | 'creator' | 'duo')
       setShowUpgradeModal(true)

@@ -38,6 +38,7 @@ import { uploadWorkImage } from '@/lib/supabase/storage'
 import { useEditorStore, useCanUndo, useCanRedo, useIsDirty, useIsSaving } from '@/stores/editorStore'
 import { useAutoSave } from '@/hooks/useAutoSave'
 import { IS_DEMO_MODE } from '@/lib/supabase/client'
+import { copyToClipboard } from '@/lib/utils/clipboard'
 
 // 폰트 옵션
 const FONT_OPTIONS = [
@@ -1036,8 +1037,8 @@ export default function EditorClient({ workId }: EditorClientProps) {
                     <Button
                       variant="secondary"
                       size="sm"
-                      onClick={() => {
-                        navigator.clipboard.writeText(`${window.location.origin}/work/${workId}`)
+                      onClick={async () => {
+                        await copyToClipboard(`${window.location.origin}/work/${workId}`)
                       }}
                     >
                       복사

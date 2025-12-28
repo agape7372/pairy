@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { X, Copy, Check, Link, Twitter, MessageCircle, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
+import { copyToClipboard } from '@/lib/utils/clipboard'
 
 interface InviteModalProps {
   isOpen: boolean
@@ -34,12 +35,10 @@ export function InviteModal({
   }
 
   const handleCopyCode = async () => {
-    try {
-      await navigator.clipboard.writeText(inviteCode)
+    const success = await copyToClipboard(inviteCode)
+    if (success) {
       setCopiedCode(true)
       setTimeout(() => setCopiedCode(false), 2000)
-    } catch {
-      // 실패 처리
     }
   }
 

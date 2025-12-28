@@ -21,7 +21,7 @@ import {
   HardDrive,
   CheckCircle,
 } from 'lucide-react'
-import { Button } from '@/components/ui'
+import { Button, useToast } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
 import { useSubscriptionStore, TIER_LIMITS, PRICING } from '@/stores/subscriptionStore'
 import { RESOURCE_CATEGORIES, type ResourceCategory } from '@/types/resources'
@@ -120,6 +120,7 @@ function formatRelativeTime(dateStr: string): string {
 export default function MyLibraryPage() {
   const { subscription, usage } = useSubscriptionStore()
   const limits = TIER_LIMITS[subscription.tier]
+  const toast = useToast()
 
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [activeTab, setActiveTab] = useState<'folders' | 'downloads' | 'favorites'>('folders')
@@ -416,7 +417,7 @@ export default function MyLibraryPage() {
                     <button
                       onClick={(e) => {
                         e.preventDefault()
-                        alert('다시 다운로드!')
+                        toast.success('다시 다운로드 시작!')
                       }}
                       className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
                     >

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { Plus, MoreVertical, Trash2, Edit2, Share2, Clock, Eye, EyeOff, X, Check, AlertTriangle } from 'lucide-react'
 import { Button, Tag } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
+import { copyToClipboard } from '@/lib/utils/clipboard'
 
 // 작품 타입 정의
 interface Work {
@@ -119,7 +120,7 @@ export default function MyWorksPage() {
   }
 
   // 공유하기
-  const handleShare = (work: Work) => {
+  const handleShare = async (work: Work) => {
     const shareUrl = `${window.location.origin}/works/${work.id}`
 
     if (navigator.share) {
@@ -131,12 +132,13 @@ export default function MyWorksPage() {
         // 사용자가 공유를 취소한 경우
       })
     } else {
-      // 클립보드에 복사
-      navigator.clipboard.writeText(shareUrl).then(() => {
+      // 클립보드에 복사 (폴백 지원)
+      const success = await copyToClipboard(shareUrl)
+      if (success) {
         showToast('링크가 복사되었어요')
-      }).catch(() => {
+      } else {
         showToast('링크 복사에 실패했어요', 'error')
-      })
+      }
     }
     setMenuOpen(null)
   }
