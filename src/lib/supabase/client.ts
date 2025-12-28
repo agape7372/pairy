@@ -1,9 +1,17 @@
 import { createBrowserClient } from '@supabase/ssr'
 import type { Database } from '@/types/database.types'
 
+// 데모용 fallback (GitHub Pages 배포시 사용)
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key'
+
 export function createClient() {
   return createBrowserClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY
   )
+}
+
+export function isSupabaseConfigured() {
+  return process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 }
