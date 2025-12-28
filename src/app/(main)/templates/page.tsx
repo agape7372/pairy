@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Search, Heart, Filter, X } from 'lucide-react'
+import { Search, Heart, Filter, X, Plus } from 'lucide-react'
 import { Button, Tag } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
 
@@ -115,9 +115,17 @@ export default function TemplatesPage() {
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
             틀 <span className="text-accent-400">둘러보기</span>
           </h1>
-          <p className="text-gray-500 mb-8">
-            다양한 틀을 찾아보고, 마음에 드는 틀로 작업을 시작해보세요.
-          </p>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+            <p className="text-gray-500">
+              다양한 틀을 찾아보고, 마음에 드는 틀로 작업을 시작해보세요.
+            </p>
+            <Button asChild className="shrink-0">
+              <Link href="/templates/new">
+                <Plus className="w-4 h-4 mr-1" />
+                새 템플릿 만들기
+              </Link>
+            </Button>
+          </div>
 
           {/* Search Bar */}
           <div className="flex gap-3">
