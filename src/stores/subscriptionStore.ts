@@ -63,10 +63,10 @@ export const TIER_LIMITS = {
 // 가격 정보 (월간 구독만)
 export const PRICING = {
   premium: {
-    monthly: 3900,
+    monthly: 2900,
   },
   creator: {
-    monthly: 9900,
+    monthly: 4900,
   },
 } as const
 
