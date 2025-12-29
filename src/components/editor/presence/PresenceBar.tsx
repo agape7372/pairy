@@ -237,13 +237,14 @@ function ParticipantAvatar({ participant, index, showCrown }: ParticipantAvatarP
         {participant.avatarUrl ? (
           <img
             src={participant.avatarUrl}
-            alt={participant.nickname}
+            alt={participant.nickname || '사용자'}
             className="w-full h-full object-cover"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
+            {/* NOTE: 빈 문자열 방어 - charAt(0)이 빈 값일 경우 '?' 표시 */}
             <span className="text-sm font-medium text-gray-600">
-              {participant.nickname.charAt(0).toUpperCase()}
+              {(participant.nickname?.charAt(0) || '?').toUpperCase()}
             </span>
           </div>
         )}
@@ -295,13 +296,14 @@ function ParticipantListItem({ participant, isCurrentUser }: ParticipantListItem
           {participant.avatarUrl ? (
             <img
               src={participant.avatarUrl}
-              alt=""
+              alt={participant.nickname || '사용자'}
               className="w-full h-full object-cover"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
+              {/* NOTE: 빈 문자열 방어 */}
               <span className="text-sm font-medium text-gray-600">
-                {participant.nickname.charAt(0).toUpperCase()}
+                {(participant.nickname?.charAt(0) || '?').toUpperCase()}
               </span>
             </div>
           )}

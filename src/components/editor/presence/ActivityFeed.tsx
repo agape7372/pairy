@@ -208,12 +208,13 @@ export function CompactActivityToast({ activity, onDismiss }: CompactActivityToa
           {activity.avatarUrl ? (
             <img
               src={activity.avatarUrl}
-              alt=""
+              alt={activity.nickname || '사용자'}
               className="w-full h-full object-cover"
             />
           ) : (
+            /* NOTE: 빈 문자열 방어 */
             <span className="text-sm font-medium text-gray-600">
-              {activity.nickname.charAt(0).toUpperCase()}
+              {(activity.nickname?.charAt(0) || '?').toUpperCase()}
             </span>
           )}
         </div>
