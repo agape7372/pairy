@@ -98,3 +98,33 @@ export function generateStaticParams() {
 - `/docs/master-prompt/` - Detailed specifications (design system, API, database schema)
 - `/PROGRESS.md` - Development progress tracking
 - `/OPERATIONS.md` - Revenue model and operations
+
+## Quality Settings
+
+### 기본 모드: 고품질 분석
+모든 작업에서 다음을 기본으로 수행:
+
+1. **코드 변경 전 심층 분석**
+   - 관련 파일 폭넓게 탐색 (최소 5-10개 파일 컨텍스트 확보)
+   - 기존 패턴과 아키텍처 파악 후 일관성 있게 수정
+   - Edge case, 에러 핸들링, 타입 안전성 사전 검토
+
+2. **보안 및 성능 체크리스트**
+   - XSS, SQL Injection 등 OWASP Top 10 취약점 점검
+   - 메모리 누수, race condition, 무한 루프 위험 검토
+   - 불필요한 리렌더링, 번들 사이즈 영향 고려
+
+3. **코드 리뷰 시 ultrathink 적용**
+   - 여러 관점에서 5-6회 반복 검토
+   - 잠재적 버그와 개선점 proactive하게 제안
+   - 테스트 케이스 및 시나리오 함께 제시
+
+4. **커밋 전 검증**
+   - `npm run build` 성공 확인
+   - `npm run lint` 통과 확인
+   - 변경사항이 기존 기능에 영향 없는지 검토
+
+### 모드 전환 키워드
+- `"빠르게"` / `"간단히"` → 핵심만 빠르게 처리
+- `"ultrathink"` / `"꼼꼼히"` → 최고 품질 심층 분석
+- 기본 → 위 고품질 분석 모드 적용
