@@ -1,7 +1,17 @@
 'use client'
 
+/**
+ * 좋아요 관련 훅
+ * 변경 이유: 데모 모드 localStorage 로직을 demoStorage 유틸리티로 통합
+ */
+
 import { useEffect, useState, useCallback } from 'react'
 import { createClient, IS_DEMO_MODE } from '@/lib/supabase/client'
+import {
+  getStorageSet,
+  saveStorageSet,
+  DEMO_STORAGE_KEYS,
+} from '@/lib/utils/demoStorage'
 
 interface UseLikesReturn {
   isLiked: boolean
@@ -12,23 +22,9 @@ interface UseLikesReturn {
   toggle: () => Promise<boolean>
 }
 
-// 데모 모드용 로컬 스토리지 키
-const DEMO_LIKES_KEY = 'pairy_demo_likes'
-
-function getDemoLikes(): Set<string> {
-  if (typeof window === 'undefined') return new Set()
-  try {
-    const stored = localStorage.getItem(DEMO_LIKES_KEY)
-    return stored ? new Set(JSON.parse(stored)) : new Set()
-  } catch {
-    return new Set()
-  }
-}
-
-function saveDemoLikes(likes: Set<string>) {
-  if (typeof window === 'undefined') return
-  localStorage.setItem(DEMO_LIKES_KEY, JSON.stringify([...likes]))
-}
+// 변경 이유: 로컬 localStorage 함수를 demoStorage 유틸리티로 대체 (코드 중복 제거)
+const getDemoLikes = () => getStorageSet(DEMO_STORAGE_KEYS.LIKES)
+const saveDemoLikes = (likes: Set<string>) => saveStorageSet(DEMO_STORAGE_KEYS.LIKES, likes)
 
 export function useLikes(templateId: string, initialLikeCount?: number): UseLikesReturn {
   const [isLiked, setIsLiked] = useState(false)
