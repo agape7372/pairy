@@ -5,7 +5,7 @@
  * 변경 이유: TemplateRenderer.tsx에서 분리하여 재사용성 향상
  */
 
-import { useState, useEffect } from 'react'
+import { useReducer, useEffect, useMemo } from 'react'
 import { calculateImageFit, drawShapeMask } from '@/lib/utils/canvasUtils'
 import type { MaskConfig } from '@/types/template'
 
@@ -19,49 +19,81 @@ type UseImageReturn = [
   error: Error | null
 ]
 
+interface ImageState {
+  image: HTMLImageElement | null
+  loading: boolean
+  error: Error | null
+}
+
+type ImageAction =
+  | { type: 'LOAD_START' }
+  | { type: 'LOAD_SUCCESS'; image: HTMLImageElement }
+  | { type: 'LOAD_ERROR'; error: Error }
+
+function imageReducer(state: ImageState, action: ImageAction): ImageState {
+  switch (action.type) {
+    case 'LOAD_START':
+      return { image: null, loading: true, error: null }
+    case 'LOAD_SUCCESS':
+      return { image: action.image, loading: false, error: null }
+    case 'LOAD_ERROR':
+      return { image: null, loading: false, error: action.error }
+    default:
+      return state
+  }
+}
+
+const initialImageState: ImageState = {
+  image: null,
+  loading: false,
+  error: null,
+}
+
 /**
  * 이미지 로드 훅 (캐싱 + 에러 처리)
  * @param src - 이미지 URL 또는 Data URL
  */
 export function useImage(src: string | null | undefined): UseImageReturn {
-  const [image, setImage] = useState<HTMLImageElement | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<Error | null>(null)
+  const [state, dispatch] = useReducer(imageReducer, initialImageState)
 
   useEffect(() => {
-    if (!src) {
-      setImage(null)
-      setLoading(false)
-      setError(null)
-      return
-    }
+    // src가 없으면 로딩하지 않음
+    if (!src) return
 
-    setLoading(true)
-    setError(null)
-
+    let isCancelled = false
     const img = new window.Image()
     img.crossOrigin = 'anonymous'
 
+    dispatch({ type: 'LOAD_START' })
+
     img.onload = () => {
-      setImage(img)
-      setLoading(false)
+      if (!isCancelled) {
+        dispatch({ type: 'LOAD_SUCCESS', image: img })
+      }
     }
 
     img.onerror = () => {
-      setError(new Error(`Failed to load image: ${src}`))
-      setImage(null)
-      setLoading(false)
+      if (!isCancelled) {
+        dispatch({ type: 'LOAD_ERROR', error: new Error(`Failed to load image: ${src}`) })
+      }
     }
 
     img.src = src
 
     return () => {
+      isCancelled = true
       img.onload = null
       img.onerror = null
     }
   }, [src])
 
-  return [image, loading, error]
+  // 변경 이유: src가 없을 때는 null/false/null 반환
+  return useMemo<UseImageReturn>(() => {
+    if (!src) {
+      return [null, false, null]
+    }
+    return [state.image, state.loading, state.error]
+  }, [src, state.image, state.loading, state.error])
 }
 
 // ============================================
@@ -105,20 +137,16 @@ export function useMaskedImage(
   imageScale: number = 1,
   imageRotation: number = 0
 ): UseMaskedImageReturn {
-  const [maskedCanvas, setMaskedCanvas] = useState<HTMLCanvasElement | null>(null)
-  const [isProcessing, setIsProcessing] = useState(false)
   const [userImage] = useImage(userImageSrc)
   const [maskImage] = useImage(
     maskConfig?.type === 'image' ? maskConfig.imageUrl : null
   )
 
-  useEffect(() => {
+  // 마스킹된 캔버스 계산
+  const maskedCanvas = useMemo(() => {
     if (!userImage) {
-      setMaskedCanvas(null)
-      return
+      return null
     }
-
-    setIsProcessing(true)
 
     // 오프스크린 캔버스 생성
     const canvas = document.createElement('canvas')
@@ -127,8 +155,7 @@ export function useMaskedImage(
     const ctx = canvas.getContext('2d')
 
     if (!ctx) {
-      setIsProcessing(false)
-      return
+      return null
     }
 
     // 이미지 피팅 계산
@@ -175,8 +202,7 @@ export function useMaskedImage(
     // 컴포지션 리셋
     ctx.globalCompositeOperation = 'source-over'
 
-    setMaskedCanvas(canvas)
-    setIsProcessing(false)
+    return canvas
   }, [
     userImage,
     maskImage,
@@ -189,6 +215,9 @@ export function useMaskedImage(
     imageScale,
     imageRotation,
   ])
+
+  // isProcessing은 이미지 로딩 상태로 판단
+  const isProcessing = userImageSrc !== null && !userImage
 
   return [maskedCanvas, isProcessing]
 }

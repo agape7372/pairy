@@ -279,6 +279,23 @@ Canvas 기반 에디터 재구축 (react-konva)
   - useFollow, useLikes 훅 리팩토링
   - DEMO_STORAGE_KEYS 중앙 관리
 
+### Phase 4 Sprint 28 완료 (스토어 아키텍처 개선)
+- [x] canvasEditorStore God Object 리팩토링
+  - stores/middleware/historyMiddleware.ts 분리
+  - stores/middleware/layerSlice.ts 분리
+  - createHistoryActions, createLayerActions 팩토리 함수
+- [x] 히스토리 로직 모듈화
+  - HistorySnapshot, HistoryState, HistoryActions 타입
+  - pushSnapshot, areSnapshotsEqual 유틸리티
+- [x] 레이어 로직 모듈화
+  - LayerState, LayerStates 타입
+  - defaultLayerState 상수
+- [x] useKonvaImage 훅 리팩토링
+  - useReducer 패턴으로 상태 관리 개선
+  - React lint 규칙 준수 (set-state-in-effect 해결)
+- [x] 최적화된 셀렉터 훅 추가
+  - useTemplateConfig, useEditorColors, useEditorImages 등
+
 ### Phase 4 목표
 - [x] react-konva 기반 캔버스 에디터
 - [x] 템플릿 JSON 스키마
