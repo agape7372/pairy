@@ -89,6 +89,24 @@ export default function CanvasEditor({
   const [isSidebarOpen, setIsSidebarOpen] = useState(false) // 모바일용 사이드바 토글
   const [exportError, setExportError] = useState<string | null>(null) // 내보내기 에러 상태
 
+  // 슬롯 클릭 핸들러 (모바일에서 사이드바 자동 열기)
+  const handleSlotClick = useCallback((slotId: string | null) => {
+    selectSlot(slotId)
+    // 모바일에서 슬롯 선택 시 사이드바 열기
+    if (slotId && window.innerWidth < 768) {
+      setIsSidebarOpen(true)
+    }
+  }, [selectSlot])
+
+  // 텍스트 클릭 핸들러 (모바일에서 사이드바 자동 열기)
+  const handleTextClick = useCallback((textId: string | null) => {
+    selectText(textId)
+    // 모바일에서 텍스트 선택 시 사이드바 열기
+    if (textId && window.innerWidth < 768) {
+      setIsSidebarOpen(true)
+    }
+  }, [selectText])
+
   // 템플릿 로드
   useEffect(() => {
     const fetchTemplate = async () => {
@@ -469,8 +487,8 @@ export default function CanvasEditor({
                 slotTransforms={slotTransforms}
                 selectedSlotId={selectedSlotId}
                 selectedTextId={selectedTextId}
-                onSlotClick={selectSlot}
-                onTextClick={selectText}
+                onSlotClick={handleSlotClick}
+                onTextClick={handleTextClick}
                 onSlotTransformChange={updateSlotTransform}
               />
               </div>

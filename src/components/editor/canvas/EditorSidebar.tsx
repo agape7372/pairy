@@ -22,15 +22,11 @@ import type { InputFieldConfig, ImageSlot, ColorConfig } from '@/types/template'
 /**
  * 텍스트 입력 필드
  */
-function TextInputField({
-  field,
-  value,
-  onChange,
-}: {
+const TextInputField = React.forwardRef<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement, {
   field: InputFieldConfig
   value: string
   onChange: (value: string) => void
-}) {
+}>(function TextInputField({ field, value, onChange }, ref) {
   if (field.type === 'textarea') {
     return (
       <div className="space-y-1">
@@ -39,6 +35,7 @@ function TextInputField({
           {field.required && <span className="text-red-400 ml-1">*</span>}
         </label>
         <textarea
+          ref={ref as React.Ref<HTMLTextAreaElement>}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={field.placeholder}
@@ -56,6 +53,7 @@ function TextInputField({
           {field.label}
         </label>
         <input
+          ref={ref as React.Ref<HTMLInputElement>}
           type="date"
           value={value}
           onChange={(e) => onChange(e.target.value)}
@@ -72,6 +70,7 @@ function TextInputField({
           {field.label}
         </label>
         <select
+          ref={ref as React.Ref<HTMLSelectElement>}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-300"
@@ -94,6 +93,7 @@ function TextInputField({
         {field.required && <span className="text-red-400 ml-1">*</span>}
       </label>
       <input
+        ref={ref as React.Ref<HTMLInputElement>}
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -102,7 +102,7 @@ function TextInputField({
       />
     </div>
   )
-}
+})
 
 /**
  * 이미지 업로드 필드
@@ -246,19 +246,7 @@ function ColorPickerField({
 /**
  * 슬롯별 입력 그룹
  */
-function SlotInputGroup({
-  slot,
-  fields,
-  formData,
-  imageUrl,
-  onFieldChange,
-  onImageUpload,
-  onImageRemove,
-  onResetTransform,
-  hasTransform,
-  isExpanded,
-  onToggle,
-}: {
+const SlotInputGroup = React.forwardRef<HTMLDivElement, {
   slot: ImageSlot
   fields: InputFieldConfig[]
   formData: Record<string, string | undefined>
@@ -270,12 +258,32 @@ function SlotInputGroup({
   hasTransform?: boolean
   isExpanded: boolean
   onToggle: () => void
-}) {
+  isSelected?: boolean
+}>(function SlotInputGroup({
+  slot,
+  fields,
+  formData,
+  imageUrl,
+  onFieldChange,
+  onImageUpload,
+  onImageRemove,
+  onResetTransform,
+  hasTransform,
+  isExpanded,
+  onToggle,
+  isSelected,
+}, ref) {
   const imageField = fields.find((f) => f.type === 'image')
   const textFields = fields.filter((f) => f.type !== 'image')
 
   return (
-    <div className="border border-gray-200 rounded-xl overflow-hidden">
+    <div
+      ref={ref}
+      className={cn(
+        'border rounded-xl overflow-hidden transition-colors',
+        isSelected ? 'border-primary-400 ring-2 ring-primary-200' : 'border-gray-200'
+      )}
+    >
       <button
         onClick={onToggle}
         className="w-full px-4 py-3 flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors"
@@ -325,7 +333,7 @@ function SlotInputGroup({
       )}
     </div>
   )
-}
+})
 
 // ============================================
 // 메인 사이드바 컴포넌트
@@ -345,6 +353,8 @@ export default function EditorSidebar({ isOpen = true, onClose }: EditorSidebarP
     images,
     colors,
     slotTransforms,
+    selectedSlotId,
+    selectedTextId,
     updateFormField,
     updateImage,
     updateColor,
@@ -354,12 +364,69 @@ export default function EditorSidebar({ isOpen = true, onClose }: EditorSidebarP
   const [activeTab, setActiveTab] = useState<Tab>('slots')
   const [expandedSlots, setExpandedSlots] = useState<Set<string>>(new Set())
 
+  // 슬롯 섹션 refs
+  const slotRefs = useRef<Record<string, HTMLDivElement | null>>({})
+  const contentRef = useRef<HTMLDivElement>(null)
+
   // 버그 수정: 템플릿 변경 시 expandedSlots 동기화
   useEffect(() => {
     if (templateConfig?.layers.slots) {
       setExpandedSlots(new Set(templateConfig.layers.slots.map((s) => s.id)))
     }
   }, [templateConfig])
+
+  // 슬롯 선택 시 자동 탭 전환 및 스크롤
+  useEffect(() => {
+    if (selectedSlotId && templateConfig) {
+      // 슬롯 탭으로 전환
+      setActiveTab('slots')
+
+      // 해당 슬롯 펼치기
+      setExpandedSlots((prev) => {
+        const next = new Set(prev)
+        next.add(selectedSlotId)
+        return next
+      })
+
+      // 약간의 딜레이 후 스크롤 (DOM 업데이트 대기)
+      setTimeout(() => {
+        const slotElement = slotRefs.current[selectedSlotId]
+        if (slotElement) {
+          slotElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }
+      }, 100)
+    }
+  }, [selectedSlotId, templateConfig])
+
+  // 텍스트 선택 시 해당 필드로 스크롤
+  useEffect(() => {
+    if (selectedTextId && templateConfig) {
+      // 텍스트 ID로 입력 필드 찾기 (textId는 보통 field.key와 매핑됨)
+      const field = templateConfig.inputFields.find(f => f.key === selectedTextId)
+
+      if (field) {
+        if (field.slotId) {
+          // 슬롯에 속한 필드면 슬롯 탭으로 이동
+          setActiveTab('slots')
+          setExpandedSlots((prev) => {
+            const next = new Set(prev)
+            next.add(field.slotId!)
+            return next
+          })
+
+          setTimeout(() => {
+            const slotElement = slotRefs.current[field.slotId!]
+            if (slotElement) {
+              slotElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+            }
+          }, 100)
+        } else {
+          // 일반 텍스트 필드면 텍스트 탭으로 이동
+          setActiveTab('general')
+        }
+      }
+    }
+  }, [selectedTextId, templateConfig])
 
   if (!templateConfig) {
     return (
@@ -505,6 +572,7 @@ export default function EditorSidebar({ isOpen = true, onClose }: EditorSidebarP
               return (
                 <SlotInputGroup
                   key={slot.id}
+                  ref={(el) => { slotRefs.current[slot.id] = el }}
                   slot={slot}
                   fields={fields}
                   formData={formData}
@@ -516,6 +584,7 @@ export default function EditorSidebar({ isOpen = true, onClose }: EditorSidebarP
                   hasTransform={hasTransform}
                   isExpanded={expandedSlots.has(slot.id)}
                   onToggle={() => toggleSlotExpand(slot.id)}
+                  isSelected={selectedSlotId === slot.id}
                 />
               )
             })}
