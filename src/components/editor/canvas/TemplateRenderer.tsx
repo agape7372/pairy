@@ -7,7 +7,6 @@ import {
   useCallback,
   forwardRef,
   useImperativeHandle,
-  useMemo,
 } from 'react'
 import { Stage, Layer, Rect, Text, Image, Group, Line, Circle, Ellipse, Path, Arc } from 'react-konva'
 import type Konva from 'konva'
@@ -24,8 +23,6 @@ import type {
   OverlayImage,
   MaskConfig,
   ShapeMask,
-  MaskShape,
-  Transform,
   TemplateRendererRef,
 } from '@/types/template'
 
@@ -126,6 +123,11 @@ function calculateImageFit(
   positionY: number = 0
 ): { x: number; y: number; width: number; height: number } {
   if (fit === 'fill') {
+    return { x: 0, y: 0, width: slotWidth, height: slotHeight }
+  }
+
+  // 버그 수정: Division by zero 방지
+  if (imgHeight === 0 || slotHeight === 0) {
     return { x: 0, y: 0, width: slotWidth, height: slotHeight }
   }
 
@@ -520,15 +522,16 @@ function ImageSlotRenderer({
   )
 
   // Konva clipFunc for shape masks (fallback and for selection indicator)
+  // 버그 수정: Konva 공식 API 사용 (ctx._context 대신 getContext 사용)
   const clipFunc = useCallback(
     (ctx: Konva.Context) => {
       if (!mask || mask.type === 'image') {
         ctx.rect(0, 0, transform.width, transform.height)
         return
       }
-      // Shape mask - use canvas context
-      const canvas2dCtx = ctx._context as CanvasRenderingContext2D
-      drawShapeMask(canvas2dCtx, transform.width, transform.height, mask)
+      // Shape mask - Konva Context는 Canvas 2D Context와 호환
+      const nativeCtx = ctx as unknown as CanvasRenderingContext2D
+      drawShapeMask(nativeCtx, transform.width, transform.height, mask)
     },
     [transform.width, transform.height, mask]
   )
@@ -537,13 +540,11 @@ function ImageSlotRenderer({
   const getBorderClipFunc = useCallback(
     (ctx: Konva.Context) => {
       if (!mask || mask.type === 'image') {
-        // 기본 둥근 사각형
-        const r = mask?.type === 'image' ? 0 : 0
         ctx.rect(0, 0, transform.width, transform.height)
         return
       }
-      const canvas2dCtx = ctx._context as CanvasRenderingContext2D
-      drawShapeMask(canvas2dCtx, transform.width, transform.height, mask)
+      const nativeCtx = ctx as unknown as CanvasRenderingContext2D
+      drawShapeMask(nativeCtx, transform.width, transform.height, mask)
     },
     [transform.width, transform.height, mask]
   )
@@ -741,7 +742,10 @@ function TextFieldRenderer({
         fontFamily={style.fontFamily}
         fontSize={style.fontSize}
         fontStyle={
-          (style.fontWeight === 'bold' || parseInt(style.fontWeight || '400') >= 600 ? 'bold ' : '') +
+          // 버그 수정: fontWeight 'bold'/'normal' 문자열 처리 및 NaN 방지
+          (style.fontWeight === 'bold' ||
+           (style.fontWeight && !isNaN(Number(style.fontWeight)) && Number(style.fontWeight) >= 600)
+            ? 'bold ' : '') +
           (style.fontStyle === 'italic' ? 'italic' : '')
         }
         fill={fillColor}

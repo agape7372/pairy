@@ -112,6 +112,13 @@ export default function CanvasEditor({
   const handleZoomOut = () => setZoom(zoom - 0.1)
   const handleZoomReset = () => setZoom(1)
 
+  // 저장 (useCallback으로 메모이제이션)
+  const handleSave = useCallback(async () => {
+    // TODO: 실제 저장 로직 구현
+    console.log('Saving...', { formData, images, colors })
+    markSaved()
+  }, [formData, images, colors, markSaved])
+
   // 키보드 단축키
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -137,14 +144,8 @@ export default function CanvasEditor({
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [undo, redo, canUndo, canRedo])
-
-  // 저장
-  const handleSave = async () => {
-    // TODO: 실제 저장 로직 구현
-    console.log('Saving...', { formData, images, colors })
-    markSaved()
-  }
+    // 버그 수정: handleSave 의존성 추가
+  }, [undo, redo, canUndo, canRedo, handleSave])
 
   // PNG 내보내기
   const handleExport = async (scale: number = 2) => {

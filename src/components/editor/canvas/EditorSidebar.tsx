@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useRef } from 'react'
+import React, { useCallback, useRef, useState, useEffect } from 'react'
 import {
   Type,
   Image as ImageIcon,
@@ -188,6 +188,31 @@ function ColorPickerField({
   value: string
   onChange: (value: string) => void
 }) {
+  // 버그 수정: 입력 중 타이핑 허용을 위한 로컬 상태 추가
+  const [inputValue, setInputValue] = React.useState(value.toUpperCase())
+
+  // 외부 value 변경 시 동기화
+  React.useEffect(() => {
+    setInputValue(value.toUpperCase())
+  }, [value])
+
+  const handleTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const hex = e.target.value.toUpperCase()
+    setInputValue(hex)
+
+    // 유효한 Hex일 때만 상위에 전달
+    if (/^#[0-9A-Fa-f]{6}$/.test(hex)) {
+      onChange(hex)
+    }
+  }
+
+  const handleBlur = () => {
+    // 포커스 해제 시 유효하지 않으면 원래 값으로 복원
+    if (!/^#[0-9A-Fa-f]{6}$/.test(inputValue)) {
+      setInputValue(value.toUpperCase())
+    }
+  }
+
   return (
     <div className="flex items-center gap-3">
       <div className="flex-1">
@@ -203,14 +228,11 @@ function ColorPickerField({
           />
           <input
             type="text"
-            value={value.toUpperCase()}
-            onChange={(e) => {
-              const hex = e.target.value
-              if (/^#[0-9A-Fa-f]{6}$/.test(hex)) {
-                onChange(hex)
-              }
-            }}
+            value={inputValue}
+            onChange={handleTextChange}
+            onBlur={handleBlur}
             placeholder="#FFFFFF"
+            maxLength={7}
             className="flex-1 px-3 py-2 text-sm font-mono border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-300"
           />
         </div>
@@ -305,8 +327,8 @@ export default function EditorSidebar() {
     selectSlot,
   } = useCanvasEditorStore()
 
-  const [activeTab, setActiveTab] = React.useState<Tab>('slots')
-  const [expandedSlots, setExpandedSlots] = React.useState<Set<string>>(
+  const [activeTab, setActiveTab] = useState<Tab>('slots')
+  const [expandedSlots, setExpandedSlots] = useState<Set<string>>(
     new Set(templateConfig?.layers.slots.map((s) => s.id) || [])
   )
 
@@ -344,12 +366,21 @@ export default function EditorSidebar() {
   }
 
   const handleImageUpload = (dataKey: string) => async (file: File) => {
-    // 로컬 URL 생성 (실제 서비스에서는 서버 업로드)
+    // 버그 수정: 기존 Object URL 해제 후 새로 생성 (메모리 누수 방지)
+    const existingUrl = images[dataKey]
+    if (existingUrl && existingUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(existingUrl)
+    }
     const url = URL.createObjectURL(file)
     updateImage(dataKey, url)
   }
 
   const handleImageRemove = (dataKey: string) => () => {
+    // 버그 수정: Object URL 해제 (메모리 누수 방지)
+    const existingUrl = images[dataKey]
+    if (existingUrl && existingUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(existingUrl)
+    }
     updateImage(dataKey, null)
   }
 
@@ -443,6 +474,3 @@ export default function EditorSidebar() {
     </aside>
   )
 }
-
-// React import for useState
-import React from 'react'

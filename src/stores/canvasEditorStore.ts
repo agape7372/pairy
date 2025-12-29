@@ -212,14 +212,16 @@ export const useCanvasEditorStore = create<CanvasEditorState & CanvasEditorActio
           const newHistory = state.history.slice(0, state.historyIndex + 1)
           newHistory.push(currentSnapshot)
 
-          // 최대 50개까지만 유지
+          // 버그 수정: 최대 50개 유지 시 인덱스도 함께 조정
+          let newIndex = newHistory.length - 1
           if (newHistory.length > 50) {
             newHistory.shift()
+            newIndex = newHistory.length - 1 // shift 후 인덱스 재계산
           }
 
           set({
             history: newHistory,
-            historyIndex: newHistory.length - 1,
+            historyIndex: newIndex,
           })
         },
 
