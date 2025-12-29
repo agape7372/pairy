@@ -115,10 +115,13 @@ export default function CanvasEditor({
   const [exportError, setExportError] = useState<string | null>(null)
   const [exportFormat, setExportFormat] = useState<ExportFormat>('png')
   const [exportScale, setExportScale] = useState(2)
+  const [lastAutoSave, setLastAutoSave] = useState<Date | null>(null)
+  const [showRecoveryToast, setShowRecoveryToast] = useState(false)
 
   // 핀치 줌 상태
   const lastTouchDistance = useRef<number | null>(null)
   const lastZoom = useRef(zoom)
+  const autoSaveKey = `pairy-autosave-${templateId}`
 
   // 슬롯 클릭 핸들러 (모바일에서 사이드바 자동 열기)
   const handleSlotClick = useCallback((slotId: string | null) => {
@@ -161,6 +164,100 @@ export default function CanvasEditor({
 
     fetchTemplate()
   }, [templateId, loadTemplate, setLoading, setError])
+
+  // 복구 데이터 확인 (템플릿 로드 후)
+  useEffect(() => {
+    if (!templateConfig) return
+
+    try {
+      const savedData = localStorage.getItem(autoSaveKey)
+      if (savedData) {
+        const { timestamp, title: savedTitle } = JSON.parse(savedData)
+        const savedTime = new Date(timestamp)
+        const timeDiff = Date.now() - savedTime.getTime()
+
+        // 24시간 이내의 데이터만 복구 제안
+        if (timeDiff < 24 * 60 * 60 * 1000) {
+          const timeAgo = formatTimeAgo(savedTime)
+          setShowRecoveryToast(true)
+          toast.info(`${timeAgo}에 저장된 작업이 있습니다`, {
+            title: '이전 작업 발견',
+            duration: 0, // 수동으로 닫을 때까지 유지
+            action: {
+              label: '복구하기',
+              onClick: () => {
+                handleRecoverData()
+                setShowRecoveryToast(false)
+              },
+            },
+          })
+        }
+      }
+    } catch (e) {
+      console.error('Recovery check failed:', e)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [templateConfig])
+
+  // 자동 저장 (30초마다)
+  useEffect(() => {
+    if (!templateConfig || !isDirty) return
+
+    const saveTimer = setTimeout(() => {
+      const saveData = {
+        templateId,
+        title,
+        formData,
+        colors,
+        slotTransforms,
+        timestamp: new Date().toISOString(),
+      }
+
+      try {
+        localStorage.setItem(autoSaveKey, JSON.stringify(saveData))
+        setLastAutoSave(new Date())
+      } catch (e) {
+        console.error('Auto-save failed:', e)
+      }
+    }, 30000) // 30초
+
+    return () => clearTimeout(saveTimer)
+  }, [templateConfig, isDirty, templateId, title, formData, colors, slotTransforms, autoSaveKey])
+
+  // 복구 데이터 적용
+  const handleRecoverData = useCallback(() => {
+    try {
+      const savedData = localStorage.getItem(autoSaveKey)
+      if (savedData) {
+        const { title: savedTitle, formData: savedFormData, colors: savedColors, slotTransforms: savedTransforms } = JSON.parse(savedData)
+
+        if (savedTitle) setTitle(savedTitle)
+        if (savedFormData) useCanvasEditorStore.getState().setFormData(savedFormData)
+        if (savedColors) useCanvasEditorStore.getState().setColors(savedColors)
+        if (savedTransforms) {
+          Object.entries(savedTransforms).forEach(([slotId, transform]) => {
+            updateSlotTransform(slotId, transform as { x: number; y: number; scale: number; rotation: number })
+          })
+        }
+
+        toast.success('이전 작업이 복구되었습니다')
+        localStorage.removeItem(autoSaveKey) // 복구 후 삭제
+      }
+    } catch (e) {
+      console.error('Recovery failed:', e)
+      toast.error('복구에 실패했습니다')
+    }
+  }, [autoSaveKey, toast, updateSlotTransform])
+
+  // 시간 포맷 헬퍼
+  const formatTimeAgo = (date: Date): string => {
+    const seconds = Math.floor((Date.now() - date.getTime()) / 1000)
+
+    if (seconds < 60) return '방금 전'
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}분 전`
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}시간 전`
+    return `${Math.floor(seconds / 86400)}일 전`
+  }
 
   // 줌 조절 (메모이제이션)
   const handleZoomIn = useCallback(() => setZoom(zoom + 0.1), [zoom, setZoom])
@@ -239,8 +336,11 @@ export default function CanvasEditor({
     // TODO: 실제 저장 로직 구현
     console.log('Saving...', { formData, images, colors })
     markSaved()
+    // 자동 저장 데이터 삭제 (수동 저장 완료)
+    localStorage.removeItem(autoSaveKey)
+    setLastAutoSave(new Date())
     toast.success('저장되었습니다')
-  }, [formData, images, colors, markSaved, toast])
+  }, [formData, images, colors, markSaved, autoSaveKey, toast])
 
   // 선택된 슬롯 이동 (화살표 키)
   const moveSelectedSlot = useCallback((dx: number, dy: number) => {
@@ -550,9 +650,13 @@ export default function CanvasEditor({
             className="text-base sm:text-lg font-semibold text-gray-900 bg-transparent border-none focus:outline-none focus:ring-2 focus:ring-primary-300 rounded px-1 sm:px-2 py-1 min-w-0 flex-1"
           />
 
-          {isDirty && (
-            <span className="text-xs text-gray-400 hidden sm:inline">변경사항 있음</span>
-          )}
+          {isDirty ? (
+            <span className="text-xs text-gray-400 hidden sm:inline">
+              {lastAutoSave ? `자동 저장됨 (${formatTimeAgo(lastAutoSave)})` : '변경사항 있음'}
+            </span>
+          ) : lastAutoSave ? (
+            <span className="text-xs text-green-500 hidden sm:inline">저장됨 ✓</span>
+          ) : null}
         </div>
 
         {/* 우측: 액션 버튼 */}
