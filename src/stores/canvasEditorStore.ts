@@ -349,7 +349,8 @@ export const useCanvasEditorStore = create<CanvasEditorState & CanvasEditorActio
         name: 'pairy-canvas-editor',
         partialize: (state) => ({
           formData: state.formData,
-          images: state.images,
+          // 버그 수정: blob URL은 세션 종료 시 무효화되므로 제외
+          // images: state.images,
           colors: state.colors,
           slotTransforms: state.slotTransforms,
         }),

@@ -348,15 +348,27 @@ export default function EditorSidebar({ isOpen = true, onClose }: EditorSidebarP
   } = useCanvasEditorStore()
 
   const [activeTab, setActiveTab] = useState<Tab>('slots')
-  const [expandedSlots, setExpandedSlots] = useState<Set<string>>(
-    new Set(templateConfig?.layers.slots.map((s) => s.id) || [])
-  )
+  const [expandedSlots, setExpandedSlots] = useState<Set<string>>(new Set())
+
+  // 버그 수정: 템플릿 변경 시 expandedSlots 동기화
+  useEffect(() => {
+    if (templateConfig?.layers.slots) {
+      setExpandedSlots(new Set(templateConfig.layers.slots.map((s) => s.id)))
+    }
+  }, [templateConfig])
 
   if (!templateConfig) {
     return (
-      <div className="w-72 bg-white border-l border-gray-200 flex items-center justify-center">
+      <aside
+        className={cn(
+          'bg-white border-l border-gray-200 flex items-center justify-center w-72',
+          'fixed right-0 top-0 bottom-0 z-50',
+          'md:relative md:z-0',
+          isOpen ? 'translate-x-0' : 'translate-x-full md:translate-x-0'
+        )}
+      >
         <p className="text-gray-400 text-sm">템플릿을 불러오는 중...</p>
-      </div>
+      </aside>
     )
   }
 

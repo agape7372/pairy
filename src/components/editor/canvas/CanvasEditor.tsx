@@ -360,9 +360,9 @@ export default function CanvasEditor({
         />
       </div>
 
-      {/* 내보내기 모달 */}
+      {/* 내보내기 모달 - z-index를 사이드바(z-50)보다 높게 설정 */}
       {showExportModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60]">
           <div className="bg-white rounded-2xl max-w-md w-full mx-4 p-6 animate-scale-in">
             <h3 className="text-xl font-bold text-gray-900 mb-4">이미지 내보내기</h3>
 
