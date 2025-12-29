@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
+import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Activity, UserPlus, UserMinus, Edit3, ImagePlus, Palette, Clock } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
@@ -206,10 +207,13 @@ export function CompactActivityToast({ activity, onDismiss }: CompactActivityToa
       <div className="relative shrink-0">
         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center overflow-hidden">
           {activity.avatarUrl ? (
-            <img
+            <Image
               src={activity.avatarUrl}
               alt={activity.nickname || '사용자'}
+              width={32}
+              height={32}
               className="w-full h-full object-cover"
+              unoptimized
             />
           ) : (
             /* NOTE: 빈 문자열 방어 */
@@ -226,7 +230,7 @@ export function CompactActivityToast({ activity, onDismiss }: CompactActivityToa
       {/* 메시지 */}
       <div className="flex-1 min-w-0">
         <p className="text-sm text-gray-900 truncate">
-          <span className="font-medium">{activity.nickname}</span>
+          <span className="font-medium">{activity.nickname || '익명'}</span>
           <span className="text-gray-500"> {activity.message}</span>
         </p>
       </div>

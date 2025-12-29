@@ -68,7 +68,8 @@ function generateInviteCode(): string {
 }
 
 export function useCollabSession(options: UseCollabSessionOptions = {}): UseCollabSessionReturn {
-  const { workId, sessionId, inviteCode } = options
+  // NOTE: workId는 향후 work 기반 세션 자동 로드 기능을 위해 예약됨
+  const { sessionId, inviteCode } = options
 
   const [session, setSession] = useState<CollabSession | null>(null)
   const [participants, setParticipants] = useState<Participant[]>([])
@@ -107,13 +108,9 @@ export function useCollabSession(options: UseCollabSessionOptions = {}): UseColl
   }, [])
 
   // 세션 구독 설정
-  const subscribeToSession = useCallback((sessionId: string) => {
+  // NOTE: channel을 deps에서 제외하여 무한 루프 방지. 대신 setChannel에서 이전 채널을 정리
+  const subscribeToSession = useCallback((sessionId: string, hostId?: string) => {
     const supabase = createClient()
-
-    // 기존 채널 정리
-    if (channel) {
-      supabase.removeChannel(channel)
-    }
 
     // 새 채널 생성
     const newChannel = supabase.channel(`collab:${sessionId}`)
@@ -141,23 +138,31 @@ export function useCollabSession(options: UseCollabSessionOptions = {}): UseColl
             .single()
 
           if (profile) {
+            // NOTE: isHost 대신 hostId 파라미터로 직접 비교하여 stale closure 방지
+            const role = hostId === currentUserId ? 'host' : 'guest'
             await newChannel.track({
               user_id: profile.id,
               nickname: profile.display_name || '익명',
               avatar_url: profile.avatar_url,
               joined_at: new Date().toISOString(),
-              role: isHost ? 'host' : 'guest',
+              role,
             })
           }
         }
       })
 
-    setChannel(newChannel)
+    // 이전 채널 정리 후 새 채널 설정
+    setChannel((prevChannel) => {
+      if (prevChannel) {
+        supabase.removeChannel(prevChannel)
+      }
+      return newChannel
+    })
 
     return () => {
       supabase.removeChannel(newChannel)
     }
-  }, [currentUserId, isHost, channel])
+  }, [currentUserId])
 
   // 세션 정보 로드
   const fetchSession = useCallback(async (id: string) => {
@@ -174,8 +179,9 @@ export function useCollabSession(options: UseCollabSessionOptions = {}): UseColl
 
       if (fetchError) throw fetchError
 
-      setSession(data as unknown as CollabSession)
-      subscribeToSession(id)
+      const sessionData = data as unknown as CollabSession
+      setSession(sessionData)
+      subscribeToSession(id, sessionData.host_id)
     } catch (err) {
       setError(err instanceof Error ? err : new Error('세션을 불러올 수 없습니다.'))
     } finally {
@@ -229,7 +235,8 @@ export function useCollabSession(options: UseCollabSessionOptions = {}): UseColl
       if (error) throw error
 
       setSession(data as unknown as CollabSession)
-      subscribeToSession(data.id)
+      // NOTE: 세션 생성자는 항상 호스트
+      subscribeToSession(data.id, currentUserId)
       return data.invite_code
     } catch (err) {
       setError(err instanceof Error ? err : new Error('세션 생성에 실패했습니다.'))
@@ -302,7 +309,8 @@ export function useCollabSession(options: UseCollabSessionOptions = {}): UseColl
       if (updateError) throw updateError
 
       setSession({ ...sessionData, status: 'active' })
-      subscribeToSession(sessionData.id)
+      // NOTE: 참여자는 게스트이므로 원래 호스트 ID 전달
+      subscribeToSession(sessionData.id, sessionData.host_id)
       return true
     } catch (err) {
       setError(err instanceof Error ? err : new Error('세션 참여에 실패했습니다.'))
@@ -386,20 +394,21 @@ export function useCollabSession(options: UseCollabSessionOptions = {}): UseColl
     }
   }, [channel, currentUserId])
 
+  // 초대 링크 가져오기
+  // NOTE: copyInviteLink보다 먼저 선언되어야 의존성 참조 가능
+  const getInviteLink = useCallback((): string => {
+    if (!session) return ''
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
+    return `${baseUrl}/collab/${session.invite_code}`
+  }, [session])
+
   // 초대 링크 복사
   const copyInviteLink = useCallback(async (): Promise<boolean> => {
     if (!session) return false
 
     const link = getInviteLink()
     return await copyToClipboard(link)
-  }, [session])
-
-  // 초대 링크 가져오기
-  const getInviteLink = useCallback((): string => {
-    if (!session) return ''
-    const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
-    return `${baseUrl}/collab/${session.invite_code}`
-  }, [session])
+  }, [session, getInviteLink])
 
   // 세션 ID로 초기 로드
   useEffect(() => {

@@ -13,6 +13,15 @@ export interface BookmarkedTemplate extends Template {
   bookmarked_at: string
 }
 
+// Supabase 쿼리 결과 타입 정의
+interface BookmarkQueryResult {
+  created_at: string
+  template: (Template & {
+    creator: { id: string; display_name: string | null } | null
+    template_tags: Array<{ tag: Tag | null }> | null
+  }) | null
+}
+
 interface UseBookmarksReturn {
   bookmarks: BookmarkedTemplate[]
   isLoading: boolean
@@ -58,12 +67,13 @@ export function useBookmarks(): UseBookmarksReturn {
 
       if (fetchError) throw fetchError
 
-      const transformedData: BookmarkedTemplate[] = (data || [])
-        .filter((item: any) => item.template)
-        .map((item: any) => ({
-          ...item.template,
-          tags: item.template.template_tags?.map((tt: any) => tt.tag).filter(Boolean) || [],
-          creator: item.template.creator,
+      // NOTE: Supabase 타입 추론이 복잡하므로 unknown을 통해 변환
+      const transformedData: BookmarkedTemplate[] = ((data || []) as unknown as BookmarkQueryResult[])
+        .filter((item) => item.template !== null)
+        .map((item) => ({
+          ...item.template!,
+          tags: item.template!.template_tags?.map((tt) => tt.tag).filter((tag): tag is Tag => tag !== null) || [],
+          creator: item.template!.creator,
           bookmarked_at: item.created_at,
         }))
 

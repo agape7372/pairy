@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Users, Copy, Check, Crown, ChevronDown, LogOut, Link2 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
@@ -235,10 +236,13 @@ function ParticipantAvatar({ participant, index, showCrown }: ParticipantAvatarP
         )}
       >
         {participant.avatarUrl ? (
-          <img
+          <Image
             src={participant.avatarUrl}
             alt={participant.nickname || '사용자'}
+            width={32}
+            height={32}
             className="w-full h-full object-cover"
+            unoptimized
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
@@ -294,10 +298,13 @@ function ParticipantListItem({ participant, isCurrentUser }: ParticipantListItem
           )}
         >
           {participant.avatarUrl ? (
-            <img
+            <Image
               src={participant.avatarUrl}
               alt={participant.nickname || '사용자'}
+              width={36}
+              height={36}
               className="w-full h-full object-cover"
+              unoptimized
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
@@ -322,7 +329,7 @@ function ParticipantListItem({ participant, isCurrentUser }: ParticipantListItem
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
           <span className="font-medium text-sm text-gray-900 truncate">
-            {participant.nickname}
+            {participant.nickname || '익명'}
           </span>
           {participant.role === 'host' && (
             <Crown className="w-3.5 h-3.5 text-amber-500 shrink-0" />
