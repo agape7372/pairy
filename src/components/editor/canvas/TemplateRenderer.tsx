@@ -581,10 +581,19 @@ function ImageSlotRenderer({
   const handleDragEnd = useCallback(
     (e: Konva.KonvaEventObject<DragEvent>) => {
       if (!onTransformChange || !editable) return
+
       const node = e.target
+      // 버그 수정: Division by zero 방지
+      const halfWidth = transform.width / 2
+      const halfHeight = transform.height / 2
+      if (halfWidth === 0 || halfHeight === 0) {
+        node.position({ x: 0, y: 0 })
+        return
+      }
+
       // 슬롯 내에서의 상대적 이동을 -1~1 범위로 변환
-      const deltaX = node.x() / (transform.width / 2)
-      const deltaY = node.y() / (transform.height / 2)
+      const deltaX = node.x() / halfWidth
+      const deltaY = node.y() / halfHeight
       onTransformChange({
         x: Math.max(-1, Math.min(1, currentTransform.x + deltaX)),
         y: Math.max(-1, Math.min(1, currentTransform.y + deltaY)),
@@ -625,19 +634,6 @@ function ImageSlotRenderer({
         return
       }
       // Shape mask - Konva Context는 Canvas 2D Context와 호환
-      const nativeCtx = ctx as unknown as CanvasRenderingContext2D
-      drawShapeMask(nativeCtx, transform.width, transform.height, mask)
-    },
-    [transform.width, transform.height, mask]
-  )
-
-  // 테두리 경로 (선택된 모양에 맞춤)
-  const getBorderClipFunc = useCallback(
-    (ctx: Konva.Context) => {
-      if (!mask || mask.type === 'image') {
-        ctx.rect(0, 0, transform.width, transform.height)
-        return
-      }
       const nativeCtx = ctx as unknown as CanvasRenderingContext2D
       drawShapeMask(nativeCtx, transform.width, transform.height, mask)
     },

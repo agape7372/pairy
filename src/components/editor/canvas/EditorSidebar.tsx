@@ -11,9 +11,8 @@ import {
   ChevronRight,
   RotateCcw,
 } from 'lucide-react'
-import { Button } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
-import { useCanvasEditorStore, useSelectedSlot } from '@/stores/canvasEditorStore'
+import { useCanvasEditorStore } from '@/stores/canvasEditorStore'
 import type { InputFieldConfig, ImageSlot, ColorConfig } from '@/types/template'
 
 // ============================================
@@ -340,10 +339,7 @@ export default function EditorSidebar() {
     updateFormField,
     updateImage,
     updateColor,
-    selectedSlotId,
-    selectSlot,
     resetSlotTransform,
-    getSlotTransform,
   } = useCanvasEditorStore()
 
   const [activeTab, setActiveTab] = useState<Tab>('slots')

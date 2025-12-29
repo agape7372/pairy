@@ -12,7 +12,6 @@ import {
   ZoomOut,
   RotateCcw,
   Save,
-  Share2,
   Loader2,
 } from 'lucide-react'
 import { Button } from '@/components/ui'
@@ -37,7 +36,6 @@ const TemplateRenderer = dynamic(() => import('./TemplateRenderer'), {
 
 interface CanvasEditorProps {
   templateId: string
-  workId?: string
   initialTitle?: string
 }
 
@@ -45,9 +43,11 @@ interface CanvasEditorProps {
 // 메인 컴포넌트
 // ============================================
 
+// basePath for GitHub Pages (static export)
+const BASE_PATH = process.env.NODE_ENV === 'production' ? '/pairy' : ''
+
 export default function CanvasEditor({
   templateId,
-  workId,
   initialTitle,
 }: CanvasEditorProps) {
   const rendererRef = useRef<TemplateRendererRef>(null)
@@ -92,8 +92,8 @@ export default function CanvasEditor({
       setError(null)
 
       try {
-        // public/templates에서 JSON 로드
-        const response = await fetch(`/templates/${templateId}.json`)
+        // public/templates에서 JSON 로드 (basePath 적용)
+        const response = await fetch(`${BASE_PATH}/templates/${templateId}.json`)
         if (!response.ok) {
           throw new Error('템플릿을 찾을 수 없습니다')
         }
