@@ -443,17 +443,26 @@ export default function CanvasEditor({
           </div>
 
           {/* 캔버스 */}
-          <div className="min-h-full flex items-center justify-center p-8">
+          <div className="min-h-full flex items-center justify-center p-4 md:p-8">
+            {/* 줌된 크기를 레이아웃에 반영하는 래퍼 */}
             <div
-              className="bg-white rounded-2xl shadow-lg overflow-hidden transition-transform"
               style={{
-                transform: `scale(${zoom})`,
-                transformOrigin: 'center center',
+                width: templateConfig.canvas.width * zoom,
+                height: templateConfig.canvas.height * zoom,
               }}
             >
-              <TemplateRenderer
-                ref={rendererRef}
-                config={templateConfig}
+              <div
+                className="bg-white rounded-2xl shadow-lg overflow-hidden"
+                style={{
+                  width: templateConfig.canvas.width,
+                  height: templateConfig.canvas.height,
+                  transform: `scale(${zoom})`,
+                  transformOrigin: 'top left',
+                }}
+              >
+                <TemplateRenderer
+                  ref={rendererRef}
+                  config={templateConfig}
                 formData={formData}
                 images={images}
                 colors={colors}
@@ -464,6 +473,7 @@ export default function CanvasEditor({
                 onTextClick={selectText}
                 onSlotTransformChange={updateSlotTransform}
               />
+              </div>
             </div>
           </div>
         </main>
