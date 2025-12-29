@@ -1,11 +1,13 @@
 'use client'
 
+import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Users, Palette, Check, Sparkles } from 'lucide-react'
+import { Users, Palette, Check, Sparkles as SparklesIcon } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { useEditorEntryStore } from '@/stores/editorEntryStore'
 import { EDITOR_MODES, type EditorMode } from '@/types/editor-entry'
 import { WordReveal } from '@/components/ui/text-reveal'
+import { HoverSparkles, InlineSparkle } from '@/components/ui/sparkles'
 
 interface ModeSelectionStepProps {
   className?: string
@@ -74,7 +76,7 @@ export function ModeSelectionStep({ className }: ModeSelectionStepProps) {
               {/* 프리미엄 뱃지 */}
               {modeInfo.isPremium && (
                 <span className="absolute top-3 right-3 inline-flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-amber-400 to-orange-400 text-white text-xs font-medium rounded-full">
-                  <Sparkles className="w-3 h-3" />
+                  <SparklesIcon className="w-3 h-3" />
                   프리미엄
                 </span>
               )}

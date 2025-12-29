@@ -14,6 +14,7 @@ import { ModeSelectionStep } from './ModeSelectionStep'
 import { TemplateSelectionStep } from './TemplateSelectionStep'
 import { TitleInputStep } from './TitleInputStep'
 import { ENTRY_STEPS } from '@/types/editor-entry'
+import { DoodleStars } from '@/components/ui/sparkles'
 
 // ============================================
 // 애니메이션 설정
@@ -140,7 +141,17 @@ export function EditorEntryFlow({ className }: EditorEntryFlowProps) {
   }
 
   return (
-    <div className={cn('min-h-screen bg-gray-50', className)}>
+    <div className={cn('min-h-screen bg-gray-50 relative overflow-hidden', className)}>
+      {/* 배경 Doodle Stars - 깜빡이는 손그림 별들 */}
+      <DoodleStars
+        count={18}
+        colors={['#FFD9D9', '#FFEAEA', '#D7FAFA', '#FFF5CC', '#E8D7FA']}
+        minSize={10}
+        maxSize={28}
+        glowRatio={0.5}
+        className="fixed inset-0 z-0"
+      />
+
       {/* 헤더 - Glass Effect */}
       <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-200/50">
         <div className="max-w-4xl mx-auto px-4">
