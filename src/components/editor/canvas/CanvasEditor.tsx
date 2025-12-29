@@ -13,6 +13,7 @@ import {
   RotateCcw,
   Save,
   Loader2,
+  PanelRight,
 } from 'lucide-react'
 import { Button } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
@@ -84,6 +85,7 @@ export default function CanvasEditor({
   const [title, setTitle] = useState(initialTitle || '새 작업')
   const [isExporting, setIsExporting] = useState(false)
   const [showExportModal, setShowExportModal] = useState(false)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false) // 모바일용 사이드바 토글
 
   // 템플릿 로드
   useEffect(() => {
@@ -208,12 +210,12 @@ export default function CanvasEditor({
   return (
     <div className="h-screen flex flex-col bg-gray-100">
       {/* 상단 툴바 */}
-      <header className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4 shrink-0">
+      <header className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-2 sm:px-4 shrink-0">
         {/* 좌측: 뒤로가기 + 제목 */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
           <Link
             href="/templates"
-            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors shrink-0"
           >
             <ArrowLeft className="w-5 h-5" />
           </Link>
@@ -222,18 +224,18 @@ export default function CanvasEditor({
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="text-lg font-semibold text-gray-900 bg-transparent border-none focus:outline-none focus:ring-2 focus:ring-primary-300 rounded px-2 py-1"
+            className="text-base sm:text-lg font-semibold text-gray-900 bg-transparent border-none focus:outline-none focus:ring-2 focus:ring-primary-300 rounded px-1 sm:px-2 py-1 min-w-0 flex-1"
           />
 
           {isDirty && (
-            <span className="text-xs text-gray-400">변경사항 있음</span>
+            <span className="text-xs text-gray-400 hidden sm:inline">변경사항 있음</span>
           )}
         </div>
 
         {/* 우측: 액션 버튼 */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
           {/* Undo/Redo */}
-          <div className="flex items-center gap-1 mr-2">
+          <div className="flex items-center gap-1">
             <button
               onClick={undo}
               disabled={!canUndo()}
@@ -262,15 +264,37 @@ export default function CanvasEditor({
             </button>
           </div>
 
-          <Button variant="ghost" size="sm" onClick={handleSave} disabled={!isDirty}>
-            <Save className="w-4 h-4 mr-1" />
-            저장
+          {/* 저장 - 아이콘만 모바일에서 */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleSave}
+            disabled={!isDirty}
+            className="px-2 sm:px-3"
+          >
+            <Save className="w-4 h-4" />
+            <span className="hidden sm:inline ml-1">저장</span>
           </Button>
 
-          <Button variant="outline" size="sm" onClick={() => setShowExportModal(true)}>
-            <Download className="w-4 h-4 mr-1" />
-            내보내기
+          {/* 내보내기 */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowExportModal(true)}
+            className="px-2 sm:px-3"
+          >
+            <Download className="w-4 h-4" />
+            <span className="hidden sm:inline ml-1">내보내기</span>
           </Button>
+
+          {/* 모바일 사이드바 토글 */}
+          <button
+            onClick={() => setIsSidebarOpen(true)}
+            className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg md:hidden"
+            title="편집 패널 열기"
+          >
+            <PanelRight className="w-5 h-5" />
+          </button>
         </div>
       </header>
 
@@ -329,8 +353,11 @@ export default function CanvasEditor({
           </div>
         </main>
 
-        {/* 사이드바 */}
-        <EditorSidebar />
+        {/* 사이드바 - 데스크톱은 항상 표시, 모바일은 오버레이 토글 */}
+        <EditorSidebar
+          isOpen={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
+        />
       </div>
 
       {/* 내보내기 모달 */}

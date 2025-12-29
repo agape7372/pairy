@@ -329,7 +329,12 @@ function SlotInputGroup({
 
 type Tab = 'slots' | 'general' | 'colors'
 
-export default function EditorSidebar() {
+interface EditorSidebarProps {
+  isOpen?: boolean
+  onClose?: () => void
+}
+
+export default function EditorSidebar({ isOpen = true, onClose }: EditorSidebarProps) {
   const {
     templateConfig,
     formData,
@@ -400,9 +405,37 @@ export default function EditorSidebar() {
   }
 
   return (
-    <aside className="w-72 bg-white border-l border-gray-200 flex flex-col h-full">
-      {/* 탭 헤더 */}
-      <div className="flex border-b border-gray-200">
+    <>
+      {/* 모바일 오버레이 백드롭 */}
+      {isOpen && onClose && (
+        <div
+          className="fixed inset-0 bg-black/30 z-40 md:hidden"
+          onClick={onClose}
+        />
+      )}
+
+      <aside
+        className={cn(
+          'bg-white border-l border-gray-200 flex flex-col h-full w-72',
+          // 모바일: 오버레이 슬라이드 (기본 숨김)
+          'fixed right-0 top-0 bottom-0 z-50 transition-transform duration-300',
+          'md:relative md:z-0 md:translate-x-0 md:transition-none',
+          // 모바일에서만 토글 적용
+          isOpen ? 'translate-x-0' : 'translate-x-full md:translate-x-0'
+        )}
+      >
+        {/* 모바일 닫기 버튼 */}
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="absolute top-3 left-3 p-2 text-gray-500 hover:bg-gray-100 rounded-lg md:hidden"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        )}
+
+        {/* 탭 헤더 */}
+        <div className="flex border-b border-gray-200 pt-12 md:pt-0">
         {[
           { id: 'slots' as Tab, label: '캐릭터', icon: ImageIcon },
           { id: 'general' as Tab, label: '텍스트', icon: Type },
@@ -498,5 +531,6 @@ export default function EditorSidebar() {
         )}
       </div>
     </aside>
+    </>
   )
 }
