@@ -402,6 +402,32 @@ export interface EditorData {
 }
 
 // ============================================
+// 슬롯 이미지 변환 타입 (드래그/줌/회전)
+// 변경 이유: TemplateRenderer.tsx와 canvasEditorStore.ts에서 중복 정의되어 있던 타입을 통합
+// ============================================
+
+/** 슬롯 내 이미지 변환 상태 */
+export interface SlotImageTransform {
+  x: number // -1 ~ 1 (중앙 = 0)
+  y: number // -1 ~ 1 (중앙 = 0)
+  scale: number // 1 = 원본
+  rotation: number // 도 단위
+}
+
+/** 슬롯별 이미지 변환 데이터 */
+export interface SlotTransforms {
+  [slotId: string]: SlotImageTransform
+}
+
+/** 슬롯 이미지 변환 기본값 */
+export const DEFAULT_SLOT_TRANSFORM: SlotImageTransform = {
+  x: 0,
+  y: 0,
+  scale: 1,
+  rotation: 0,
+}
+
+// ============================================
 // 유틸리티 타입
 // ============================================
 

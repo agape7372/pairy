@@ -8,24 +8,15 @@ import type {
   ImageData,
   ColorData,
   ColorReference,
+  SlotImageTransform,
+  SlotTransforms,
 } from '@/types/template'
+import { DEFAULT_SLOT_TRANSFORM } from '@/types/template'
 
 // ============================================
 // 상태 타입
+// 변경 이유: SlotImageTransform, SlotTransforms 타입을 types/template.ts로 통합
 // ============================================
-
-/** 슬롯 내 이미지 변환 상태 (드래그/줌/회전) */
-interface SlotImageTransform {
-  x: number // -1 ~ 1 (중앙 = 0)
-  y: number // -1 ~ 1 (중앙 = 0)
-  scale: number // 1 = 원본
-  rotation: number // 도 단위
-}
-
-/** 슬롯별 이미지 변환 데이터 */
-interface SlotTransforms {
-  [slotId: string]: SlotImageTransform
-}
 
 /** 레이어 상태 (표시/잠금) */
 interface LayerState {
@@ -129,13 +120,8 @@ interface CanvasEditorActions {
   }
 }
 
-// 기본 슬롯 변환값
-const defaultSlotTransform: SlotImageTransform = {
-  x: 0,
-  y: 0,
-  scale: 1,
-  rotation: 0,
-}
+// 변경 이유: 기본 슬롯 변환값을 types/template.ts에서 가져옴
+const defaultSlotTransform = DEFAULT_SLOT_TRANSFORM
 
 // 기본 레이어 상태
 const defaultLayerState: LayerState = {
