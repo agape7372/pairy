@@ -150,17 +150,19 @@ function ImageUploadField({
           />
           <button
             onClick={onRemove}
-            className="absolute top-2 right-2 p-1.5 bg-black/60 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+            className="absolute top-2 right-2 p-1.5 bg-black/60 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity focus:opacity-100"
+            aria-label={`${field.label} 이미지 삭제`}
           >
-            <X className="w-4 h-4" />
+            <X className="w-4 h-4" aria-hidden="true" />
           </button>
         </div>
       ) : (
         <button
           onClick={() => fileInputRef.current?.click()}
           className="w-full h-32 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center gap-2 text-gray-400 hover:border-primary-400 hover:text-primary-500 transition-colors"
+          aria-label={`${field.label} 이미지 업로드`}
         >
-          <Upload className="w-6 h-6" />
+          <Upload className="w-6 h-6" aria-hidden="true" />
           <span className="text-xs">클릭하여 업로드</span>
         </button>
       )}
@@ -277,17 +279,19 @@ function SlotInputGroup({
       <button
         onClick={onToggle}
         className="w-full px-4 py-3 flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors"
+        aria-expanded={isExpanded}
+        aria-controls={`slot-content-${slot.id}`}
       >
         <span className="font-medium text-gray-700">{slot.name}</span>
         {isExpanded ? (
-          <ChevronDown className="w-4 h-4 text-gray-400" />
+          <ChevronDown className="w-4 h-4 text-gray-400" aria-hidden="true" />
         ) : (
-          <ChevronRight className="w-4 h-4 text-gray-400" />
+          <ChevronRight className="w-4 h-4 text-gray-400" aria-hidden="true" />
         )}
       </button>
 
       {isExpanded && (
-        <div className="p-4 space-y-4">
+        <div id={`slot-content-${slot.id}`} className="p-4 space-y-4">
           {imageField && (
             <ImageUploadField
               field={imageField}
@@ -427,6 +431,7 @@ export default function EditorSidebar({ isOpen = true, onClose }: EditorSidebarP
       )}
 
       <aside
+        id="editor-sidebar"
         className={cn(
           'bg-white border-l border-gray-200 flex flex-col h-full w-72',
           // 모바일: 오버레이 슬라이드 (기본 숨김)
@@ -435,37 +440,44 @@ export default function EditorSidebar({ isOpen = true, onClose }: EditorSidebarP
           // 모바일에서만 토글 적용
           isOpen ? 'translate-x-0' : 'translate-x-full md:translate-x-0'
         )}
+        aria-label="편집 패널"
       >
         {/* 모바일 닫기 버튼 */}
         {onClose && (
           <button
             onClick={onClose}
             className="absolute top-3 left-3 p-2 text-gray-500 hover:bg-gray-100 rounded-lg md:hidden"
+            aria-label="편집 패널 닫기"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5" aria-hidden="true" />
           </button>
         )}
 
         {/* 탭 헤더 */}
-        <div className="flex border-b border-gray-200 pt-12 md:pt-0">
+        <div className="flex border-b border-gray-200 pt-12 md:pt-0" role="tablist" aria-label="편집 옵션">
         {[
           { id: 'slots' as Tab, label: '캐릭터', icon: ImageIcon },
           { id: 'general' as Tab, label: '텍스트', icon: Type },
           { id: 'colors' as Tab, label: '색상', icon: Palette },
         ].map((tab) => {
           const Icon = tab.icon
+          const isActive = activeTab === tab.id
           return (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
                 'flex-1 py-3 flex items-center justify-center gap-1.5 text-sm font-medium transition-colors',
-                activeTab === tab.id
+                isActive
                   ? 'text-primary-600 border-b-2 border-primary-400'
                   : 'text-gray-500 hover:text-gray-700'
               )}
+              role="tab"
+              aria-selected={isActive}
+              aria-controls={`tabpanel-${tab.id}`}
+              id={`tab-${tab.id}`}
             >
-              <Icon className="w-4 h-4" />
+              <Icon className="w-4 h-4" aria-hidden="true" />
               {tab.label}
             </button>
           )
@@ -476,7 +488,12 @@ export default function EditorSidebar({ isOpen = true, onClose }: EditorSidebarP
       <div className="flex-1 overflow-y-auto p-4">
         {/* 슬롯(캐릭터) 탭 */}
         {activeTab === 'slots' && (
-          <div className="space-y-4">
+          <div
+            className="space-y-4"
+            role="tabpanel"
+            id="tabpanel-slots"
+            aria-labelledby="tab-slots"
+          >
             {slotFieldGroups.map(({ slot, fields }) => {
               const slotTransform = slotTransforms[slot.id]
               const hasTransform = slotTransform && (
@@ -507,7 +524,12 @@ export default function EditorSidebar({ isOpen = true, onClose }: EditorSidebarP
 
         {/* 일반 텍스트 탭 */}
         {activeTab === 'general' && (
-          <div className="space-y-4">
+          <div
+            className="space-y-4"
+            role="tabpanel"
+            id="tabpanel-general"
+            aria-labelledby="tab-general"
+          >
             {generalFields.length > 0 ? (
               generalFields.map((field) => (
                 <TextInputField
@@ -527,7 +549,12 @@ export default function EditorSidebar({ isOpen = true, onClose }: EditorSidebarP
 
         {/* 색상 탭 */}
         {activeTab === 'colors' && (
-          <div className="space-y-4">
+          <div
+            className="space-y-4"
+            role="tabpanel"
+            id="tabpanel-colors"
+            aria-labelledby="tab-colors"
+          >
             <p className="text-xs text-gray-500">
               테마 색상을 변경하면 템플릿 전체에 반영됩니다
             </p>

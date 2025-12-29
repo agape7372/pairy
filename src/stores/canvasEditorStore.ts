@@ -262,7 +262,7 @@ export const useCanvasEditorStore = create<CanvasEditorState & CanvasEditorActio
         selectText: (textId) => set({ selectedTextId: textId, selectedSlotId: null }),
         setZoom: (zoom) => set({ zoom: Math.max(0.25, Math.min(2, zoom)) }),
 
-        // 히스토리
+        // 히스토리 (중복 방지 로직 추가)
         pushHistory: () => {
           const state = get()
           const currentSnapshot = {
@@ -270,6 +270,19 @@ export const useCanvasEditorStore = create<CanvasEditorState & CanvasEditorActio
             images: { ...state.images },
             colors: { ...state.colors },
             slotTransforms: { ...state.slotTransforms },
+          }
+
+          // 버그 수정: 이전 스냅샷과 동일하면 히스토리 추가하지 않음
+          const lastSnapshot = state.history[state.historyIndex]
+          if (lastSnapshot) {
+            const isSameFormData = JSON.stringify(currentSnapshot.formData) === JSON.stringify(lastSnapshot.formData)
+            const isSameImages = JSON.stringify(currentSnapshot.images) === JSON.stringify(lastSnapshot.images)
+            const isSameColors = JSON.stringify(currentSnapshot.colors) === JSON.stringify(lastSnapshot.colors)
+            const isSameTransforms = JSON.stringify(currentSnapshot.slotTransforms) === JSON.stringify(lastSnapshot.slotTransforms)
+
+            if (isSameFormData && isSameImages && isSameColors && isSameTransforms) {
+              return // 변경 없으면 히스토리 추가하지 않음
+            }
           }
 
           // 현재 인덱스 이후의 히스토리는 삭제

@@ -86,6 +86,7 @@ export default function CanvasEditor({
   const [isExporting, setIsExporting] = useState(false)
   const [showExportModal, setShowExportModal] = useState(false)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false) // 모바일용 사이드바 토글
+  const [exportError, setExportError] = useState<string | null>(null) // 내보내기 에러 상태
 
   // 템플릿 로드
   useEffect(() => {
@@ -111,10 +112,10 @@ export default function CanvasEditor({
     fetchTemplate()
   }, [templateId, loadTemplate, setLoading, setError])
 
-  // 줌 조절
-  const handleZoomIn = () => setZoom(zoom + 0.1)
-  const handleZoomOut = () => setZoom(zoom - 0.1)
-  const handleZoomReset = () => setZoom(1)
+  // 줌 조절 (메모이제이션)
+  const handleZoomIn = useCallback(() => setZoom(zoom + 0.1), [zoom, setZoom])
+  const handleZoomOut = useCallback(() => setZoom(zoom - 0.1), [zoom, setZoom])
+  const handleZoomReset = useCallback(() => setZoom(1), [setZoom])
 
   // 저장 (useCallback으로 메모이제이션)
   const handleSave = useCallback(async () => {
@@ -151,16 +152,17 @@ export default function CanvasEditor({
     // 버그 수정: handleSave 의존성 추가
   }, [undo, redo, canUndo, canRedo, handleSave])
 
-  // PNG 내보내기
-  const handleExport = async (scale: number = 2) => {
+  // PNG 내보내기 (메모이제이션)
+  const handleExport = useCallback(async (scale: number = 2) => {
     const renderer = rendererRef.current
     if (!renderer) return
 
     setIsExporting(true)
+    setExportError(null)
 
     try {
       const dataUrl = await renderer.exportToImage(scale)
-      if (!dataUrl) throw new Error('Export failed')
+      if (!dataUrl) throw new Error('이미지 생성에 실패했습니다')
 
       // 다운로드
       const link = document.createElement('a')
@@ -169,13 +171,33 @@ export default function CanvasEditor({
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
+      setShowExportModal(false)
     } catch (err) {
       console.error('Export failed:', err)
+      setExportError(err instanceof Error ? err.message : '내보내기 중 오류가 발생했습니다')
     } finally {
       setIsExporting(false)
-      setShowExportModal(false)
     }
-  }
+  }, [title])
+
+  // 모달 닫기 핸들러
+  const closeExportModal = useCallback(() => {
+    if (!isExporting) {
+      setShowExportModal(false)
+      setExportError(null)
+    }
+  }, [isExporting])
+
+  // ESC 키로 모달 닫기
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && showExportModal && !isExporting) {
+        closeExportModal()
+      }
+    }
+    window.addEventListener('keydown', handleEsc)
+    return () => window.removeEventListener('keydown', handleEsc)
+  }, [showExportModal, isExporting, closeExportModal])
 
   // 로딩 상태
   if (isLoading) {
@@ -216,8 +238,9 @@ export default function CanvasEditor({
           <Link
             href="/templates"
             className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors shrink-0"
+            aria-label="템플릿 목록으로 돌아가기"
           >
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="w-5 h-5" aria-hidden="true" />
           </Link>
 
           <input
@@ -235,7 +258,7 @@ export default function CanvasEditor({
         {/* 우측: 액션 버튼 */}
         <div className="flex items-center gap-1 sm:gap-2 shrink-0">
           {/* Undo/Redo */}
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1" role="group" aria-label="실행 취소/다시 실행">
             <button
               onClick={undo}
               disabled={!canUndo()}
@@ -246,8 +269,9 @@ export default function CanvasEditor({
                   : 'text-gray-300 cursor-not-allowed'
               )}
               title="실행 취소 (Ctrl+Z)"
+              aria-label="실행 취소"
             >
-              <Undo2 className="w-4 h-4" />
+              <Undo2 className="w-4 h-4" aria-hidden="true" />
             </button>
             <button
               onClick={redo}
@@ -259,8 +283,9 @@ export default function CanvasEditor({
                   : 'text-gray-300 cursor-not-allowed'
               )}
               title="다시 실행 (Ctrl+Y)"
+              aria-label="다시 실행"
             >
-              <Redo2 className="w-4 h-4" />
+              <Redo2 className="w-4 h-4" aria-hidden="true" />
             </button>
           </div>
 
@@ -292,8 +317,11 @@ export default function CanvasEditor({
             onClick={() => setIsSidebarOpen(true)}
             className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg md:hidden"
             title="편집 패널 열기"
+            aria-label="편집 패널 열기"
+            aria-expanded={isSidebarOpen}
+            aria-controls="editor-sidebar"
           >
-            <PanelRight className="w-5 h-5" />
+            <PanelRight className="w-5 h-5" aria-hidden="true" />
           </button>
         </div>
       </header>
@@ -303,30 +331,37 @@ export default function CanvasEditor({
         {/* 캔버스 영역 */}
         <main className="flex-1 relative overflow-auto" ref={containerRef}>
           {/* 줌 컨트롤 */}
-          <div className="absolute top-4 right-4 flex items-center gap-2 bg-white rounded-lg shadow-sm border border-gray-200 p-1 z-10">
+          <div
+            className="absolute top-4 right-4 flex items-center gap-2 bg-white rounded-lg shadow-sm border border-gray-200 p-1 z-10"
+            role="group"
+            aria-label="캔버스 줌 조절"
+          >
             <button
               onClick={handleZoomOut}
               className="p-1.5 text-gray-500 hover:bg-gray-100 rounded"
               title="축소"
+              aria-label={`축소 (현재 ${Math.round(zoom * 100)}%)`}
             >
-              <ZoomOut className="w-4 h-4" />
+              <ZoomOut className="w-4 h-4" aria-hidden="true" />
             </button>
-            <span className="text-sm text-gray-600 min-w-[3rem] text-center">
+            <span className="text-sm text-gray-600 min-w-[3rem] text-center" aria-live="polite">
               {Math.round(zoom * 100)}%
             </span>
             <button
               onClick={handleZoomIn}
               className="p-1.5 text-gray-500 hover:bg-gray-100 rounded"
               title="확대"
+              aria-label={`확대 (현재 ${Math.round(zoom * 100)}%)`}
             >
-              <ZoomIn className="w-4 h-4" />
+              <ZoomIn className="w-4 h-4" aria-hidden="true" />
             </button>
             <button
               onClick={handleZoomReset}
               className="p-1.5 text-gray-500 hover:bg-gray-100 rounded"
               title="100%로 리셋"
+              aria-label="줌 100%로 초기화"
             >
-              <RotateCcw className="w-4 h-4" />
+              <RotateCcw className="w-4 h-4" aria-hidden="true" />
             </button>
           </div>
 
@@ -334,7 +369,10 @@ export default function CanvasEditor({
           <div className="min-h-full flex items-center justify-center p-8">
             <div
               className="bg-white rounded-2xl shadow-lg overflow-hidden transition-transform"
-              style={{ transform: `scale(${zoom})` }}
+              style={{
+                transform: `scale(${zoom})`,
+                transformOrigin: 'center center',
+              }}
             >
               <TemplateRenderer
                 ref={rendererRef}
@@ -362,9 +400,20 @@ export default function CanvasEditor({
 
       {/* 내보내기 모달 - z-index를 사이드바(z-50)보다 높게 설정 */}
       {showExportModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60]">
-          <div className="bg-white rounded-2xl max-w-md w-full mx-4 p-6 animate-scale-in">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">이미지 내보내기</h3>
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60]"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="export-modal-title"
+          onClick={closeExportModal}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-md w-full mx-4 p-6 animate-scale-in"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 id="export-modal-title" className="text-xl font-bold text-gray-900 mb-4">
+              이미지 내보내기
+            </h3>
 
             <div className="space-y-3 mb-6">
               <button
@@ -398,16 +447,22 @@ export default function CanvasEditor({
             </div>
 
             {isExporting && (
-              <div className="flex items-center justify-center gap-2 text-gray-500 mb-4">
-                <Loader2 className="w-5 h-5 animate-spin" />
+              <div className="flex items-center justify-center gap-2 text-gray-500 mb-4" aria-live="polite">
+                <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
                 <span>이미지 생성 중...</span>
+              </div>
+            )}
+
+            {exportError && (
+              <div className="flex items-center gap-2 text-red-500 mb-4 p-3 bg-red-50 rounded-lg" role="alert">
+                <span className="text-sm">{exportError}</span>
               </div>
             )}
 
             <div className="flex justify-end">
               <Button
                 variant="ghost"
-                onClick={() => setShowExportModal(false)}
+                onClick={closeExportModal}
                 disabled={isExporting}
               >
                 취소
