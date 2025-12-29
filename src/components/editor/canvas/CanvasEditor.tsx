@@ -61,6 +61,7 @@ export default function CanvasEditor({
     formData,
     images,
     colors,
+    slotTransforms,
     selectedSlotId,
     selectedTextId,
     zoom,
@@ -76,6 +77,7 @@ export default function CanvasEditor({
     canUndo,
     canRedo,
     markSaved,
+    updateSlotTransform,
   } = useCanvasEditorStore()
 
   // Local state
@@ -316,10 +318,12 @@ export default function CanvasEditor({
                 formData={formData}
                 images={images}
                 colors={colors}
+                slotTransforms={slotTransforms}
                 selectedSlotId={selectedSlotId}
                 selectedTextId={selectedTextId}
                 onSlotClick={selectSlot}
                 onTextClick={selectText}
+                onSlotTransformChange={updateSlotTransform}
               />
             </div>
           </div>

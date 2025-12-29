@@ -51,20 +51,11 @@ function NewEditorContent() {
 
     setIsCreating(true)
     try {
-      if (isDemoMode) {
-        // 데모 모드: 미리 생성된 에디터 페이지로 이동 (템플릿 ID와 제목 전달)
-        const params = new URLSearchParams()
-        if (templateId) params.set('template', templateId)
-        if (title) params.set('title', title)
-        router.push(`/editor/1?${params.toString()}`)
-        return
-      }
-
-      // TODO: Create work in Supabase and get the new work ID
-      const newWorkId = 'new-' + Date.now()
-
-      // Redirect to the editor
-      router.push(`/editor/${newWorkId}`)
+      // 새 캔버스 에디터로 이동
+      // TODO: 템플릿 ID별 JSON 매핑 추가 시 templateId 사용
+      const params = new URLSearchParams()
+      if (title) params.set('title', encodeURIComponent(title))
+      router.push(`/canvas-editor/couple-magazine?${params.toString()}`)
     } catch (err) {
       console.error('Failed to create work:', err)
       setIsCreating(false)

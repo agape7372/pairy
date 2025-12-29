@@ -9,6 +9,7 @@ import {
   X,
   ChevronDown,
   ChevronRight,
+  RotateCcw,
 } from 'lucide-react'
 import { Button } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
@@ -252,6 +253,8 @@ function SlotInputGroup({
   onFieldChange,
   onImageUpload,
   onImageRemove,
+  onResetTransform,
+  hasTransform,
   isExpanded,
   onToggle,
 }: {
@@ -262,6 +265,8 @@ function SlotInputGroup({
   onFieldChange: (key: string, value: string) => void
   onImageUpload: (file: File) => void
   onImageRemove: () => void
+  onResetTransform?: () => void
+  hasTransform?: boolean
   isExpanded: boolean
   onToggle: () => void
 }) {
@@ -294,6 +299,17 @@ function SlotInputGroup({
             />
           )}
 
+          {/* 이미지 위치 리셋 버튼 */}
+          {imageUrl && hasTransform && onResetTransform && (
+            <button
+              onClick={onResetTransform}
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+            >
+              <RotateCcw className="w-4 h-4" />
+              이미지 위치 초기화
+            </button>
+          )}
+
           {textFields.map((field) => (
             <TextInputField
               key={field.key}
@@ -320,11 +336,14 @@ export default function EditorSidebar() {
     formData,
     images,
     colors,
+    slotTransforms,
     updateFormField,
     updateImage,
     updateColor,
     selectedSlotId,
     selectSlot,
+    resetSlotTransform,
+    getSlotTransform,
   } = useCanvasEditorStore()
 
   const [activeTab, setActiveTab] = useState<Tab>('slots')
@@ -417,20 +436,31 @@ export default function EditorSidebar() {
         {/* 슬롯(캐릭터) 탭 */}
         {activeTab === 'slots' && (
           <div className="space-y-4">
-            {slotFieldGroups.map(({ slot, fields }) => (
-              <SlotInputGroup
-                key={slot.id}
-                slot={slot}
-                fields={fields}
-                formData={formData}
-                imageUrl={images[slot.dataKey] || null}
-                onFieldChange={updateFormField}
-                onImageUpload={handleImageUpload(slot.dataKey)}
-                onImageRemove={handleImageRemove(slot.dataKey)}
-                isExpanded={expandedSlots.has(slot.id)}
-                onToggle={() => toggleSlotExpand(slot.id)}
-              />
-            ))}
+            {slotFieldGroups.map(({ slot, fields }) => {
+              const slotTransform = slotTransforms[slot.id]
+              const hasTransform = slotTransform && (
+                slotTransform.x !== 0 ||
+                slotTransform.y !== 0 ||
+                slotTransform.scale !== 1 ||
+                slotTransform.rotation !== 0
+              )
+              return (
+                <SlotInputGroup
+                  key={slot.id}
+                  slot={slot}
+                  fields={fields}
+                  formData={formData}
+                  imageUrl={images[slot.dataKey] || null}
+                  onFieldChange={updateFormField}
+                  onImageUpload={handleImageUpload(slot.dataKey)}
+                  onImageRemove={handleImageRemove(slot.dataKey)}
+                  onResetTransform={() => resetSlotTransform(slot.id)}
+                  hasTransform={hasTransform}
+                  isExpanded={expandedSlots.has(slot.id)}
+                  onToggle={() => toggleSlotExpand(slot.id)}
+                />
+              )
+            })}
           </div>
         )}
 

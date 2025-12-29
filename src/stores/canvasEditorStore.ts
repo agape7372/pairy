@@ -14,6 +14,19 @@ import type {
 // 상태 타입
 // ============================================
 
+/** 슬롯 내 이미지 변환 상태 (드래그/줌/회전) */
+interface SlotImageTransform {
+  x: number // -1 ~ 1 (중앙 = 0)
+  y: number // -1 ~ 1 (중앙 = 0)
+  scale: number // 1 = 원본
+  rotation: number // 도 단위
+}
+
+/** 슬롯별 이미지 변환 데이터 */
+interface SlotTransforms {
+  [slotId: string]: SlotImageTransform
+}
+
 interface CanvasEditorState {
   // 템플릿 설정
   templateConfig: TemplateConfig | null
@@ -25,6 +38,9 @@ interface CanvasEditorState {
   images: ImageData
   colors: ColorData
 
+  // 슬롯 내 이미지 변환 상태 (드래그/줌)
+  slotTransforms: SlotTransforms
+
   // UI 상태
   selectedSlotId: string | null
   selectedTextId: string | null
@@ -35,7 +51,7 @@ interface CanvasEditorState {
   lastSavedAt: Date | null
 
   // 히스토리
-  history: Array<{ formData: FormData; images: ImageData; colors: ColorData }>
+  history: Array<{ formData: FormData; images: ImageData; colors: ColorData; slotTransforms: SlotTransforms }>
   historyIndex: number
 }
 
@@ -54,6 +70,11 @@ interface CanvasEditorActions {
   setFormData: (data: FormData) => void
   setImages: (data: ImageData) => void
   setColors: (data: ColorData) => void
+
+  // 슬롯 이미지 변환 (드래그/줌/회전)
+  updateSlotTransform: (slotId: string, transform: Partial<SlotImageTransform>) => void
+  resetSlotTransform: (slotId: string) => void
+  getSlotTransform: (slotId: string) => SlotImageTransform
 
   // UI 상태
   selectSlot: (slotId: string | null) => void
@@ -80,7 +101,16 @@ interface CanvasEditorActions {
     formData: FormData
     images: ImageData
     colors: ColorData
+    slotTransforms: SlotTransforms
   }
+}
+
+// 기본 슬롯 변환값
+const defaultSlotTransform: SlotImageTransform = {
+  x: 0,
+  y: 0,
+  scale: 1,
+  rotation: 0,
 }
 
 // ============================================
@@ -102,6 +132,7 @@ const initialState: CanvasEditorState = {
   formData: {},
   images: {},
   colors: defaultColors,
+  slotTransforms: {},
 
   selectedSlotId: null,
   selectedTextId: null,
@@ -154,10 +185,11 @@ export const useCanvasEditorStore = create<CanvasEditorState & CanvasEditorActio
             colors,
             formData,
             images: {},
+            slotTransforms: {},
             selectedSlotId: config.layers.slots[0]?.id || null,
             selectedTextId: null,
             isDirty: false,
-            history: [{ formData, images: {}, colors }],
+            history: [{ formData, images: {}, colors, slotTransforms: {} }],
             historyIndex: 0,
           })
         },
@@ -194,6 +226,37 @@ export const useCanvasEditorStore = create<CanvasEditorState & CanvasEditorActio
         setImages: (data) => set({ images: data, isDirty: true }),
         setColors: (data) => set({ colors: data, isDirty: true }),
 
+        // 슬롯 이미지 변환 (드래그/줌/회전)
+        updateSlotTransform: (slotId, transform) => {
+          set((state) => ({
+            slotTransforms: {
+              ...state.slotTransforms,
+              [slotId]: {
+                ...(state.slotTransforms[slotId] || defaultSlotTransform),
+                ...transform,
+              },
+            },
+            isDirty: true,
+          }))
+          get().pushHistory()
+        },
+
+        resetSlotTransform: (slotId) => {
+          set((state) => ({
+            slotTransforms: {
+              ...state.slotTransforms,
+              [slotId]: { ...defaultSlotTransform },
+            },
+            isDirty: true,
+          }))
+          get().pushHistory()
+        },
+
+        getSlotTransform: (slotId) => {
+          const state = get()
+          return state.slotTransforms[slotId] || defaultSlotTransform
+        },
+
         // UI 상태
         selectSlot: (slotId) => set({ selectedSlotId: slotId, selectedTextId: null }),
         selectText: (textId) => set({ selectedTextId: textId, selectedSlotId: null }),
@@ -206,6 +269,7 @@ export const useCanvasEditorStore = create<CanvasEditorState & CanvasEditorActio
             formData: { ...state.formData },
             images: { ...state.images },
             colors: { ...state.colors },
+            slotTransforms: { ...state.slotTransforms },
           }
 
           // 현재 인덱스 이후의 히스토리는 삭제
@@ -236,6 +300,7 @@ export const useCanvasEditorStore = create<CanvasEditorState & CanvasEditorActio
             formData: snapshot.formData,
             images: snapshot.images,
             colors: snapshot.colors,
+            slotTransforms: snapshot.slotTransforms || {},
             historyIndex: newIndex,
             isDirty: true,
           })
@@ -252,6 +317,7 @@ export const useCanvasEditorStore = create<CanvasEditorState & CanvasEditorActio
             formData: snapshot.formData,
             images: snapshot.images,
             colors: snapshot.colors,
+            slotTransforms: snapshot.slotTransforms || {},
             historyIndex: newIndex,
             isDirty: true,
           })
@@ -275,6 +341,7 @@ export const useCanvasEditorStore = create<CanvasEditorState & CanvasEditorActio
             formData: state.formData,
             images: state.images,
             colors: state.colors,
+            slotTransforms: state.slotTransforms,
           }
         },
       }),
@@ -284,6 +351,7 @@ export const useCanvasEditorStore = create<CanvasEditorState & CanvasEditorActio
           formData: state.formData,
           images: state.images,
           colors: state.colors,
+          slotTransforms: state.slotTransforms,
         }),
       }
     )
