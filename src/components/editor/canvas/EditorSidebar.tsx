@@ -441,7 +441,6 @@ export default function EditorSidebar({ isOpen = true, onClose }: EditorSidebarP
 
   // 슬롯 섹션 refs
   const slotRefs = useRef<Record<string, HTMLDivElement | null>>({})
-  const contentRef = useRef<HTMLDivElement>(null)
 
   // 버그 수정: 템플릿 변경 시 expandedSlots 동기화
   useEffect(() => {

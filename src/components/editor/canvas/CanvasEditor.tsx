@@ -116,12 +116,42 @@ export default function CanvasEditor({
   const [exportFormat, setExportFormat] = useState<ExportFormat>('png')
   const [exportScale, setExportScale] = useState(2)
   const [lastAutoSave, setLastAutoSave] = useState<Date | null>(null)
-  const [showRecoveryToast, setShowRecoveryToast] = useState(false)
 
   // 핀치 줌 상태
   const lastTouchDistance = useRef<number | null>(null)
   const lastZoom = useRef(zoom)
   const autoSaveKey = `pairy-autosave-${templateId}`
+
+  // 복구 토스트 중복 방지
+  const recoveryToastShown = useRef(false)
+
+  // 자동 저장 디바운스
+  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
+
+  // ============================================
+  // 헬퍼 함수 (useEffect보다 먼저 정의)
+  // ============================================
+
+  // 시간 포맷 헬퍼
+  const formatTimeAgo = useCallback((date: Date): string => {
+    const seconds = Math.floor((Date.now() - date.getTime()) / 1000)
+
+    if (seconds < 60) return '방금 전'
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}분 전`
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}시간 전`
+    return `${Math.floor(seconds / 86400)}일 전`
+  }, [])
+
+  // 파일명 sanitization 헬퍼
+  const sanitizeFilename = useCallback((filename: string): string => {
+    return filename
+      .replace(/[<>:"/\\|?*\x00-\x1F]/g, '_') // 파일시스템 금지 문자 제거
+      .replace(/\s+/g, '_') // 공백을 언더스코어로
+      .replace(/_+/g, '_') // 연속 언더스코어 정리
+      .trim()
+      .slice(0, 100) // 파일명 길이 제한
+      || 'untitled' // 빈 문자열 방지
+  }, [])
 
   // 슬롯 클릭 핸들러 (모바일에서 사이드바 자동 열기)
   const handleSlotClick = useCallback((slotId: string | null) => {
@@ -169,17 +199,20 @@ export default function CanvasEditor({
   useEffect(() => {
     if (!templateConfig) return
 
+    // 중복 토스트 방지: 이미 표시했으면 스킵
+    if (recoveryToastShown.current) return
+    recoveryToastShown.current = true
+
     try {
       const savedData = localStorage.getItem(autoSaveKey)
       if (savedData) {
-        const { timestamp, title: savedTitle } = JSON.parse(savedData)
+        const { timestamp } = JSON.parse(savedData)
         const savedTime = new Date(timestamp)
         const timeDiff = Date.now() - savedTime.getTime()
 
         // 24시간 이내의 데이터만 복구 제안
         if (timeDiff < 24 * 60 * 60 * 1000) {
           const timeAgo = formatTimeAgo(savedTime)
-          setShowRecoveryToast(true)
           toast.info(`${timeAgo}에 저장된 작업이 있습니다`, {
             title: '이전 작업 발견',
             duration: 0, // 수동으로 닫을 때까지 유지
@@ -187,7 +220,6 @@ export default function CanvasEditor({
               label: '복구하기',
               onClick: () => {
                 handleRecoverData()
-                setShowRecoveryToast(false)
               },
             },
           })
@@ -199,17 +231,24 @@ export default function CanvasEditor({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [templateConfig])
 
-  // 자동 저장 (30초마다)
+  // 자동 저장 (30초마다, 디바운스 적용)
   useEffect(() => {
     if (!templateConfig || !isDirty) return
 
-    const saveTimer = setTimeout(() => {
+    // 이전 타이머 취소
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current)
+    }
+
+    autoSaveTimerRef.current = setTimeout(() => {
+      // 저장 시점의 최신 데이터 캡처
+      const currentState = useCanvasEditorStore.getState()
       const saveData = {
         templateId,
         title,
-        formData,
-        colors,
-        slotTransforms,
+        formData: currentState.formData,
+        colors: currentState.colors,
+        slotTransforms: currentState.slotTransforms,
         timestamp: new Date().toISOString(),
       }
 
@@ -217,12 +256,23 @@ export default function CanvasEditor({
         localStorage.setItem(autoSaveKey, JSON.stringify(saveData))
         setLastAutoSave(new Date())
       } catch (e) {
-        console.error('Auto-save failed:', e)
+        // QuotaExceededError 처리
+        if (e instanceof DOMException && e.name === 'QuotaExceededError') {
+          toast.warning('저장 공간이 부족합니다. 오래된 데이터를 정리해주세요.', {
+            title: '자동 저장 실패',
+          })
+        } else {
+          console.error('Auto-save failed:', e)
+        }
       }
     }, 30000) // 30초
 
-    return () => clearTimeout(saveTimer)
-  }, [templateConfig, isDirty, templateId, title, formData, colors, slotTransforms, autoSaveKey])
+    return () => {
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current)
+      }
+    }
+  }, [templateConfig, isDirty, templateId, title, formData, colors, slotTransforms, autoSaveKey, toast])
 
   // 복구 데이터 적용
   const handleRecoverData = useCallback(() => {
@@ -248,16 +298,6 @@ export default function CanvasEditor({
       toast.error('복구에 실패했습니다')
     }
   }, [autoSaveKey, toast, updateSlotTransform])
-
-  // 시간 포맷 헬퍼
-  const formatTimeAgo = (date: Date): string => {
-    const seconds = Math.floor((Date.now() - date.getTime()) / 1000)
-
-    if (seconds < 60) return '방금 전'
-    if (seconds < 3600) return `${Math.floor(seconds / 60)}분 전`
-    if (seconds < 86400) return `${Math.floor(seconds / 3600)}시간 전`
-    return `${Math.floor(seconds / 86400)}일 전`
-  }
 
   // 줌 조절 (메모이제이션)
   const handleZoomIn = useCallback(() => setZoom(zoom + 0.1), [zoom, setZoom])
@@ -571,7 +611,7 @@ export default function CanvasEditor({
       // 다운로드
       const extension = exportFormat
       const link = document.createElement('a')
-      link.download = `${title}_${new Date().toISOString().slice(0, 10)}${exportScale > 1 ? `@${exportScale}x` : ''}.${extension}`
+      link.download = `${sanitizeFilename(title)}_${new Date().toISOString().slice(0, 10)}${exportScale > 1 ? `@${exportScale}x` : ''}.${extension}`
       link.href = finalDataUrl
       document.body.appendChild(link)
       link.click()
@@ -589,7 +629,7 @@ export default function CanvasEditor({
       setIsExporting(false)
       setExportProgress(0)
     }
-  }, [title, exportFormat, exportScale, toast])
+  }, [title, exportFormat, exportScale, toast, sanitizeFilename])
 
   // 모달 닫기 핸들러
   const closeExportModal = useCallback(() => {
