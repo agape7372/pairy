@@ -8,7 +8,7 @@ import {
   forwardRef,
   useImperativeHandle,
 } from 'react'
-import { Stage, Layer, Rect, Text, Image, Group, Line, Circle, Ellipse, Path, Arc } from 'react-konva'
+import { Stage, Layer, Rect, Text, Image, Group, Line, Circle, Ellipse, Path, Arc, Transformer } from 'react-konva'
 import type Konva from 'konva'
 import type {
   TemplateConfig,
@@ -30,13 +30,27 @@ import type {
 // Props 타입
 // ============================================
 
+/** 슬롯 내 이미지 변환 상태 */
+interface SlotImageTransform {
+  x: number // -1 ~ 1 (중앙 = 0)
+  y: number // -1 ~ 1 (중앙 = 0)
+  scale: number // 1 = 원본
+  rotation: number // 도 단위
+}
+
+interface SlotTransforms {
+  [slotId: string]: SlotImageTransform
+}
+
 interface TemplateRendererProps {
   config: TemplateConfig
   formData: FormData
   images: ImageData
   colors: ColorData
+  slotTransforms?: SlotTransforms
   onSlotClick?: (slotId: string) => void
   onTextClick?: (textId: string) => void
+  onSlotTransformChange?: (slotId: string, transform: Partial<SlotImageTransform>) => void
   selectedSlotId?: string | null
   selectedTextId?: string | null
   editable?: boolean
@@ -289,7 +303,7 @@ function drawShapeMask(
  *
  * 작동 원리:
  * 1. 오프스크린 캔버스 생성
- * 2. 사용자 이미지를 먼저 그림
+ * 2. 사용자 이미지를 먼저 그림 (스케일/회전 적용)
  * 3. globalCompositeOperation = 'destination-in' 설정
  * 4. 마스크(shape 또는 image)를 그림
  * 5. 결과: 마스크 영역만 사용자 이미지가 보임
@@ -301,7 +315,9 @@ function useMaskedImage(
   slotHeight: number,
   imageFit: 'cover' | 'contain' | 'fill' = 'cover',
   imagePositionX: number = 0,
-  imagePositionY: number = 0
+  imagePositionY: number = 0,
+  imageScale: number = 1,
+  imageRotation: number = 0
 ): [HTMLCanvasElement | null, boolean] {
   const [maskedCanvas, setMaskedCanvas] = useState<HTMLCanvasElement | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
@@ -340,8 +356,15 @@ function useMaskedImage(
       imagePositionY
     )
 
-    // Step 1: 사용자 이미지 그리기
+    // Step 1: 사용자 이미지 그리기 (스케일/회전 적용)
+    ctx.save()
+    // 중앙 기준 변환
+    ctx.translate(slotWidth / 2, slotHeight / 2)
+    ctx.rotate((imageRotation * Math.PI) / 180)
+    ctx.scale(imageScale, imageScale)
+    ctx.translate(-slotWidth / 2, -slotHeight / 2)
     ctx.drawImage(userImage, dims.x, dims.y, dims.width, dims.height)
+    ctx.restore()
 
     // Step 2: 마스킹 적용 (destination-in 사용)
     if (maskConfig) {
@@ -377,6 +400,8 @@ function useMaskedImage(
     imageFit,
     imagePositionX,
     imagePositionY,
+    imageScale,
+    imageRotation,
   ])
 
   return [maskedCanvas, isProcessing]
@@ -491,8 +516,16 @@ function BackgroundRenderer({
   )
 }
 
+/** 기본 슬롯 변환값 */
+const defaultSlotTransform: SlotImageTransform = {
+  x: 0,
+  y: 0,
+  scale: 1,
+  rotation: 0,
+}
+
 /**
- * 이미지 슬롯 렌더러 (GlobalCompositeOperation 마스킹)
+ * 이미지 슬롯 렌더러 (GlobalCompositeOperation 마스킹 + 드래그/변환)
  */
 function ImageSlotRenderer({
   slot,
@@ -500,15 +533,28 @@ function ImageSlotRenderer({
   colors,
   isSelected,
   onClick,
+  slotTransform,
+  onTransformChange,
+  editable = true,
 }: {
   slot: ImageSlot
   imageSrc: string | null
   colors: ColorData
   isSelected: boolean
   onClick?: () => void
+  slotTransform?: SlotImageTransform
+  onTransformChange?: (transform: Partial<SlotImageTransform>) => void
+  editable?: boolean
 }) {
   const [placeholderImage] = useImage(slot.placeholder)
   const { transform, mask, border, shadow, imageFit = 'cover', imagePosition } = slot
+  const imageRef = useRef<Konva.Image>(null)
+  const transformerRef = useRef<Konva.Transformer>(null)
+
+  // 슬롯 변환값 적용 (드래그로 조정된 위치)
+  const currentTransform = slotTransform || defaultSlotTransform
+  const effectivePositionX = (imagePosition?.x ?? 0) + currentTransform.x
+  const effectivePositionY = (imagePosition?.y ?? 0) + currentTransform.y
 
   // GlobalCompositeOperation을 사용한 마스킹
   const [maskedCanvas, isProcessing] = useMaskedImage(
@@ -517,8 +563,66 @@ function ImageSlotRenderer({
     transform.width,
     transform.height,
     imageFit,
-    imagePosition?.x ?? 0,
-    imagePosition?.y ?? 0
+    effectivePositionX,
+    effectivePositionY,
+    currentTransform.scale,
+    currentTransform.rotation
+  )
+
+  // 선택 시 Transformer 연결
+  useEffect(() => {
+    if (isSelected && transformerRef.current && imageRef.current) {
+      transformerRef.current.nodes([imageRef.current])
+      transformerRef.current.getLayer()?.batchDraw()
+    }
+  }, [isSelected])
+
+  // 드래그 종료 핸들러
+  const handleDragEnd = useCallback(
+    (e: Konva.KonvaEventObject<DragEvent>) => {
+      if (!onTransformChange || !editable) return
+
+      const node = e.target
+      // 버그 수정: Division by zero 방지
+      const halfWidth = transform.width / 2
+      const halfHeight = transform.height / 2
+      if (halfWidth === 0 || halfHeight === 0) {
+        node.position({ x: 0, y: 0 })
+        return
+      }
+
+      // 슬롯 내에서의 상대적 이동을 -1~1 범위로 변환
+      const deltaX = node.x() / halfWidth
+      const deltaY = node.y() / halfHeight
+      onTransformChange({
+        x: Math.max(-1, Math.min(1, currentTransform.x + deltaX)),
+        y: Math.max(-1, Math.min(1, currentTransform.y + deltaY)),
+      })
+      // 노드 위치 리셋 (실제 위치는 useMaskedImage에서 처리)
+      node.position({ x: 0, y: 0 })
+    },
+    [onTransformChange, editable, transform.width, transform.height, currentTransform.x, currentTransform.y]
+  )
+
+  // Transform 종료 핸들러 (스케일/회전)
+  const handleTransformEnd = useCallback(
+    (e: Konva.KonvaEventObject<Event>) => {
+      if (!onTransformChange || !editable) return
+      const node = e.target
+      const newScale = node.scaleX()
+      const newRotation = node.rotation()
+
+      onTransformChange({
+        scale: currentTransform.scale * newScale,
+        rotation: currentTransform.rotation + newRotation,
+      })
+
+      // 노드 스케일/회전 리셋 (실제 변환은 useMaskedImage에서 처리)
+      node.scaleX(1)
+      node.scaleY(1)
+      node.rotation(0)
+    },
+    [onTransformChange, editable, currentTransform.scale, currentTransform.rotation]
   )
 
   // Konva clipFunc for shape masks (fallback and for selection indicator)
@@ -530,19 +634,6 @@ function ImageSlotRenderer({
         return
       }
       // Shape mask - Konva Context는 Canvas 2D Context와 호환
-      const nativeCtx = ctx as unknown as CanvasRenderingContext2D
-      drawShapeMask(nativeCtx, transform.width, transform.height, mask)
-    },
-    [transform.width, transform.height, mask]
-  )
-
-  // 테두리 경로 (선택된 모양에 맞춤)
-  const getBorderClipFunc = useCallback(
-    (ctx: Konva.Context) => {
-      if (!mask || mask.type === 'image') {
-        ctx.rect(0, 0, transform.width, transform.height)
-        return
-      }
       const nativeCtx = ctx as unknown as CanvasRenderingContext2D
       drawShapeMask(nativeCtx, transform.width, transform.height, mask)
     },
@@ -561,62 +652,65 @@ function ImageSlotRenderer({
     : {}
 
   return (
-    <Group
-      x={transform.x}
-      y={transform.y}
-      width={transform.width}
-      height={transform.height}
-      rotation={transform.rotation || 0}
-      scaleX={transform.scaleX ?? 1}
-      scaleY={transform.scaleY ?? 1}
-      offsetX={(transform.originX ?? 0) * transform.width}
-      offsetY={(transform.originY ?? 0) * transform.height}
-      onClick={onClick}
-      onTap={onClick}
-      {...shadowProps}
-    >
-      {/* 마스킹된 이미지 (GlobalCompositeOperation 적용됨) */}
-      {maskedCanvas && (
-        <Image
-          image={maskedCanvas}
-          width={transform.width}
-          height={transform.height}
-        />
-      )}
+    <>
+      <Group
+        x={transform.x}
+        y={transform.y}
+        width={transform.width}
+        height={transform.height}
+        rotation={transform.rotation || 0}
+        scaleX={transform.scaleX ?? 1}
+        scaleY={transform.scaleY ?? 1}
+        offsetX={(transform.originX ?? 0) * transform.width}
+        offsetY={(transform.originY ?? 0) * transform.height}
+        onClick={onClick}
+        onTap={onClick}
+        clipFunc={clipFunc}
+        {...shadowProps}
+      >
+        {/* 마스킹된 이미지 (GlobalCompositeOperation 적용됨) - 드래그 가능 */}
+        {maskedCanvas && (
+          <Image
+            ref={imageRef}
+            image={maskedCanvas}
+            width={transform.width}
+            height={transform.height}
+            draggable={editable && isSelected && !!imageSrc}
+            onDragEnd={handleDragEnd}
+            onTransformEnd={handleTransformEnd}
+          />
+        )}
 
-      {/* 이미지 없을 때 플레이스홀더 */}
-      {!imageSrc && !isProcessing && (
-        <Group clipFunc={clipFunc}>
-          {placeholderImage ? (
-            <Image
-              image={placeholderImage}
-              width={transform.width}
-              height={transform.height}
-            />
-          ) : (
-            <Rect
-              width={transform.width}
-              height={transform.height}
-              fill="#E5E7EB"
-            />
-          )}
-        </Group>
-      )}
+        {/* 이미지 없을 때 플레이스홀더 */}
+        {!imageSrc && !isProcessing && (
+          <>
+            {placeholderImage ? (
+              <Image
+                image={placeholderImage}
+                width={transform.width}
+                height={transform.height}
+              />
+            ) : (
+              <Rect
+                width={transform.width}
+                height={transform.height}
+                fill="#E5E7EB"
+              />
+            )}
+          </>
+        )}
 
-      {/* 로딩 중 표시 */}
-      {isProcessing && (
-        <Group clipFunc={clipFunc}>
+        {/* 로딩 중 표시 */}
+        {isProcessing && (
           <Rect
             width={transform.width}
             height={transform.height}
             fill="#F3F4F6"
           />
-        </Group>
-      )}
+        )}
 
-      {/* 테두리 */}
-      {border && (
-        <Group clipFunc={getBorderClipFunc}>
+        {/* 테두리 */}
+        {border && (
           <Rect
             width={transform.width}
             height={transform.height}
@@ -625,24 +719,46 @@ function ImageSlotRenderer({
             dash={border.dashArray || (border.style === 'dashed' ? [8, 4] : border.style === 'dotted' ? [2, 2] : undefined)}
             listening={false}
           />
-        </Group>
-      )}
+        )}
 
-      {/* 선택 표시 */}
-      {isSelected && (
-        <Rect
-          x={-2}
-          y={-2}
-          width={transform.width + 4}
-          height={transform.height + 4}
-          stroke="#3B82F6"
-          strokeWidth={3}
-          dash={[8, 4]}
-          cornerRadius={mask?.type === 'shape' && mask.shape === 'roundedRect' ? (mask.cornerRadius || 0) + 2 : 4}
-          listening={false}
+        {/* 선택 표시 */}
+        {isSelected && (
+          <Rect
+            x={-2}
+            y={-2}
+            width={transform.width + 4}
+            height={transform.height + 4}
+            stroke="#3B82F6"
+            strokeWidth={3}
+            dash={[8, 4]}
+            cornerRadius={mask?.type === 'shape' && mask.shape === 'roundedRect' ? (mask.cornerRadius || 0) + 2 : 4}
+            listening={false}
+          />
+        )}
+      </Group>
+
+      {/* Transformer (선택된 이미지에 리사이즈/회전 핸들 표시) */}
+      {isSelected && editable && imageSrc && (
+        <Transformer
+          ref={transformerRef}
+          boundBoxFunc={(oldBox, newBox) => {
+            // 최소 크기 제한
+            if (newBox.width < 20 || newBox.height < 20) {
+              return oldBox
+            }
+            return newBox
+          }}
+          rotateEnabled={true}
+          enabledAnchors={['top-left', 'top-right', 'bottom-left', 'bottom-right']}
+          anchorSize={12}
+          anchorCornerRadius={2}
+          borderStroke="#3B82F6"
+          borderStrokeWidth={2}
+          anchorFill="#FFFFFF"
+          anchorStroke="#3B82F6"
         />
       )}
-    </Group>
+    </>
   )
 }
 
@@ -915,8 +1031,10 @@ const TemplateRenderer = forwardRef<TemplateRendererRef, TemplateRendererProps>(
       formData,
       images,
       colors,
+      slotTransforms,
       onSlotClick,
       onTextClick,
+      onSlotTransformChange,
       selectedSlotId,
       selectedTextId,
       editable = true,
@@ -1016,6 +1134,13 @@ const TemplateRenderer = forwardRef<TemplateRendererRef, TemplateRendererProps>(
               colors={colors}
               isSelected={selectedSlotId === slot.id}
               onClick={editable && slot.clickable !== false ? () => onSlotClick?.(slot.id) : undefined}
+              slotTransform={slotTransforms?.[slot.id]}
+              onTransformChange={
+                onSlotTransformChange
+                  ? (transform) => onSlotTransformChange(slot.id, transform)
+                  : undefined
+              }
+              editable={editable}
             />
           ))}
         </Layer>

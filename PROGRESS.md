@@ -8,7 +8,7 @@
 Phase 1 ████████████████████ 100% 완료
 Phase 2 ████████████████████ 100% 완료
 Phase 3 ████████████████████ 100% 완료
-Phase 4 ████████████░░░░░░░░  60% 진행 중
+Phase 4 ████████████████████ 100% 완료
 ```
 
 ---
@@ -144,7 +144,8 @@ Canvas 기반 에디터 재구축 (react-konva)
 | Sprint 17 | react-konva 렌더링 엔진 | ✅ | 2025-12-29 |
 | Sprint 18 | 사용자 입력 폼 및 상태 관리 | ✅ | 2025-12-29 |
 | Sprint 19 | 이미지 마스킹 고도화 (GlobalCompositeOperation) | ✅ | 2025-12-29 |
-| Sprint 20 | 드래그 앤 드롭 인터랙션 | ⏳ | - |
+| Sprint 20 | 드래그 앤 드롭 인터랙션 | ✅ | 2025-12-29 |
+| Sprint 21 | 마이그레이션 & 테스트 설정 | ✅ | 2025-12-29 |
 
 ### Phase 4 Sprint 16 완료 (템플릿 스키마)
 - [x] 템플릿 타입 정의 (`src/types/template.ts`)
@@ -183,13 +184,31 @@ Canvas 기반 에디터 재구축 (react-konva)
 - [x] 템플릿 스키마 v2 (MaskConfig, ShapeMask, ImageMask 타입 분리)
 - [x] 렌더러 ref에 exportToBlob, resetView 메서드 추가
 
+### Phase 4 Sprint 20 완료 (드래그 앤 드롭)
+- [x] Konva Transformer 추가 (리사이즈/회전 핸들)
+- [x] 이미지 드래그 위치 조정 기능
+- [x] 슬롯 내 이미지 스케일/회전 변환 지원
+- [x] 터치 디바이스 지원 (onTap 이벤트)
+- [x] 이미지 위치 초기화 버튼
+- [x] Zustand 히스토리에 slotTransforms 통합
+
+### Phase 4 Sprint 21 완료 (마이그레이션 & 테스트)
+- [x] 기존 에디터 → 캔버스 에디터 리다이렉트 설정
+- [x] /editor/[id] → /canvas-editor/[templateId] 마이그레이션
+- [x] @next/bundle-analyzer 설치 및 설정
+- [x] optimizePackageImports 설정 (lucide-react, date-fns)
+- [x] Jest + React Testing Library 설정
+- [x] canvasEditorStore 유닛 테스트 (8개 테스트 케이스)
+- [x] Playwright E2E 테스트 구성
+- [x] npm scripts 추가 (analyze, test, test:watch, test:e2e)
+
 ### Phase 4 목표
 - [x] react-konva 기반 캔버스 에디터
 - [x] 템플릿 JSON 스키마
 - [x] 동적 색상 바인딩
 - [x] 복잡한 마스킹 (하트, 별 모양) - GlobalCompositeOperation
-- [ ] 드래그로 이미지 위치 조정
-- [ ] 기존 에디터 완전 대체
+- [x] 드래그로 이미지 위치 조정
+- [x] 기존 에디터 완전 대체
 
 ---
 
