@@ -44,24 +44,28 @@ export function ModeSelectionStep({ className }: ModeSelectionStepProps) {
               key={modeInfo.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
+              transition={{ delay: index * 0.1, type: 'spring', stiffness: 300, damping: 20 }}
+              whileHover={{ y: -4, transition: { duration: 0.2 } }}
+              whileTap={{ scale: 0.98 }}
               onClick={() => handleSelectMode(modeInfo.id)}
               className={cn(
-                'relative group rounded-2xl border-2 p-6 text-left transition-all duration-200',
-                'hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2',
+                'relative group rounded-2xl border-2 p-6 text-left',
+                'transition-all duration-300 ease-out',
+                'focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2',
                 isSelected
-                  ? 'border-primary-400 bg-primary-50 shadow-md'
-                  : 'border-gray-200 bg-white hover:border-primary-300'
+                  ? 'border-primary-400 bg-primary-50 shadow-[0_8px_24px_rgba(255,180,180,0.3)]'
+                  : 'border-gray-200 bg-white hover:border-primary-300 hover:shadow-[0_8px_20px_rgba(255,217,217,0.4)]'
               )}
             >
-              {/* 선택 체크 */}
+              {/* 선택 체크 - 뿅 효과 */}
               {isSelected && (
                 <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  className="absolute top-3 right-3 w-6 h-6 rounded-full bg-primary-400 flex items-center justify-center"
+                  initial={{ scale: 0, rotate: -180 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 15 }}
+                  className="absolute top-3 right-3 w-7 h-7 rounded-full bg-gradient-to-br from-primary-400 to-accent-400 flex items-center justify-center shadow-[0_2px_8px_rgba(255,180,180,0.5)]"
                 >
-                  <Check className="w-4 h-4 text-white" />
+                  <Check className="w-4 h-4 text-white" strokeWidth={3} />
                 </motion.div>
               )}
 
@@ -73,18 +77,22 @@ export function ModeSelectionStep({ className }: ModeSelectionStepProps) {
                 </span>
               )}
 
-              {/* 아이콘 */}
-              <div
+              {/* 아이콘 - 호버 시 살랑살랑 */}
+              <motion.div
                 className={cn(
-                  'w-16 h-16 rounded-2xl flex items-center justify-center text-3xl mb-4 transition-transform',
-                  'group-hover:scale-110',
+                  'w-16 h-16 rounded-2xl flex items-center justify-center text-3xl mb-4',
                   isSelected
-                    ? 'bg-primary-200'
+                    ? 'bg-gradient-to-br from-primary-200 to-accent-200'
                     : 'bg-gradient-to-br from-primary-100 to-accent-100'
                 )}
+                whileHover={{
+                  scale: 1.1,
+                  rotate: [0, -3, 3, -2, 2, 0],
+                  transition: { rotate: { duration: 0.5 } }
+                }}
               >
                 {modeInfo.icon}
-              </div>
+              </motion.div>
 
               {/* 제목 */}
               <h3 className="text-lg font-bold text-gray-900 mb-1">
