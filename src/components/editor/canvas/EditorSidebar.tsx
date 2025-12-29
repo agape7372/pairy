@@ -121,6 +121,7 @@ function ImageUploadField({
   onRemove: () => void
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [isDragging, setIsDragging] = useState(false)
 
   const handleFileChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -134,6 +135,43 @@ function ImageUploadField({
     [onUpload]
   )
 
+  // 드래그 앤 드롭 핸들러
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+  }, [])
+
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(true)
+  }, [])
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+  }, [])
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+
+    const files = e.dataTransfer.files
+    if (files.length > 0) {
+      const file = files[0]
+      // 이미지 파일만 허용
+      if (file.type.startsWith('image/')) {
+        onUpload(file)
+      }
+    }
+  }, [onUpload])
+
+  const openFileDialog = useCallback(() => {
+    fileInputRef.current?.click()
+  }, [])
+
   return (
     <div className="space-y-2">
       <label className="block text-xs font-medium text-gray-600">
@@ -142,14 +180,32 @@ function ImageUploadField({
       </label>
 
       {imageUrl ? (
-        <div className="relative group">
+        <div
+          className={cn(
+            'relative group cursor-pointer rounded-xl overflow-hidden border-2 transition-colors',
+            isDragging ? 'border-primary-400 bg-primary-50' : 'border-transparent'
+          )}
+          onClick={openFileDialog}
+          onDragOver={handleDragOver}
+          onDragEnter={handleDragEnter}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+        >
           <img
             src={imageUrl}
             alt={field.label}
-            className="w-full h-32 object-cover rounded-xl border border-gray-200"
+            className="w-full h-32 object-cover rounded-xl"
           />
+          {/* 오버레이 - 호버 시 변경 안내 */}
+          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+            <span className="text-white text-xs font-medium">클릭하여 변경</span>
+          </div>
+          {/* 삭제 버튼 */}
           <button
-            onClick={onRemove}
+            onClick={(e) => {
+              e.stopPropagation()
+              onRemove()
+            }}
             className="absolute top-2 right-2 p-1.5 bg-black/60 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity focus:opacity-100"
             aria-label={`${field.label} 이미지 삭제`}
           >
@@ -157,14 +213,33 @@ function ImageUploadField({
           </button>
         </div>
       ) : (
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          className="w-full h-32 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center gap-2 text-gray-400 hover:border-primary-400 hover:text-primary-500 transition-colors"
+        <div
+          onClick={openFileDialog}
+          onDragOver={handleDragOver}
+          onDragEnter={handleDragEnter}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          className={cn(
+            'w-full h-32 border-2 border-dashed rounded-xl flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors',
+            isDragging
+              ? 'border-primary-400 bg-primary-50 text-primary-500'
+              : 'border-gray-300 text-gray-400 hover:border-primary-400 hover:text-primary-500'
+          )}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault()
+              openFileDialog()
+            }
+          }}
           aria-label={`${field.label} 이미지 업로드`}
         >
           <Upload className="w-6 h-6" aria-hidden="true" />
-          <span className="text-xs">클릭하여 업로드</span>
-        </button>
+          <span className="text-xs text-center">
+            {isDragging ? '여기에 놓으세요' : '클릭 또는 드래그하여 업로드'}
+          </span>
+        </div>
       )}
 
       <input
