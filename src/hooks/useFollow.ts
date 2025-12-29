@@ -1,7 +1,18 @@
 'use client'
 
+/**
+ * 팔로우 관련 훅
+ * 변경 이유: 데모 모드 localStorage 로직을 demoStorage 유틸리티로 통합
+ */
+
 import { useEffect, useState, useCallback } from 'react'
 import { createClient, IS_DEMO_MODE } from '@/lib/supabase/client'
+import {
+  getStorageSet,
+  saveStorageSet,
+  getStableCounts,
+  DEMO_STORAGE_KEYS,
+} from '@/lib/utils/demoStorage'
 
 // 프로필 기본 정보 타입
 interface ProfileInfo {
@@ -30,44 +41,17 @@ interface UseFollowReturn {
   toggle: () => Promise<boolean>
 }
 
-// 데모 모드용 로컬 스토리지 키
-const DEMO_FOLLOWS_KEY = 'pairy_demo_follows'
-const DEMO_COUNTS_KEY = 'pairy_demo_counts' // 안정적인 카운트 저장용
-
-function getDemoFollows(): Set<string> {
-  if (typeof window === 'undefined') return new Set()
-  try {
-    const stored = localStorage.getItem(DEMO_FOLLOWS_KEY)
-    return stored ? new Set(JSON.parse(stored)) : new Set()
-  } catch {
-    return new Set()
-  }
-}
-
-// 데모용 카운트를 안정적으로 관리 (렌더링마다 변경되지 않도록)
-function getDemoCounts(userId: string): { follower: number; following: number } {
-  if (typeof window === 'undefined') return { follower: 500, following: 200 }
-  try {
-    const stored = localStorage.getItem(DEMO_COUNTS_KEY)
-    const counts: Record<string, { follower: number; following: number }> = stored ? JSON.parse(stored) : {}
-    if (!counts[userId]) {
-      // 최초 한 번만 랜덤 생성 후 저장
-      counts[userId] = {
-        follower: Math.floor(Math.random() * 1000) + 100,
-        following: Math.floor(Math.random() * 500) + 50,
-      }
-      localStorage.setItem(DEMO_COUNTS_KEY, JSON.stringify(counts))
-    }
-    return counts[userId]
-  } catch {
-    return { follower: 500, following: 200 }
-  }
-}
-
-function saveDemoFollows(follows: Set<string>) {
-  if (typeof window === 'undefined') return
-  localStorage.setItem(DEMO_FOLLOWS_KEY, JSON.stringify([...follows]))
-}
+// 변경 이유: 로컬 localStorage 함수를 demoStorage 유틸리티로 대체 (코드 중복 제거)
+const getDemoFollows = () => getStorageSet(DEMO_STORAGE_KEYS.FOLLOWS)
+const saveDemoFollows = (follows: Set<string>) => saveStorageSet(DEMO_STORAGE_KEYS.FOLLOWS, follows)
+const getDemoCounts = (userId: string) => getStableCounts(
+  DEMO_STORAGE_KEYS.FOLLOW_COUNTS,
+  userId,
+  () => ({
+    follower: Math.floor(Math.random() * 1000) + 100,
+    following: Math.floor(Math.random() * 500) + 50,
+  })
+)
 
 export function useFollow(targetUserId: string): UseFollowReturn {
   const [isFollowing, setIsFollowing] = useState(false)
