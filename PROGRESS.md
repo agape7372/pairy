@@ -1,6 +1,6 @@
 # Pairy 개발 진행도
 
-> 마지막 업데이트: 2025-12-28
+> 마지막 업데이트: 2025-12-29
 
 ## 현재 상태
 
@@ -8,6 +8,7 @@
 Phase 1 ████████████████████ 100% 완료
 Phase 2 ████████████████████ 100% 완료
 Phase 3 ████████████████████ 100% 완료
+Phase 4 ████████████░░░░░░░░  60% 진행 중
 ```
 
 ---
@@ -130,6 +131,65 @@ Phase 3 ████████████████████ 100% 완료
 - [x] 알림 시스템 UI
 - [x] SEO 메타태그
 - [x] robots.txt / sitemap.xml
+
+---
+
+## Phase 4: 고급 에디터 (진행 중)
+
+Canvas 기반 에디터 재구축 (react-konva)
+
+| Sprint | 작업 | 상태 | 완료일 |
+|--------|------|:----:|--------|
+| Sprint 16 | 템플릿 JSON 스키마 설계 | ✅ | 2025-12-29 |
+| Sprint 17 | react-konva 렌더링 엔진 | ✅ | 2025-12-29 |
+| Sprint 18 | 사용자 입력 폼 및 상태 관리 | ✅ | 2025-12-29 |
+| Sprint 19 | 이미지 마스킹 고도화 (GlobalCompositeOperation) | ✅ | 2025-12-29 |
+| Sprint 20 | 드래그 앤 드롭 인터랙션 | ⏳ | - |
+
+### Phase 4 Sprint 16 완료 (템플릿 스키마)
+- [x] 템플릿 타입 정의 (`src/types/template.ts`)
+- [x] 3단 레이어 구조 (background, slots, overlay)
+- [x] 동적 색상 시스템 (primaryColor, secondaryColor 참조)
+- [x] 텍스트 필드 데이터 바인딩
+- [x] 이미지 슬롯 마스킹 설정
+- [x] 샘플 템플릿 JSON (`public/templates/couple-magazine.json`)
+
+### Phase 4 Sprint 17 완료 (렌더링 엔진)
+- [x] react-konva + konva 패키지 설치
+- [x] TemplateRenderer 컴포넌트 (forwardRef 지원)
+- [x] 배경 레이어 (solid, gradient, image)
+- [x] 이미지 슬롯 렌더러 (클리핑 마스크)
+- [x] 텍스트 필드 렌더러 (스타일링, 그림자)
+- [x] 동적 도형 렌더러 (rect, circle, path)
+- [x] 오버레이 이미지 렌더러
+
+### Phase 4 Sprint 18 완료 (상태 관리)
+- [x] canvasEditorStore (Zustand + persist)
+- [x] EditorSidebar 컴포넌트 (탭 기반 UI)
+- [x] 이미지 업로드 필드
+- [x] 색상 피커 (Hex 코드 직접 입력)
+- [x] CanvasEditor 통합 컴포넌트
+- [x] PNG 내보내기 (1x, 2x)
+- [x] 새 라우트 `/canvas-editor/[templateId]`
+
+### Phase 4 Sprint 19 완료 (이미지 마스킹 고도화)
+- [x] GlobalCompositeOperation = 'destination-in' 기반 마스킹
+- [x] 오프스크린 캔버스 마스킹 구현 (Canva/Figma 방식)
+- [x] 다양한 Shape 마스크 지원 (circle, roundedRect, heart, star, hexagon, diamond, triangle)
+- [x] PNG 이미지 기반 마스크 지원 (알파 채널)
+- [x] 마스크 반전(invert) 옵션
+- [x] 이미지 피팅 모드 (cover, contain, fill)
+- [x] 이미지 위치 조정 옵션 (imagePosition.x/y)
+- [x] 템플릿 스키마 v2 (MaskConfig, ShapeMask, ImageMask 타입 분리)
+- [x] 렌더러 ref에 exportToBlob, resetView 메서드 추가
+
+### Phase 4 목표
+- [x] react-konva 기반 캔버스 에디터
+- [x] 템플릿 JSON 스키마
+- [x] 동적 색상 바인딩
+- [x] 복잡한 마스킹 (하트, 별 모양) - GlobalCompositeOperation
+- [ ] 드래그로 이미지 위치 조정
+- [ ] 기존 에디터 완전 대체
 
 ---
 

@@ -1,0 +1,476 @@
+{
+  "id": "couple-magazine-v1",
+  "name": "Magazine Cover Style",
+  "description": "A stylish magazine cover layout for character pairs. Features dynamic colors and elegant typography.",
+  "category": "pair",
+  "thumbnail": "/templates/thumbnails/couple-magazine.png",
+  "author": "Pairy Official",
+  "version": "2.0.0",
+  "tags": ["magazine", "elegant", "couple", "portrait"],
+
+  "canvas": {
+    "width": 800,
+    "height": 1000,
+    "backgroundColor": "#FFFFFF",
+    "pixelRatio": 2
+  },
+
+  "colors": [
+    {
+      "key": "primaryColor",
+      "label": "Primary Color",
+      "defaultValue": "#FFD9D9"
+    },
+    {
+      "key": "secondaryColor",
+      "label": "Secondary Color",
+      "defaultValue": "#D7FAFA"
+    },
+    {
+      "key": "accentColor",
+      "label": "Accent Color",
+      "defaultValue": "#FF6B6B"
+    },
+    {
+      "key": "textColor",
+      "label": "Text Color",
+      "defaultValue": "#3D3636"
+    }
+  ],
+
+  "layers": {
+    "background": {
+      "type": "gradient",
+      "gradient": {
+        "type": "linear",
+        "angle": 135,
+        "colors": [
+          { "offset": 0, "color": "primaryColor" },
+          { "offset": 1, "color": "secondaryColor" }
+        ]
+      }
+    },
+
+    "slots": [
+      {
+        "id": "slot-char-a",
+        "name": "Character A",
+        "dataKey": "characterA",
+        "transform": {
+          "x": 50,
+          "y": 150,
+          "width": 320,
+          "height": 450,
+          "rotation": 0
+        },
+        "mask": {
+          "type": "shape",
+          "shape": "roundedRect",
+          "cornerRadius": 24
+        },
+        "imageFit": "cover",
+        "border": {
+          "width": 4,
+          "color": "primaryColor",
+          "style": "solid"
+        },
+        "shadow": {
+          "color": "rgba(0,0,0,0.15)",
+          "blur": 20,
+          "offsetX": 0,
+          "offsetY": 8
+        },
+        "placeholder": "/templates/placeholders/character-placeholder.png",
+        "clickable": true
+      },
+      {
+        "id": "slot-char-b",
+        "name": "Character B",
+        "dataKey": "characterB",
+        "transform": {
+          "x": 430,
+          "y": 150,
+          "width": 320,
+          "height": 450,
+          "rotation": 0
+        },
+        "mask": {
+          "type": "shape",
+          "shape": "roundedRect",
+          "cornerRadius": 24
+        },
+        "imageFit": "cover",
+        "border": {
+          "width": 4,
+          "color": "secondaryColor",
+          "style": "solid"
+        },
+        "shadow": {
+          "color": "rgba(0,0,0,0.15)",
+          "blur": 20,
+          "offsetX": 0,
+          "offsetY": 8
+        },
+        "placeholder": "/templates/placeholders/character-placeholder.png",
+        "clickable": true
+      }
+    ],
+
+    "dynamicShapes": [
+      {
+        "id": "header-bar",
+        "type": "rect",
+        "transform": {
+          "x": 0,
+          "y": 0,
+          "width": 800,
+          "height": 120
+        },
+        "fill": "primaryColor",
+        "opacity": 0.95
+      },
+      {
+        "id": "footer-bar",
+        "type": "rect",
+        "transform": {
+          "x": 0,
+          "y": 880,
+          "width": 800,
+          "height": 120
+        },
+        "fill": "secondaryColor",
+        "opacity": 0.95
+      },
+      {
+        "id": "heart-center",
+        "type": "path",
+        "transform": {
+          "x": 350,
+          "y": 350,
+          "width": 100,
+          "height": 100
+        },
+        "pathData": "M50 88.9C25 88.9 0 63.9 0 38.9C0 13.9 25 0 50 25C75 0 100 13.9 100 38.9C100 63.9 75 88.9 50 88.9Z",
+        "fill": "accentColor",
+        "shadow": {
+          "color": "rgba(255,107,107,0.3)",
+          "blur": 12,
+          "offsetX": 0,
+          "offsetY": 4
+        }
+      },
+      {
+        "id": "divider-dots",
+        "type": "circle",
+        "transform": {
+          "x": 400,
+          "y": 730,
+          "width": 8,
+          "height": 8
+        },
+        "fill": "accentColor"
+      }
+    ],
+
+    "texts": [
+      {
+        "id": "title",
+        "dataKey": "title",
+        "transform": {
+          "x": 400,
+          "y": 55,
+          "width": 700,
+          "height": 60
+        },
+        "defaultValue": "OUR STORY",
+        "placeholder": "Enter title...",
+        "style": {
+          "fontFamily": "Playfair Display, Georgia, serif",
+          "fontSize": 48,
+          "fontWeight": "bold",
+          "color": "#FFFFFF",
+          "align": "center",
+          "verticalAlign": "middle",
+          "letterSpacing": 4,
+          "textTransform": "uppercase"
+        },
+        "effects": {
+          "shadow": {
+            "color": "rgba(0,0,0,0.25)",
+            "blur": 6,
+            "offsetX": 2,
+            "offsetY": 2
+          }
+        },
+        "maxLength": 30
+      },
+      {
+        "id": "subtitle",
+        "dataKey": "subtitle",
+        "transform": {
+          "x": 400,
+          "y": 95,
+          "width": 600,
+          "height": 30
+        },
+        "defaultValue": "",
+        "placeholder": "Subtitle (optional)",
+        "style": {
+          "fontFamily": "Inter, sans-serif",
+          "fontSize": 14,
+          "fontWeight": "400",
+          "color": "#FFFFFF",
+          "align": "center",
+          "letterSpacing": 2,
+          "textTransform": "uppercase"
+        },
+        "maxLength": 50
+      },
+      {
+        "id": "name-a",
+        "dataKey": "nameA",
+        "transform": {
+          "x": 210,
+          "y": 620,
+          "width": 300,
+          "height": 40
+        },
+        "defaultValue": "",
+        "placeholder": "Name A",
+        "style": {
+          "fontFamily": "Pretendard, Inter, sans-serif",
+          "fontSize": 24,
+          "fontWeight": "600",
+          "color": "textColor",
+          "align": "center"
+        },
+        "maxLength": 20
+      },
+      {
+        "id": "name-b",
+        "dataKey": "nameB",
+        "transform": {
+          "x": 590,
+          "y": 620,
+          "width": 300,
+          "height": 40
+        },
+        "defaultValue": "",
+        "placeholder": "Name B",
+        "style": {
+          "fontFamily": "Pretendard, Inter, sans-serif",
+          "fontSize": 24,
+          "fontWeight": "600",
+          "color": "textColor",
+          "align": "center"
+        },
+        "maxLength": 20
+      },
+      {
+        "id": "desc-a",
+        "dataKey": "descA",
+        "transform": {
+          "x": 210,
+          "y": 670,
+          "width": 300,
+          "height": 60
+        },
+        "defaultValue": "",
+        "placeholder": "Short description...",
+        "style": {
+          "fontFamily": "Pretendard, Inter, sans-serif",
+          "fontSize": 14,
+          "color": "textColor",
+          "align": "center",
+          "lineHeight": 1.5
+        },
+        "maxLength": 50,
+        "multiline": true
+      },
+      {
+        "id": "desc-b",
+        "dataKey": "descB",
+        "transform": {
+          "x": 590,
+          "y": 670,
+          "width": 300,
+          "height": 60
+        },
+        "defaultValue": "",
+        "placeholder": "Short description...",
+        "style": {
+          "fontFamily": "Pretendard, Inter, sans-serif",
+          "fontSize": 14,
+          "color": "textColor",
+          "align": "center",
+          "lineHeight": 1.5
+        },
+        "maxLength": 50,
+        "multiline": true
+      },
+      {
+        "id": "relationship",
+        "dataKey": "relationship",
+        "transform": {
+          "x": 400,
+          "y": 760,
+          "width": 600,
+          "height": 40
+        },
+        "defaultValue": "",
+        "placeholder": "Our relationship is...",
+        "style": {
+          "fontFamily": "Pretendard, Inter, sans-serif",
+          "fontSize": 20,
+          "fontStyle": "italic",
+          "color": "accentColor",
+          "align": "center"
+        },
+        "effects": {
+          "glow": {
+            "color": "accentColor",
+            "blur": 8
+          }
+        },
+        "maxLength": 40
+      },
+      {
+        "id": "date",
+        "dataKey": "date",
+        "transform": {
+          "x": 400,
+          "y": 920,
+          "width": 300,
+          "height": 30
+        },
+        "defaultValue": "",
+        "placeholder": "2024.01.01",
+        "style": {
+          "fontFamily": "Inter, sans-serif",
+          "fontSize": 16,
+          "color": "textColor",
+          "align": "center",
+          "letterSpacing": 1
+        },
+        "maxLength": 20
+      },
+      {
+        "id": "footer-text",
+        "dataKey": "footerText",
+        "transform": {
+          "x": 400,
+          "y": 955,
+          "width": 600,
+          "height": 25
+        },
+        "defaultValue": "Made with Pairy",
+        "style": {
+          "fontFamily": "Inter, sans-serif",
+          "fontSize": 11,
+          "fontWeight": "300",
+          "color": "textColor",
+          "align": "center",
+          "letterSpacing": 1
+        }
+      }
+    ],
+
+    "overlays": []
+  },
+
+  "inputFields": [
+    {
+      "key": "title",
+      "type": "text",
+      "label": "Title",
+      "placeholder": "OUR STORY",
+      "defaultValue": "OUR STORY"
+    },
+    {
+      "key": "subtitle",
+      "type": "text",
+      "label": "Subtitle",
+      "placeholder": "Optional subtitle"
+    },
+    {
+      "key": "characterA",
+      "type": "image",
+      "label": "Character A Image",
+      "slotId": "slot-char-a",
+      "required": true,
+      "helpText": "Upload character portrait (square or vertical recommended)"
+    },
+    {
+      "key": "nameA",
+      "type": "text",
+      "label": "Name A",
+      "placeholder": "Character name",
+      "slotId": "slot-char-a",
+      "required": true
+    },
+    {
+      "key": "descA",
+      "type": "textarea",
+      "label": "Description A",
+      "placeholder": "Brief introduction",
+      "slotId": "slot-char-a"
+    },
+    {
+      "key": "characterB",
+      "type": "image",
+      "label": "Character B Image",
+      "slotId": "slot-char-b",
+      "required": true,
+      "helpText": "Upload character portrait (square or vertical recommended)"
+    },
+    {
+      "key": "nameB",
+      "type": "text",
+      "label": "Name B",
+      "placeholder": "Character name",
+      "slotId": "slot-char-b",
+      "required": true
+    },
+    {
+      "key": "descB",
+      "type": "textarea",
+      "label": "Description B",
+      "placeholder": "Brief introduction",
+      "slotId": "slot-char-b"
+    },
+    {
+      "key": "relationship",
+      "type": "text",
+      "label": "Relationship",
+      "placeholder": "Lovers / Friends / Rivals..."
+    },
+    {
+      "key": "date",
+      "type": "date",
+      "label": "Date"
+    }
+  ],
+
+  "fonts": [
+    {
+      "family": "Playfair Display",
+      "url": "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&display=swap",
+      "weights": ["400", "bold"]
+    },
+    {
+      "family": "Pretendard",
+      "weights": ["400", "600"]
+    },
+    {
+      "family": "Inter",
+      "url": "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap",
+      "weights": ["300", "400", "600"]
+    }
+  ],
+
+  "exportSettings": {
+    "defaultScale": 2,
+    "formats": ["png", "jpg"],
+    "quality": 0.92
+  }
+}
