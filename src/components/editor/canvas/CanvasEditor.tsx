@@ -19,8 +19,7 @@ import { Button } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
 import { useCanvasEditorStore } from '@/stores/canvasEditorStore'
 import EditorSidebar from './EditorSidebar'
-import type { TemplateConfig } from '@/types/template'
-import type { TemplateRendererRef } from './TemplateRenderer'
+import type { TemplateConfig, TemplateRendererRef } from '@/types/template'
 
 // react-konva는 SSR과 호환되지 않으므로 동적 import
 const TemplateRenderer = dynamic(() => import('./TemplateRenderer'), {

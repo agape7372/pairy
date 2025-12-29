@@ -1,37 +1,39 @@
 {
   "id": "couple-magazine-v1",
-  "name": "커플 매거진 스타일",
-  "description": "잡지 커버 스타일의 2인 페어틀. 세련된 레이아웃과 동적 색상 지원.",
+  "name": "Magazine Cover Style",
+  "description": "A stylish magazine cover layout for character pairs. Features dynamic colors and elegant typography.",
   "category": "pair",
   "thumbnail": "/templates/thumbnails/couple-magazine.png",
   "author": "Pairy Official",
-  "version": "1.0.0",
+  "version": "2.0.0",
+  "tags": ["magazine", "elegant", "couple", "portrait"],
 
   "canvas": {
     "width": 800,
     "height": 1000,
-    "backgroundColor": "#FFFFFF"
+    "backgroundColor": "#FFFFFF",
+    "pixelRatio": 2
   },
 
   "colors": [
     {
       "key": "primaryColor",
-      "label": "메인 컬러",
+      "label": "Primary Color",
       "defaultValue": "#FFD9D9"
     },
     {
       "key": "secondaryColor",
-      "label": "서브 컬러",
+      "label": "Secondary Color",
       "defaultValue": "#D7FAFA"
     },
     {
       "key": "accentColor",
-      "label": "포인트 컬러",
+      "label": "Accent Color",
       "defaultValue": "#FF6B6B"
     },
     {
       "key": "textColor",
-      "label": "텍스트 컬러",
+      "label": "Text Color",
       "defaultValue": "#3D3636"
     }
   ],
@@ -52,7 +54,7 @@
     "slots": [
       {
         "id": "slot-char-a",
-        "name": "캐릭터 A",
+        "name": "Character A",
         "dataKey": "characterA",
         "transform": {
           "x": 50,
@@ -64,18 +66,26 @@
         "mask": {
           "type": "shape",
           "shape": "roundedRect",
-          "cornerRadius": 20
+          "cornerRadius": 24
         },
+        "imageFit": "cover",
         "border": {
           "width": 4,
           "color": "primaryColor",
           "style": "solid"
         },
-        "placeholder": "/templates/placeholders/character-placeholder.png"
+        "shadow": {
+          "color": "rgba(0,0,0,0.15)",
+          "blur": 20,
+          "offsetX": 0,
+          "offsetY": 8
+        },
+        "placeholder": "/templates/placeholders/character-placeholder.png",
+        "clickable": true
       },
       {
         "id": "slot-char-b",
-        "name": "캐릭터 B",
+        "name": "Character B",
         "dataKey": "characterB",
         "transform": {
           "x": 430,
@@ -87,14 +97,22 @@
         "mask": {
           "type": "shape",
           "shape": "roundedRect",
-          "cornerRadius": 20
+          "cornerRadius": 24
         },
+        "imageFit": "cover",
         "border": {
           "width": 4,
           "color": "secondaryColor",
           "style": "solid"
         },
-        "placeholder": "/templates/placeholders/character-placeholder.png"
+        "shadow": {
+          "color": "rgba(0,0,0,0.15)",
+          "blur": 20,
+          "offsetX": 0,
+          "offsetY": 8
+        },
+        "placeholder": "/templates/placeholders/character-placeholder.png",
+        "clickable": true
       }
     ],
 
@@ -108,7 +126,8 @@
           "width": 800,
           "height": 120
         },
-        "fill": "primaryColor"
+        "fill": "primaryColor",
+        "opacity": 0.95
       },
       {
         "id": "footer-bar",
@@ -119,7 +138,8 @@
           "width": 800,
           "height": 120
         },
-        "fill": "secondaryColor"
+        "fill": "secondaryColor",
+        "opacity": 0.95
       },
       {
         "id": "heart-center",
@@ -131,22 +151,24 @@
           "height": 100
         },
         "pathData": "M50 88.9C25 88.9 0 63.9 0 38.9C0 13.9 25 0 50 25C75 0 100 13.9 100 38.9C100 63.9 75 88.9 50 88.9Z",
-        "fill": "accentColor"
+        "fill": "accentColor",
+        "shadow": {
+          "color": "rgba(255,107,107,0.3)",
+          "blur": 12,
+          "offsetX": 0,
+          "offsetY": 4
+        }
       },
       {
-        "id": "divider-line",
-        "type": "line",
+        "id": "divider-dots",
+        "type": "circle",
         "transform": {
           "x": 400,
-          "y": 620,
-          "width": 0,
-          "height": 100
+          "y": 730,
+          "width": 8,
+          "height": 8
         },
-        "stroke": {
-          "color": "accentColor",
-          "width": 2,
-          "dashArray": [5, 5]
-        }
+        "fill": "accentColor"
       }
     ],
 
@@ -156,28 +178,53 @@
         "dataKey": "title",
         "transform": {
           "x": 400,
-          "y": 50,
+          "y": 55,
           "width": 700,
           "height": 60
         },
         "defaultValue": "OUR STORY",
-        "placeholder": "제목을 입력하세요",
+        "placeholder": "Enter title...",
         "style": {
-          "fontFamily": "Playfair Display",
+          "fontFamily": "Playfair Display, Georgia, serif",
           "fontSize": 48,
           "fontWeight": "bold",
           "color": "#FFFFFF",
-          "align": "center"
+          "align": "center",
+          "verticalAlign": "middle",
+          "letterSpacing": 4,
+          "textTransform": "uppercase"
         },
         "effects": {
           "shadow": {
-            "color": "rgba(0,0,0,0.3)",
-            "blur": 4,
+            "color": "rgba(0,0,0,0.25)",
+            "blur": 6,
             "offsetX": 2,
             "offsetY": 2
           }
         },
         "maxLength": 30
+      },
+      {
+        "id": "subtitle",
+        "dataKey": "subtitle",
+        "transform": {
+          "x": 400,
+          "y": 95,
+          "width": 600,
+          "height": 30
+        },
+        "defaultValue": "",
+        "placeholder": "Subtitle (optional)",
+        "style": {
+          "fontFamily": "Inter, sans-serif",
+          "fontSize": 14,
+          "fontWeight": "400",
+          "color": "#FFFFFF",
+          "align": "center",
+          "letterSpacing": 2,
+          "textTransform": "uppercase"
+        },
+        "maxLength": 50
       },
       {
         "id": "name-a",
@@ -189,9 +236,9 @@
           "height": 40
         },
         "defaultValue": "",
-        "placeholder": "이름 A",
+        "placeholder": "Name A",
         "style": {
-          "fontFamily": "Pretendard",
+          "fontFamily": "Pretendard, Inter, sans-serif",
           "fontSize": 24,
           "fontWeight": "600",
           "color": "textColor",
@@ -209,9 +256,9 @@
           "height": 40
         },
         "defaultValue": "",
-        "placeholder": "이름 B",
+        "placeholder": "Name B",
         "style": {
-          "fontFamily": "Pretendard",
+          "fontFamily": "Pretendard, Inter, sans-serif",
           "fontSize": 24,
           "fontWeight": "600",
           "color": "textColor",
@@ -229,9 +276,9 @@
           "height": 60
         },
         "defaultValue": "",
-        "placeholder": "소개/한마디",
+        "placeholder": "Short description...",
         "style": {
-          "fontFamily": "Pretendard",
+          "fontFamily": "Pretendard, Inter, sans-serif",
           "fontSize": 14,
           "color": "textColor",
           "align": "center",
@@ -250,9 +297,9 @@
           "height": 60
         },
         "defaultValue": "",
-        "placeholder": "소개/한마디",
+        "placeholder": "Short description...",
         "style": {
-          "fontFamily": "Pretendard",
+          "fontFamily": "Pretendard, Inter, sans-serif",
           "fontSize": 14,
           "color": "textColor",
           "align": "center",
@@ -271,13 +318,19 @@
           "height": 40
         },
         "defaultValue": "",
-        "placeholder": "우리의 관계는...",
+        "placeholder": "Our relationship is...",
         "style": {
-          "fontFamily": "Pretendard",
+          "fontFamily": "Pretendard, Inter, sans-serif",
           "fontSize": 20,
           "fontStyle": "italic",
           "color": "accentColor",
           "align": "center"
+        },
+        "effects": {
+          "glow": {
+            "color": "accentColor",
+            "blur": 8
+          }
         },
         "maxLength": 40
       },
@@ -293,10 +346,11 @@
         "defaultValue": "",
         "placeholder": "2024.01.01",
         "style": {
-          "fontFamily": "Inter",
+          "fontFamily": "Inter, sans-serif",
           "fontSize": 16,
           "color": "textColor",
-          "align": "center"
+          "align": "center",
+          "letterSpacing": 1
         },
         "maxLength": 20
       },
@@ -305,97 +359,118 @@
         "dataKey": "footerText",
         "transform": {
           "x": 400,
-          "y": 950,
+          "y": 955,
           "width": 600,
           "height": 25
         },
         "defaultValue": "Made with Pairy",
         "style": {
-          "fontFamily": "Inter",
-          "fontSize": 12,
+          "fontFamily": "Inter, sans-serif",
+          "fontSize": 11,
+          "fontWeight": "300",
           "color": "textColor",
-          "align": "center"
+          "align": "center",
+          "letterSpacing": 1
         }
       }
     ],
 
-    "overlays": [
-      {
-        "id": "frame-decoration",
-        "imageUrl": "/templates/overlays/magazine-frame.png",
-        "transform": {
-          "x": 0,
-          "y": 0,
-          "width": 800,
-          "height": 1000
-        },
-        "opacity": 0.9
-      }
-    ]
+    "overlays": []
   },
 
   "inputFields": [
     {
       "key": "title",
       "type": "text",
-      "label": "제목",
+      "label": "Title",
       "placeholder": "OUR STORY",
       "defaultValue": "OUR STORY"
     },
     {
+      "key": "subtitle",
+      "type": "text",
+      "label": "Subtitle",
+      "placeholder": "Optional subtitle"
+    },
+    {
       "key": "characterA",
       "type": "image",
-      "label": "캐릭터 A 이미지",
+      "label": "Character A Image",
       "slotId": "slot-char-a",
-      "required": true
+      "required": true,
+      "helpText": "Upload character portrait (square or vertical recommended)"
     },
     {
       "key": "nameA",
       "type": "text",
-      "label": "이름 A",
-      "placeholder": "캐릭터 이름",
+      "label": "Name A",
+      "placeholder": "Character name",
       "slotId": "slot-char-a",
       "required": true
     },
     {
       "key": "descA",
       "type": "textarea",
-      "label": "소개 A",
-      "placeholder": "한 줄 소개",
+      "label": "Description A",
+      "placeholder": "Brief introduction",
       "slotId": "slot-char-a"
     },
     {
       "key": "characterB",
       "type": "image",
-      "label": "캐릭터 B 이미지",
+      "label": "Character B Image",
       "slotId": "slot-char-b",
-      "required": true
+      "required": true,
+      "helpText": "Upload character portrait (square or vertical recommended)"
     },
     {
       "key": "nameB",
       "type": "text",
-      "label": "이름 B",
-      "placeholder": "캐릭터 이름",
+      "label": "Name B",
+      "placeholder": "Character name",
       "slotId": "slot-char-b",
       "required": true
     },
     {
       "key": "descB",
       "type": "textarea",
-      "label": "소개 B",
-      "placeholder": "한 줄 소개",
+      "label": "Description B",
+      "placeholder": "Brief introduction",
       "slotId": "slot-char-b"
     },
     {
       "key": "relationship",
       "type": "text",
-      "label": "관계",
-      "placeholder": "연인 / 친구 / 라이벌..."
+      "label": "Relationship",
+      "placeholder": "Lovers / Friends / Rivals..."
     },
     {
       "key": "date",
       "type": "date",
-      "label": "기념일"
+      "label": "Date"
     }
-  ]
+  ],
+
+  "fonts": [
+    {
+      "family": "Playfair Display",
+      "url": "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&display=swap",
+      "weights": ["400", "bold"]
+    },
+    {
+      "family": "Pretendard",
+      "weights": ["400", "600"]
+    },
+    {
+      "family": "Inter",
+      "url": "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap",
+      "weights": ["300", "400", "600"]
+    }
+  ],
+
+  "exportSettings": {
+    "defaultScale": 2,
+    "formats": ["png", "jpg"],
+    "quality": 0.92
+  }
 }
