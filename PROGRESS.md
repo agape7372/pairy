@@ -262,6 +262,23 @@ Canvas 기반 에디터 재구축 (react-konva)
 - [x] 미사용 import 제거 (useCallback, useMemo, springPresets)
 - [x] 변경 이유 주석 추가로 유지보수성 향상
 
+### Phase 4 Sprint 27 완료 (아키텍처 리팩토링)
+- [x] TemplateRenderer.tsx 모듈화 (1,187줄 → 227줄)
+  - renderers/BackgroundRenderer.tsx
+  - renderers/ImageSlotRenderer.tsx
+  - renderers/TextFieldRenderer.tsx
+  - renderers/DynamicShapeRenderer.tsx
+  - renderers/OverlayImageRenderer.tsx
+- [x] 캔버스 유틸리티 분리 (lib/utils/canvasUtils.ts)
+  - resolveColor, calculateImageFit, drawShapeMask
+- [x] 이미지 훅 분리 (hooks/useKonvaImage.ts)
+  - useImage, useMaskedImage
+- [x] 타입 통합 (types/template.ts)
+  - SlotImageTransform, SlotTransforms, DEFAULT_SLOT_TRANSFORM
+- [x] Demo Mode 유틸리티 통합 (lib/utils/demoStorage.ts)
+  - useFollow, useLikes 훅 리팩토링
+  - DEMO_STORAGE_KEYS 중앙 관리
+
 ### Phase 4 목표
 - [x] react-konva 기반 캔버스 에디터
 - [x] 템플릿 JSON 스키마
@@ -277,6 +294,8 @@ Canvas 기반 에디터 재구축 (react-konva)
 
 | 날짜 | 커밋 | 설명 |
 |------|------|------|
+| 2025-12-29 | 0b80db8 | refactor: Demo Mode localStorage 유틸리티 통합 |
+| 2025-12-29 | 8c6b473 | refactor: TemplateRenderer 모듈화 및 타입 통합 |
 | 2025-12-29 | 6843d01 | fix: 애니메이션 시스템 코드 품질 개선 및 버그 수정 |
 | 2025-12-29 | fc9dacc | feat: 애니메이션 시스템 고도화 - 데모 대시보드, 효과 훅 |
 | 2025-12-29 | eded6ad | feat: 플랫폼 애니메이션 시스템 구축 - Doodle/Premium 듀얼 모드 |
