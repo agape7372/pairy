@@ -1097,6 +1097,385 @@ body {
   animation: slideOvershoot 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
+/* ============================================
+ * ANIMATION MODE SYSTEM
+ * 두 가지 상반된 애니메이션 언어
+ * ============================================ */
+
+/* === SVG FILTERS (전역 정의) === */
+.svg-filters {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+/* === MODE: DOODLE (Organic Storyteller) ===
+ * "살아 움직이는 종이 위에 그려지는 이야기"
+ * - 손그림 스타일
+ * - 쫀득한 Spring 물리
+ * - 깜빡이는 별들
+ */
+
+/* Doodle 모드 전역 변수 */
+[data-animation-mode="doodle"] {
+  --anim-timing: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --anim-duration-fast: 0.25s;
+  --anim-duration: 0.4s;
+  --anim-duration-slow: 0.6s;
+}
+
+/* 손그림 스타일 깜빡임 - 불규칙한 blink */
+@keyframes doodleBlink {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  10% {
+    opacity: 0.3;
+    transform: scale(0.95);
+  }
+  20% {
+    opacity: 1;
+    transform: scale(1.02);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(0.98);
+  }
+  70% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  85% {
+    opacity: 1;
+    transform: scale(1.01);
+  }
+}
+
+/* 별 깜빡임 - 랜덤한 트윙클 */
+@keyframes starBlink {
+  0%, 100% {
+    opacity: 0;
+    transform: scale(0) rotate(0deg);
+  }
+  20% {
+    opacity: 1;
+    transform: scale(1.2) rotate(10deg);
+  }
+  40% {
+    opacity: 0.8;
+    transform: scale(0.9) rotate(-5deg);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.1) rotate(5deg);
+  }
+  80% {
+    opacity: 0.6;
+    transform: scale(1) rotate(-3deg);
+  }
+}
+
+/* 글로우 펄스 - 빛 발산 */
+@keyframes glowPulse {
+  0%, 100% {
+    filter: drop-shadow(0 0 2px currentColor);
+    opacity: 0.7;
+  }
+  50% {
+    filter: drop-shadow(0 0 8px currentColor) drop-shadow(0 0 12px currentColor);
+    opacity: 1;
+  }
+}
+
+/* 손으로 그린 듯한 테두리 떨림 */
+@keyframes handDrawnWobble {
+  0%, 100% {
+    border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+  }
+  25% {
+    border-radius: 15px 225px 15px 255px / 255px 15px 225px 15px;
+  }
+  50% {
+    border-radius: 225px 15px 255px 15px / 15px 255px 15px 225px;
+  }
+  75% {
+    border-radius: 15px 255px 15px 225px / 225px 15px 255px 15px;
+  }
+}
+
+/* Doodle 별 컨테이너 */
+.doodle-stars {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.doodle-star {
+  position: absolute;
+  animation: starBlink 2s ease-in-out infinite;
+  animation-delay: var(--delay, 0s);
+}
+
+.doodle-star--glow {
+  animation: glowPulse 1.5s ease-in-out infinite;
+  animation-delay: var(--delay, 0s);
+}
+
+/* Doodle 모드 버튼 */
+[data-animation-mode="doodle"] .btn-mode {
+  transition: all var(--anim-duration) var(--anim-timing);
+  position: relative;
+}
+
+[data-animation-mode="doodle"] .btn-mode:hover {
+  transform: translateY(-3px) rotate(-1deg);
+}
+
+[data-animation-mode="doodle"] .btn-mode:active {
+  transform: scale(0.95) rotate(1deg);
+  animation: jelly 0.3s ease-out;
+}
+
+/* Doodle 모드 카드 - 손그림 테두리 */
+[data-animation-mode="doodle"] .card-mode {
+  transition: all var(--anim-duration) var(--anim-timing);
+  border: 2px solid var(--gray-200);
+}
+
+[data-animation-mode="doodle"] .card-mode:hover {
+  transform: translateY(-6px) rotate(-0.5deg);
+  border-color: var(--primary-300);
+  animation: handDrawnWobble 4s ease-in-out infinite;
+}
+
+/* === MODE: PREMIUM (Quantum Shimmer) ===
+ * "빛으로 제어되는 프리미엄 지능"
+ * - 매끄러운 Ease 전환
+ * - 시머/글로우 효과
+ * - 마우스 반응형 빛
+ */
+
+/* Premium 모드 전역 변수 */
+[data-animation-mode="premium"] {
+  --anim-timing: cubic-bezier(0.16, 1, 0.3, 1);
+  --anim-duration-fast: 0.2s;
+  --anim-duration: 0.4s;
+  --anim-duration-slow: 0.6s;
+}
+
+/* 수평 시머 - 빛이 스쳐 지나감 */
+@keyframes horizontalShimmer {
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+
+/* 은은한 맥동 */
+@keyframes softPulse {
+  0%, 100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.02);
+  }
+}
+
+/* 테두리 입자 흐름 */
+@keyframes borderFlow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* 안개 속에서 선명해지기 */
+@keyframes mistReveal {
+  0% {
+    opacity: 0;
+    filter: blur(8px);
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0);
+  }
+}
+
+/* Premium 시머 배경 */
+.premium-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.premium-shimmer::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.1) 20%,
+    rgba(255, 255, 255, 0.3) 50%,
+    rgba(255, 255, 255, 0.1) 80%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: horizontalShimmer 3s linear infinite;
+  pointer-events: none;
+}
+
+/* Premium 글로우 테두리 */
+.premium-glow-border {
+  position: relative;
+}
+
+.premium-glow-border::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    var(--primary-300),
+    var(--accent-300),
+    var(--primary-400),
+    var(--accent-400),
+    var(--primary-300)
+  );
+  background-size: 300% 100%;
+  animation: borderFlow 4s linear infinite;
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.3s ease-out;
+}
+
+.premium-glow-border:hover::before {
+  opacity: 1;
+}
+
+/* Premium 텍스트 글로우 */
+.text-glow {
+  text-shadow:
+    0 0 10px rgba(255, 217, 217, 0.3),
+    0 0 20px rgba(255, 217, 217, 0.2),
+    0 0 40px rgba(255, 217, 217, 0.1);
+}
+
+/* Premium 모드 버튼 */
+[data-animation-mode="premium"] .btn-mode {
+  transition: all var(--anim-duration) var(--anim-timing);
+  position: relative;
+  overflow: hidden;
+}
+
+[data-animation-mode="premium"] .btn-mode::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  background-size: 200% 100%;
+  opacity: 0;
+  transition: opacity 0.3s ease-out;
+}
+
+[data-animation-mode="premium"] .btn-mode:hover::before {
+  opacity: 1;
+  animation: horizontalShimmer 1.5s linear infinite;
+}
+
+[data-animation-mode="premium"] .btn-mode:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 4px 12px rgba(255, 180, 180, 0.2),
+    0 0 20px rgba(255, 217, 217, 0.15);
+}
+
+/* Premium 모드 카드 */
+[data-animation-mode="premium"] .card-mode {
+  transition: all var(--anim-duration) var(--anim-timing);
+  border: 1px solid rgba(255, 217, 217, 0.2);
+}
+
+[data-animation-mode="premium"] .card-mode:hover {
+  transform: translateY(-4px);
+  border-color: rgba(255, 217, 217, 0.4);
+  box-shadow:
+    0 8px 24px rgba(255, 180, 180, 0.15),
+    0 0 40px rgba(255, 217, 217, 0.1);
+}
+
+/* Premium 마우스 추적 라이트 (JS로 --mouse-x, --mouse-y 설정 필요) */
+.mouse-light {
+  position: relative;
+  overflow: hidden;
+}
+
+.mouse-light::before {
+  content: '';
+  position: absolute;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(
+    circle,
+    rgba(255, 217, 217, 0.15) 0%,
+    transparent 70%
+  );
+  transform: translate(
+    calc(var(--mouse-x, 50%) - 150px),
+    calc(var(--mouse-y, 50%) - 150px)
+  );
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease-out;
+}
+
+.mouse-light:hover::before {
+  opacity: 1;
+}
+
+/* === SHARED UTILITIES (양쪽 모드 공통) === */
+
+/* 순차 등장 애니메이션 */
+.stagger-enter > * {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+[data-animation-mode="doodle"] .stagger-enter.is-visible > * {
+  animation: slideOvershoot 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+[data-animation-mode="premium"] .stagger-enter.is-visible > * {
+  animation: mistReveal 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.stagger-enter.is-visible > *:nth-child(1) { animation-delay: 0ms; }
+.stagger-enter.is-visible > *:nth-child(2) { animation-delay: 80ms; }
+.stagger-enter.is-visible > *:nth-child(3) { animation-delay: 160ms; }
+.stagger-enter.is-visible > *:nth-child(4) { animation-delay: 240ms; }
+.stagger-enter.is-visible > *:nth-child(5) { animation-delay: 320ms; }
+.stagger-enter.is-visible > *:nth-child(6) { animation-delay: 400ms; }
+
 /* 모션 감소 설정 존중 */
 @media (prefers-reduced-motion: reduce) {
   *,
