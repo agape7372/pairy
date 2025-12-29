@@ -1,0 +1,401 @@
+{
+  "id": "couple-magazine-v1",
+  "name": "커플 매거진 스타일",
+  "description": "잡지 커버 스타일의 2인 페어틀. 세련된 레이아웃과 동적 색상 지원.",
+  "category": "pair",
+  "thumbnail": "/templates/thumbnails/couple-magazine.png",
+  "author": "Pairy Official",
+  "version": "1.0.0",
+
+  "canvas": {
+    "width": 800,
+    "height": 1000,
+    "backgroundColor": "#FFFFFF"
+  },
+
+  "colors": [
+    {
+      "key": "primaryColor",
+      "label": "메인 컬러",
+      "defaultValue": "#FFD9D9"
+    },
+    {
+      "key": "secondaryColor",
+      "label": "서브 컬러",
+      "defaultValue": "#D7FAFA"
+    },
+    {
+      "key": "accentColor",
+      "label": "포인트 컬러",
+      "defaultValue": "#FF6B6B"
+    },
+    {
+      "key": "textColor",
+      "label": "텍스트 컬러",
+      "defaultValue": "#3D3636"
+    }
+  ],
+
+  "layers": {
+    "background": {
+      "type": "gradient",
+      "gradient": {
+        "type": "linear",
+        "angle": 135,
+        "colors": [
+          { "offset": 0, "color": "primaryColor" },
+          { "offset": 1, "color": "secondaryColor" }
+        ]
+      }
+    },
+
+    "slots": [
+      {
+        "id": "slot-char-a",
+        "name": "캐릭터 A",
+        "dataKey": "characterA",
+        "transform": {
+          "x": 50,
+          "y": 150,
+          "width": 320,
+          "height": 450,
+          "rotation": 0
+        },
+        "mask": {
+          "type": "shape",
+          "shape": "roundedRect",
+          "cornerRadius": 20
+        },
+        "border": {
+          "width": 4,
+          "color": "primaryColor",
+          "style": "solid"
+        },
+        "placeholder": "/templates/placeholders/character-placeholder.png"
+      },
+      {
+        "id": "slot-char-b",
+        "name": "캐릭터 B",
+        "dataKey": "characterB",
+        "transform": {
+          "x": 430,
+          "y": 150,
+          "width": 320,
+          "height": 450,
+          "rotation": 0
+        },
+        "mask": {
+          "type": "shape",
+          "shape": "roundedRect",
+          "cornerRadius": 20
+        },
+        "border": {
+          "width": 4,
+          "color": "secondaryColor",
+          "style": "solid"
+        },
+        "placeholder": "/templates/placeholders/character-placeholder.png"
+      }
+    ],
+
+    "dynamicShapes": [
+      {
+        "id": "header-bar",
+        "type": "rect",
+        "transform": {
+          "x": 0,
+          "y": 0,
+          "width": 800,
+          "height": 120
+        },
+        "fill": "primaryColor"
+      },
+      {
+        "id": "footer-bar",
+        "type": "rect",
+        "transform": {
+          "x": 0,
+          "y": 880,
+          "width": 800,
+          "height": 120
+        },
+        "fill": "secondaryColor"
+      },
+      {
+        "id": "heart-center",
+        "type": "path",
+        "transform": {
+          "x": 350,
+          "y": 350,
+          "width": 100,
+          "height": 100
+        },
+        "pathData": "M50 88.9C25 88.9 0 63.9 0 38.9C0 13.9 25 0 50 25C75 0 100 13.9 100 38.9C100 63.9 75 88.9 50 88.9Z",
+        "fill": "accentColor"
+      },
+      {
+        "id": "divider-line",
+        "type": "line",
+        "transform": {
+          "x": 400,
+          "y": 620,
+          "width": 0,
+          "height": 100
+        },
+        "stroke": {
+          "color": "accentColor",
+          "width": 2,
+          "dashArray": [5, 5]
+        }
+      }
+    ],
+
+    "texts": [
+      {
+        "id": "title",
+        "dataKey": "title",
+        "transform": {
+          "x": 400,
+          "y": 50,
+          "width": 700,
+          "height": 60
+        },
+        "defaultValue": "OUR STORY",
+        "placeholder": "제목을 입력하세요",
+        "style": {
+          "fontFamily": "Playfair Display",
+          "fontSize": 48,
+          "fontWeight": "bold",
+          "color": "#FFFFFF",
+          "align": "center"
+        },
+        "effects": {
+          "shadow": {
+            "color": "rgba(0,0,0,0.3)",
+            "blur": 4,
+            "offsetX": 2,
+            "offsetY": 2
+          }
+        },
+        "maxLength": 30
+      },
+      {
+        "id": "name-a",
+        "dataKey": "nameA",
+        "transform": {
+          "x": 210,
+          "y": 620,
+          "width": 300,
+          "height": 40
+        },
+        "defaultValue": "",
+        "placeholder": "이름 A",
+        "style": {
+          "fontFamily": "Pretendard",
+          "fontSize": 24,
+          "fontWeight": "600",
+          "color": "textColor",
+          "align": "center"
+        },
+        "maxLength": 20
+      },
+      {
+        "id": "name-b",
+        "dataKey": "nameB",
+        "transform": {
+          "x": 590,
+          "y": 620,
+          "width": 300,
+          "height": 40
+        },
+        "defaultValue": "",
+        "placeholder": "이름 B",
+        "style": {
+          "fontFamily": "Pretendard",
+          "fontSize": 24,
+          "fontWeight": "600",
+          "color": "textColor",
+          "align": "center"
+        },
+        "maxLength": 20
+      },
+      {
+        "id": "desc-a",
+        "dataKey": "descA",
+        "transform": {
+          "x": 210,
+          "y": 670,
+          "width": 300,
+          "height": 60
+        },
+        "defaultValue": "",
+        "placeholder": "소개/한마디",
+        "style": {
+          "fontFamily": "Pretendard",
+          "fontSize": 14,
+          "color": "textColor",
+          "align": "center",
+          "lineHeight": 1.5
+        },
+        "maxLength": 50,
+        "multiline": true
+      },
+      {
+        "id": "desc-b",
+        "dataKey": "descB",
+        "transform": {
+          "x": 590,
+          "y": 670,
+          "width": 300,
+          "height": 60
+        },
+        "defaultValue": "",
+        "placeholder": "소개/한마디",
+        "style": {
+          "fontFamily": "Pretendard",
+          "fontSize": 14,
+          "color": "textColor",
+          "align": "center",
+          "lineHeight": 1.5
+        },
+        "maxLength": 50,
+        "multiline": true
+      },
+      {
+        "id": "relationship",
+        "dataKey": "relationship",
+        "transform": {
+          "x": 400,
+          "y": 760,
+          "width": 600,
+          "height": 40
+        },
+        "defaultValue": "",
+        "placeholder": "우리의 관계는...",
+        "style": {
+          "fontFamily": "Pretendard",
+          "fontSize": 20,
+          "fontStyle": "italic",
+          "color": "accentColor",
+          "align": "center"
+        },
+        "maxLength": 40
+      },
+      {
+        "id": "date",
+        "dataKey": "date",
+        "transform": {
+          "x": 400,
+          "y": 920,
+          "width": 300,
+          "height": 30
+        },
+        "defaultValue": "",
+        "placeholder": "2024.01.01",
+        "style": {
+          "fontFamily": "Inter",
+          "fontSize": 16,
+          "color": "textColor",
+          "align": "center"
+        },
+        "maxLength": 20
+      },
+      {
+        "id": "footer-text",
+        "dataKey": "footerText",
+        "transform": {
+          "x": 400,
+          "y": 950,
+          "width": 600,
+          "height": 25
+        },
+        "defaultValue": "Made with Pairy",
+        "style": {
+          "fontFamily": "Inter",
+          "fontSize": 12,
+          "color": "textColor",
+          "align": "center"
+        }
+      }
+    ],
+
+    "overlays": [
+      {
+        "id": "frame-decoration",
+        "imageUrl": "/templates/overlays/magazine-frame.png",
+        "transform": {
+          "x": 0,
+          "y": 0,
+          "width": 800,
+          "height": 1000
+        },
+        "opacity": 0.9
+      }
+    ]
+  },
+
+  "inputFields": [
+    {
+      "key": "title",
+      "type": "text",
+      "label": "제목",
+      "placeholder": "OUR STORY",
+      "defaultValue": "OUR STORY"
+    },
+    {
+      "key": "characterA",
+      "type": "image",
+      "label": "캐릭터 A 이미지",
+      "slotId": "slot-char-a",
+      "required": true
+    },
+    {
+      "key": "nameA",
+      "type": "text",
+      "label": "이름 A",
+      "placeholder": "캐릭터 이름",
+      "slotId": "slot-char-a",
+      "required": true
+    },
+    {
+      "key": "descA",
+      "type": "textarea",
+      "label": "소개 A",
+      "placeholder": "한 줄 소개",
+      "slotId": "slot-char-a"
+    },
+    {
+      "key": "characterB",
+      "type": "image",
+      "label": "캐릭터 B 이미지",
+      "slotId": "slot-char-b",
+      "required": true
+    },
+    {
+      "key": "nameB",
+      "type": "text",
+      "label": "이름 B",
+      "placeholder": "캐릭터 이름",
+      "slotId": "slot-char-b",
+      "required": true
+    },
+    {
+      "key": "descB",
+      "type": "textarea",
+      "label": "소개 B",
+      "placeholder": "한 줄 소개",
+      "slotId": "slot-char-b"
+    },
+    {
+      "key": "relationship",
+      "type": "text",
+      "label": "관계",
+      "placeholder": "연인 / 친구 / 라이벌..."
+    },
+    {
+      "key": "date",
+      "type": "date",
+      "label": "기념일"
+    }
+  ]
+}
