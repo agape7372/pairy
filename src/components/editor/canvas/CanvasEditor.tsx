@@ -17,6 +17,7 @@ import {
   PanelRight,
   Keyboard,
   Image as ImageIcon,
+  AlertCircle,
 } from 'lucide-react'
 import { Button, useToast } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
@@ -24,6 +25,18 @@ import { useCanvasEditorStore } from '@/stores/canvasEditorStore'
 import EditorSidebar from './EditorSidebar'
 import KeyboardShortcutsModal from './KeyboardShortcutsModal'
 import type { TemplateConfig, TemplateRendererRef } from '@/types/template'
+import {
+  safeGetAutoSaveData,
+  safeSetAutoSaveData,
+  safeRemoveAutoSaveData,
+  calculateFitZoom as calculateFitZoomUtil,
+  formatTimeAgo as formatTimeAgoUtil,
+  sanitizeFilename as sanitizeFilenameUtil,
+  createFocusTrap,
+  clamp,
+  getStorageErrorMessage,
+  type AutoSaveData,
+} from '@/lib/utils/editorUtils'
 
 // 내보내기 포맷 타입
 type ExportFormat = 'png' | 'jpg' | 'webp'
@@ -128,29 +141,22 @@ export default function CanvasEditor({
   // 자동 저장 디바운스
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
 
+  // Export 모달 Focus trap
+  const exportModalRef = useRef<HTMLDivElement>(null)
+  const focusTrapRef = useRef<ReturnType<typeof createFocusTrap> | null>(null)
+
   // ============================================
   // 헬퍼 함수 (useEffect보다 먼저 정의)
   // ============================================
 
-  // 시간 포맷 헬퍼
+  // 시간 포맷 헬퍼 (유틸리티 함수 래핑)
   const formatTimeAgo = useCallback((date: Date): string => {
-    const seconds = Math.floor((Date.now() - date.getTime()) / 1000)
-
-    if (seconds < 60) return '방금 전'
-    if (seconds < 3600) return `${Math.floor(seconds / 60)}분 전`
-    if (seconds < 86400) return `${Math.floor(seconds / 3600)}시간 전`
-    return `${Math.floor(seconds / 86400)}일 전`
+    return formatTimeAgoUtil(date)
   }, [])
 
-  // 파일명 sanitization 헬퍼
+  // 파일명 sanitization 헬퍼 (유틸리티 함수 래핑)
   const sanitizeFilename = useCallback((filename: string): string => {
-    return filename
-      .replace(/[<>:"/\\|?*\x00-\x1F]/g, '_') // 파일시스템 금지 문자 제거
-      .replace(/\s+/g, '_') // 공백을 언더스코어로
-      .replace(/_+/g, '_') // 연속 언더스코어 정리
-      .trim()
-      .slice(0, 100) // 파일명 길이 제한
-      || 'untitled' // 빈 문자열 방지
+    return sanitizeFilenameUtil(filename)
   }, [])
 
   // 슬롯 클릭 핸들러 (모바일에서 사이드바 자동 열기)
@@ -195,7 +201,7 @@ export default function CanvasEditor({
     fetchTemplate()
   }, [templateId, loadTemplate, setLoading, setError])
 
-  // 복구 데이터 확인 (템플릿 로드 후)
+  // 복구 데이터 확인 (템플릿 로드 후) - 안전한 localStorage 접근
   useEffect(() => {
     if (!templateConfig) return
 
@@ -203,35 +209,40 @@ export default function CanvasEditor({
     if (recoveryToastShown.current) return
     recoveryToastShown.current = true
 
-    try {
-      const savedData = localStorage.getItem(autoSaveKey)
-      if (savedData) {
-        const { timestamp } = JSON.parse(savedData)
-        const savedTime = new Date(timestamp)
-        const timeDiff = Date.now() - savedTime.getTime()
+    const result = safeGetAutoSaveData(autoSaveKey)
 
-        // 24시간 이내의 데이터만 복구 제안
-        if (timeDiff < 24 * 60 * 60 * 1000) {
-          const timeAgo = formatTimeAgo(savedTime)
-          toast.info(`${timeAgo}에 저장된 작업이 있습니다`, {
-            title: '이전 작업 발견',
-            duration: 0, // 수동으로 닫을 때까지 유지
-            action: {
-              label: '복구하기',
-              onClick: () => {
-                handleRecoverData()
-              },
-            },
-          })
-        }
+    if (!result.success) {
+      // 에러 발생 시 사용자에게 알림 (단, parse_error는 무시)
+      if (result.error.type !== 'parse_error') {
+        console.warn('Recovery check failed:', result.error)
       }
-    } catch (e) {
-      console.error('Recovery check failed:', e)
+      return
+    }
+
+    const savedData = result.data
+    if (savedData) {
+      const savedTime = new Date(savedData.timestamp)
+      const timeDiff = Date.now() - savedTime.getTime()
+
+      // 24시간 이내의 데이터만 복구 제안
+      if (timeDiff < 24 * 60 * 60 * 1000) {
+        const timeAgo = formatTimeAgo(savedTime)
+        toast.info(`${timeAgo}에 저장된 작업이 있습니다`, {
+          title: '이전 작업 발견',
+          duration: 0, // 수동으로 닫을 때까지 유지
+          action: {
+            label: '복구하기',
+            onClick: () => {
+              handleRecoverData()
+            },
+          },
+        })
+      }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [templateConfig])
 
-  // 자동 저장 (30초마다, 디바운스 적용)
+  // 자동 저장 (30초마다, 디바운스 적용) - 안전한 localStorage 접근
   useEffect(() => {
     if (!templateConfig || !isDirty) return
 
@@ -243,7 +254,7 @@ export default function CanvasEditor({
     autoSaveTimerRef.current = setTimeout(() => {
       // 저장 시점의 최신 데이터 캡처
       const currentState = useCanvasEditorStore.getState()
-      const saveData = {
+      const saveData: AutoSaveData = {
         templateId,
         title,
         formData: currentState.formData,
@@ -252,18 +263,16 @@ export default function CanvasEditor({
         timestamp: new Date().toISOString(),
       }
 
-      try {
-        localStorage.setItem(autoSaveKey, JSON.stringify(saveData))
+      const result = safeSetAutoSaveData(autoSaveKey, saveData)
+
+      if (result.success) {
         setLastAutoSave(new Date())
-      } catch (e) {
-        // QuotaExceededError 처리
-        if (e instanceof DOMException && e.name === 'QuotaExceededError') {
-          toast.warning('저장 공간이 부족합니다. 오래된 데이터를 정리해주세요.', {
-            title: '자동 저장 실패',
-          })
-        } else {
-          console.error('Auto-save failed:', e)
-        }
+      } else {
+        // 사용자 친화적 에러 메시지 표시
+        const message = getStorageErrorMessage(result.error)
+        toast.warning(message, {
+          title: '자동 저장 실패',
+        })
       }
     }, 30000) // 30초
 
@@ -274,28 +283,37 @@ export default function CanvasEditor({
     }
   }, [templateConfig, isDirty, templateId, title, formData, colors, slotTransforms, autoSaveKey, toast])
 
-  // 복구 데이터 적용
+  // 복구 데이터 적용 - 안전한 localStorage 접근
   const handleRecoverData = useCallback(() => {
+    const result = safeGetAutoSaveData(autoSaveKey)
+
+    if (!result.success) {
+      const message = getStorageErrorMessage(result.error)
+      toast.error(message, { title: '복구 실패' })
+      return
+    }
+
+    const savedData = result.data
+    if (!savedData) {
+      toast.warning('복구할 데이터가 없습니다')
+      return
+    }
+
     try {
-      const savedData = localStorage.getItem(autoSaveKey)
-      if (savedData) {
-        const { title: savedTitle, formData: savedFormData, colors: savedColors, slotTransforms: savedTransforms } = JSON.parse(savedData)
-
-        if (savedTitle) setTitle(savedTitle)
-        if (savedFormData) useCanvasEditorStore.getState().setFormData(savedFormData)
-        if (savedColors) useCanvasEditorStore.getState().setColors(savedColors)
-        if (savedTransforms) {
-          Object.entries(savedTransforms).forEach(([slotId, transform]) => {
-            updateSlotTransform(slotId, transform as { x: number; y: number; scale: number; rotation: number })
-          })
-        }
-
-        toast.success('이전 작업이 복구되었습니다')
-        localStorage.removeItem(autoSaveKey) // 복구 후 삭제
+      if (savedData.title) setTitle(savedData.title)
+      if (savedData.formData) useCanvasEditorStore.getState().setFormData(savedData.formData)
+      if (savedData.colors) useCanvasEditorStore.getState().setColors(savedData.colors)
+      if (savedData.slotTransforms) {
+        Object.entries(savedData.slotTransforms).forEach(([slotId, transform]) => {
+          updateSlotTransform(slotId, transform)
+        })
       }
+
+      toast.success('이전 작업이 복구되었습니다')
+      safeRemoveAutoSaveData(autoSaveKey) // 복구 후 삭제
     } catch (e) {
       console.error('Recovery failed:', e)
-      toast.error('복구에 실패했습니다')
+      toast.error('복구 중 오류가 발생했습니다')
     }
   }, [autoSaveKey, toast, updateSlotTransform])
 
@@ -304,26 +322,20 @@ export default function CanvasEditor({
   const handleZoomOut = useCallback(() => setZoom(zoom - 0.1), [zoom, setZoom])
   const handleZoomReset = useCallback(() => setZoom(1), [setZoom])
 
-  // 화면 맞춤 줌 계산
+  // 화면 맞춤 줌 계산 - 안전한 계산 (zero-division 방지)
   const calculateFitZoom = useCallback(() => {
     if (!containerRef.current || !templateConfig) return 1
 
     const container = containerRef.current
-    // 패딩 고려 (p-8 = 32px * 2 = 64px 양쪽)
-    const padding = 64
-    const availableWidth = container.clientWidth - padding
-    const availableHeight = container.clientHeight - padding
 
-    const canvasWidth = templateConfig.canvas.width
-    const canvasHeight = templateConfig.canvas.height
-
-    // 가로/세로 비율 중 작은 값 선택 (캔버스가 컨테이너에 맞게)
-    const scaleX = availableWidth / canvasWidth
-    const scaleY = availableHeight / canvasHeight
-    const fitZoom = Math.min(scaleX, scaleY)
-
-    // 최소 0.25, 최대 1.5 범위로 제한 (너무 크거나 작지 않게)
-    return Math.max(0.25, Math.min(1.5, fitZoom * 0.95)) // 5% 마진
+    return calculateFitZoomUtil(
+      container.clientWidth,
+      container.clientHeight,
+      templateConfig.canvas.width,
+      templateConfig.canvas.height,
+      64, // 패딩 (p-8 = 32px * 2 = 64px)
+      { minZoom: 0.25, maxZoom: 1.5, margin: 0.95 }
+    )
   }, [templateConfig])
 
   // 화면 맞춤 핸들러
@@ -371,13 +383,13 @@ export default function CanvasEditor({
     }
   }, [templateConfig, calculateFitZoom, zoom, setZoom])
 
-  // 저장 (useCallback으로 메모이제이션)
+  // 저장 (useCallback으로 메모이제이션) - 안전한 localStorage 접근
   const handleSave = useCallback(async () => {
-    // TODO: 실제 저장 로직 구현
+    // TODO: 실제 Supabase 저장 로직 구현
     console.log('Saving...', { formData, images, colors })
     markSaved()
     // 자동 저장 데이터 삭제 (수동 저장 완료)
-    localStorage.removeItem(autoSaveKey)
+    safeRemoveAutoSaveData(autoSaveKey)
     setLastAutoSave(new Date())
     toast.success('저장되었습니다')
   }, [formData, images, colors, markSaved, autoSaveKey, toast])
@@ -479,17 +491,17 @@ export default function CanvasEditor({
         return
       }
 
-      // Ctrl/Cmd + +: 확대
+      // Ctrl/Cmd + +: 확대 (안전한 범위 제한)
       if (isCtrlOrCmd && (e.key === '=' || e.key === '+')) {
         e.preventDefault()
-        setZoom(Math.min(2, zoom + 0.1))
+        setZoom(clamp(zoom + 0.1, 0.25, 2))
         return
       }
 
-      // Ctrl/Cmd + -: 축소
+      // Ctrl/Cmd + -: 축소 (안전한 범위 제한)
       if (isCtrlOrCmd && e.key === '-') {
         e.preventDefault()
-        setZoom(Math.max(0.25, zoom - 0.1))
+        setZoom(clamp(zoom - 0.1, 0.25, 2))
         return
       }
 
@@ -630,6 +642,23 @@ export default function CanvasEditor({
       setExportProgress(0)
     }
   }, [title, exportFormat, exportScale, toast, sanitizeFilename])
+
+  // Export 모달 Focus trap 관리 (접근성 개선)
+  useEffect(() => {
+    if (showExportModal && exportModalRef.current) {
+      // Focus trap 생성 및 활성화
+      focusTrapRef.current = createFocusTrap(exportModalRef.current)
+      focusTrapRef.current.activate()
+    }
+
+    return () => {
+      // 모달이 닫힐 때 focus trap 비활성화
+      if (focusTrapRef.current) {
+        focusTrapRef.current.deactivate()
+        focusTrapRef.current = null
+      }
+    }
+  }, [showExportModal])
 
   // 모달 닫기 핸들러
   const closeExportModal = useCallback(() => {
@@ -881,16 +910,18 @@ export default function CanvasEditor({
         />
       </div>
 
-      {/* 내보내기 모달 - 확장된 옵션 */}
+      {/* 내보내기 모달 - 확장된 옵션, Focus trap 적용 */}
       {showExportModal && (
         <div
           className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60]"
           role="dialog"
           aria-modal="true"
           aria-labelledby="export-modal-title"
+          aria-describedby="export-modal-desc"
           onClick={closeExportModal}
         >
           <div
+            ref={exportModalRef}
             className="bg-white rounded-2xl max-w-md w-full mx-4 p-6 animate-scale-in"
             onClick={(e) => e.stopPropagation()}
           >
@@ -902,7 +933,7 @@ export default function CanvasEditor({
                 <h3 id="export-modal-title" className="text-lg font-bold text-gray-900">
                   이미지 내보내기
                 </h3>
-                <p className="text-sm text-gray-500">포맷과 해상도를 선택하세요</p>
+                <p id="export-modal-desc" className="text-sm text-gray-500">포맷과 해상도를 선택하세요</p>
               </div>
             </div>
 
