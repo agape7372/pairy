@@ -228,6 +228,28 @@ Canvas 기반 에디터 재구축 (react-konva)
 - [x] formatTimeAgo 함수 호이스팅 문제 해결 (useCallback)
 - [x] 미사용 contentRef 제거 (EditorSidebar)
 
+### Phase 4 Sprint 24 완료 (플랫폼 애니메이션 시스템)
+- [x] AnimationContext Provider (doodle/premium 모드 전환)
+- [x] DOODLE_SPRING 물리 프리셋 (pop, wobble, jelly)
+- [x] PREMIUM_EASE 프리셋 (smooth, quick, slow, expo)
+- [x] DoodleStars 컴포넌트 (손그림 스타일 별 깜빡임)
+- [x] 고급 인터랙션 훅 (useMagnetic, useTilt, useTextRevealConfig)
+- [x] 스크롤/마우스 훅 (useScrollReveal, useMouseFollow, useParallax)
+- [x] TextReveal, WordReveal, LineReveal 텍스트 애니메이션
+- [x] Spring Physics & Quartic Out Easing 설정
+
+### Phase 4 Sprint 25 완료 (애니메이션 시스템 고도화)
+- [x] Rough Stroke 애니메이션 (손으로 덧칠하는 효과)
+- [x] 형광펜 하이라이트 효과 (.highlighter, .highlighter-accent)
+- [x] 커서 트레일 효과 (useCursorTrail - Doodle 전용)
+- [x] Confetti 효과 (useConfetti - 성공/완료 시 별과 하트)
+- [x] Success Pulse 효과 (useSuccessPulse - Premium 전용)
+- [x] Mouse Glow 트래킹 (useMouseGlow - Premium 전용)
+- [x] 모드별 스크롤 효과 (젤리 팝 vs 안개 페이드)
+- [x] 모드별 페이지 전환 애니메이션
+- [x] 애니메이션 데모 대시보드 페이지 (/animation-demo)
+- [x] 모션 감소 설정 존중 (@media prefers-reduced-motion)
+
 ### Phase 4 목표
 - [x] react-konva 기반 캔버스 에디터
 - [x] 템플릿 JSON 스키마
@@ -235,6 +257,7 @@ Canvas 기반 에디터 재구축 (react-konva)
 - [x] 복잡한 마스킹 (하트, 별 모양) - GlobalCompositeOperation
 - [x] 드래그로 이미지 위치 조정
 - [x] 기존 에디터 완전 대체
+- [x] Doodle/Premium 듀얼 애니메이션 시스템
 
 ---
 
@@ -242,6 +265,11 @@ Canvas 기반 에디터 재구축 (react-konva)
 
 | 날짜 | 커밋 | 설명 |
 |------|------|------|
+| 2025-12-29 | - | feat: 애니메이션 시스템 고도화 - 데모 대시보드, 효과 훅 |
+| 2025-12-29 | eded6ad | feat: 플랫폼 애니메이션 시스템 구축 - Doodle/Premium 듀얼 모드 |
+| 2025-12-29 | 86d3b5c | feat: 고급 인터랙션 시스템 구현 - Glass Effect, Text Reveal |
+| 2025-12-29 | 5625e0d | feat: 뿅뿅 반짝 인터랙션 시스템 추가 |
+| 2025-12-29 | ff3ee89 | feat: 랜딩페이지 UX/UI 전면 재설계 - 내러티브 기반 |
 | 2025-12-29 | 569713f | fix: 종합 코드 리뷰 기반 버그 수정 |
 | 2025-12-29 | 5b413f1 | feat: 자동 저장 및 복구 알림 기능 추가 |
 | 2025-12-29 | 66140bd | feat: 캔버스 에디터 접근성 및 성능 종합 개선 |

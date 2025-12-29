@@ -1476,6 +1476,302 @@ body {
 .stagger-enter.is-visible > *:nth-child(5) { animation-delay: 320ms; }
 .stagger-enter.is-visible > *:nth-child(6) { animation-delay: 400ms; }
 
+/* === DOODLE 고급 효과 === */
+
+/* Rough Stroke 애니메이션 - 손으로 덧칠하는 효과 */
+@keyframes roughStroke {
+  0% {
+    stroke-dashoffset: 100%;
+    stroke-width: 2px;
+  }
+  50% {
+    stroke-width: 3px;
+  }
+  100% {
+    stroke-dashoffset: 0%;
+    stroke-width: 2px;
+  }
+}
+
+.rough-stroke {
+  position: relative;
+}
+
+.rough-stroke::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border: 2px solid var(--primary-400);
+  border-radius: inherit;
+  opacity: 0;
+  transition: opacity 0.2s ease-out;
+  animation: handDrawnWobble 3s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.rough-stroke:hover::after {
+  opacity: 1;
+}
+
+/* 형광펜 하이라이트 효과 */
+@keyframes highlighterDraw {
+  0% {
+    background-size: 0% 100%;
+  }
+  100% {
+    background-size: 100% 100%;
+  }
+}
+
+.highlighter {
+  position: relative;
+  display: inline;
+  background: linear-gradient(
+    transparent 60%,
+    var(--primary-200) 60%,
+    var(--primary-200) 90%,
+    transparent 90%
+  );
+  background-repeat: no-repeat;
+  background-position: left center;
+  background-size: 0% 100%;
+}
+
+.highlighter.active,
+.highlighter:hover {
+  animation: highlighterDraw 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* 형광펜 변형들 */
+.highlighter-accent {
+  background: linear-gradient(
+    transparent 60%,
+    var(--accent-200) 60%,
+    var(--accent-200) 90%,
+    transparent 90%
+  );
+  background-repeat: no-repeat;
+  background-position: left center;
+  background-size: 0% 100%;
+}
+
+.highlighter-accent.active,
+.highlighter-accent:hover {
+  animation: highlighterDraw 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* 손그림 스타일 언더라인 */
+@keyframes handDrawnUnderline {
+  0% {
+    stroke-dashoffset: 100;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+.doodle-underline {
+  position: relative;
+  display: inline-block;
+}
+
+.doodle-underline::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: var(--primary-300);
+  border-radius: 50% 20% 50% 20%;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.doodle-underline:hover::after {
+  transform: scaleX(1);
+}
+
+/* 커서 트레일용 점 */
+.cursor-trail-dot {
+  position: fixed;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--primary-300);
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0;
+  transform: scale(0);
+  transition: opacity 0.15s ease-out, transform 0.15s ease-out;
+}
+
+.cursor-trail-dot.active {
+  opacity: 0.6;
+  transform: scale(1);
+}
+
+.cursor-trail-dot:nth-child(2) {
+  width: 6px;
+  height: 6px;
+  background: var(--accent-300);
+  transition-delay: 0.02s;
+}
+
+.cursor-trail-dot:nth-child(3) {
+  width: 5px;
+  height: 5px;
+  background: var(--primary-400);
+  transition-delay: 0.04s;
+}
+
+.cursor-trail-dot:nth-child(4) {
+  width: 4px;
+  height: 4px;
+  background: var(--accent-400);
+  transition-delay: 0.06s;
+}
+
+/* Doodle 모드 전용 페이지 전환 */
+[data-animation-mode="doodle"] .page-transition-enter {
+  opacity: 0;
+  transform: translateY(30px) scale(0.98);
+}
+
+[data-animation-mode="doodle"] .page-transition-enter-active {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Doodle 성공/완료 효과 - 별과 하트 폭죽 */
+@keyframes confettiPop {
+  0% {
+    transform: translate(0, 0) scale(0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--tx, 30px), var(--ty, -50px)) scale(1) rotate(var(--tr, 180deg));
+    opacity: 0;
+  }
+}
+
+.confetti-container {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.confetti {
+  position: absolute;
+  font-size: 16px;
+  animation: confettiPop 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* === PREMIUM 고급 효과 === */
+
+/* Premium 마우스 트래킹 글로우 (강화) */
+.mouse-glow-premium {
+  position: relative;
+  overflow: hidden;
+}
+
+.mouse-glow-premium::before {
+  content: '';
+  position: absolute;
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(
+    circle,
+    rgba(255, 217, 217, 0.2) 0%,
+    rgba(215, 250, 250, 0.1) 30%,
+    transparent 70%
+  );
+  transform: translate(
+    calc(var(--mouse-x, 50%) - 200px),
+    calc(var(--mouse-y, 50%) - 200px)
+  );
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 0;
+}
+
+.mouse-glow-premium:hover::before {
+  opacity: 1;
+}
+
+/* Premium 페이지 전환 - 안개에서 선명해짐 */
+[data-animation-mode="premium"] .page-transition-enter {
+  opacity: 0;
+  filter: blur(8px);
+  transform: translateY(10px);
+}
+
+[data-animation-mode="premium"] .page-transition-enter-active {
+  opacity: 1;
+  filter: blur(0);
+  transform: translateY(0);
+  transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Premium 성공/완료 효과 - 은은한 맥동 */
+@keyframes successPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 217, 217, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 20px rgba(255, 217, 217, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 217, 217, 0);
+  }
+}
+
+.success-pulse {
+  animation: successPulse 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Premium 호버 시 글래스 강화 */
+[data-animation-mode="premium"] .glass-hover {
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-animation-mode="premium"] .glass-hover:hover {
+  backdrop-filter: blur(24px) saturate(200%);
+  background: rgba(255, 255, 255, 0.8);
+}
+
+/* === 모드별 스크롤 효과 === */
+
+/* Doodle: 젤리처럼 출렁이며 등장 */
+[data-animation-mode="doodle"] .scroll-reveal {
+  opacity: 0;
+  transform: translateY(30px) scale(0.95);
+  transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+[data-animation-mode="doodle"] .scroll-reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+/* Premium: 안개 속에서 선명해지며 등장 */
+[data-animation-mode="premium"] .scroll-reveal {
+  opacity: 0;
+  filter: blur(6px);
+  transform: translateY(15px);
+  transition: all 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-animation-mode="premium"] .scroll-reveal.is-visible {
+  opacity: 1;
+  filter: blur(0);
+  transform: translateY(0);
+}
+
 /* 모션 감소 설정 존중 */
 @media (prefers-reduced-motion: reduce) {
   *,
