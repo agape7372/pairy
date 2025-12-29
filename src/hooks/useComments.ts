@@ -4,6 +4,24 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { createClient, IS_DEMO_MODE } from '@/lib/supabase/client'
 import type { CommentWithUser } from '@/types/database.types'
 
+// Supabase 쿼리 결과 타입
+interface CommentQueryResult {
+  id: string
+  template_id: string
+  user_id: string
+  parent_id: string | null
+  content: string
+  like_count: number
+  is_edited: boolean
+  created_at: string
+  updated_at: string
+  user: {
+    id: string
+    display_name: string | null
+    avatar_url: string | null
+  } | null
+}
+
 interface UseCommentsReturn {
   comments: CommentWithUser[]
   isLoading: boolean
@@ -87,7 +105,9 @@ function getDemoComments(templateId: string): CommentWithUser[] {
   }
 }
 
-function saveDemoComments(comments: CommentWithUser[]) {
+// NOTE: 데모 댓글 저장 기능 - 향후 데모 모드 댓글 영구 저장 시 사용 예정
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function _saveDemoComments(comments: CommentWithUser[]) {
   if (typeof window === 'undefined') return
   localStorage.setItem(DEMO_COMMENTS_KEY, JSON.stringify(comments))
 }
@@ -174,7 +194,7 @@ export function useComments(templateId: string): UseCommentsReturn {
 
       // 답글 가져오기
       const commentIds = commentsData?.map(c => c.id) || []
-      let repliesData: any[] = []
+      let repliesData: CommentQueryResult[] = []
 
       if (commentIds.length > 0) {
         const { data: replies } = await supabase
@@ -186,7 +206,8 @@ export function useComments(templateId: string): UseCommentsReturn {
           .in('parent_id', commentIds)
           .order('created_at', { ascending: true })
 
-        repliesData = replies || []
+        // NOTE: Supabase 타입 추론이 복잡하므로 unknown을 통해 변환
+        repliesData = (replies || []) as unknown as CommentQueryResult[]
       }
 
       // 현재 사용자의 좋아요 확인
@@ -201,16 +222,17 @@ export function useComments(templateId: string): UseCommentsReturn {
       }
 
       // 데이터 조합
-      const transformedComments: CommentWithUser[] = (commentsData || []).map((comment: any) => ({
+      // NOTE: Supabase 쿼리 결과를 CommentWithUser로 변환. 타입이 복잡하므로 unknown을 경유
+      const transformedComments = ((commentsData || []) as unknown as CommentQueryResult[]).map((comment) => ({
         ...comment,
         isLiked: userLikes.includes(comment.id),
         replies: repliesData
-          .filter((r: any) => r.parent_id === comment.id)
-          .map((r: any) => ({
+          .filter((r) => r.parent_id === comment.id)
+          .map((r) => ({
             ...r,
             isLiked: userLikes.includes(r.id),
           })),
-      }))
+      })) as unknown as CommentWithUser[]
 
       // 언마운트 체크
       if (!isMountedRef.current) return

@@ -7,7 +7,8 @@ import { ArrowRight, Loader2, Users, UserPlus } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { Button } from '@/components/ui'
 import { useEditorEntryStore } from '@/stores/editorEntryStore'
-import { useCollabSession } from '@/hooks/useCollabSession'
+// NOTE: useCollabSession은 Duo 모드 세션 생성 시 활성화 예정
+// import { useCollabSession } from '@/hooks/useCollabSession'
 
 interface TitleInputStepProps {
   className?: string
@@ -30,8 +31,9 @@ export function TitleInputStep({ className }: TitleInputStepProps) {
     reset,
   } = useEditorEntryStore()
 
-  const { createSession } = useCollabSession()
+  // const { createSession } = useCollabSession() // Duo 모드 활성화 시 사용
   const [isNavigating, setIsNavigating] = useState(false)
+  const resetTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   // 자동 포커스
   useEffect(() => {
@@ -40,6 +42,15 @@ export function TitleInputStep({ className }: TitleInputStepProps) {
       inputRef.current?.select()
     }, 300)
     return () => clearTimeout(timer)
+  }, [])
+
+  // 컴포넌트 언마운트 시 reset timeout 정리
+  useEffect(() => {
+    return () => {
+      if (resetTimeoutRef.current) {
+        clearTimeout(resetTimeoutRef.current)
+      }
+    }
   }, [])
 
   const handleTitleChange = useCallback(
@@ -63,7 +74,8 @@ export function TitleInputStep({ className }: TitleInputStepProps) {
 
     try {
       const params = new URLSearchParams()
-      params.set('title', encodeURIComponent(title.trim()))
+      // NOTE: URLSearchParams.set()이 자동으로 인코딩하므로 encodeURIComponent 불필요
+      params.set('title', title.trim())
 
       // Duo 모드일 경우 세션 생성
       if (mode === 'duo') {
@@ -78,8 +90,8 @@ export function TitleInputStep({ className }: TitleInputStepProps) {
       // 에디터로 이동
       router.push(`/canvas-editor/${selectedTemplate.id}?${params.toString()}`)
 
-      // 진입 스토어 리셋 (약간의 딜레이 후)
-      setTimeout(() => {
+      // 진입 스토어 리셋 (약간의 딜레이 후, ref로 추적하여 메모리 누수 방지)
+      resetTimeoutRef.current = setTimeout(() => {
         reset()
       }, 500)
     } catch (err) {

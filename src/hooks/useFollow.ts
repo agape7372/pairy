@@ -3,6 +3,23 @@
 import { useEffect, useState, useCallback } from 'react'
 import { createClient, IS_DEMO_MODE } from '@/lib/supabase/client'
 
+// 프로필 기본 정보 타입
+interface ProfileInfo {
+  id: string
+  display_name: string | null
+  avatar_url: string | null
+  username: string | null
+}
+
+// Supabase 팔로워/팔로잉 쿼리 결과 타입
+interface FollowerQueryResult {
+  follower: ProfileInfo | null
+}
+
+interface FollowingQueryResult {
+  following: ProfileInfo | null
+}
+
 interface UseFollowReturn {
   isFollowing: boolean
   followerCount: number
@@ -275,9 +292,10 @@ export function useFollowers(userId: string) {
 
         if (error) throw error
 
-        const followersList = (data || [])
-          .map((item: any) => item.follower)
-          .filter(Boolean)
+        // NOTE: Supabase 타입 추론이 복잡하므로 unknown을 통해 변환
+        const followersList = ((data || []) as unknown as FollowerQueryResult[])
+          .map((item) => item.follower)
+          .filter((f): f is ProfileInfo => f !== null)
 
         setFollowers(followersList)
       } catch (error) {
@@ -338,9 +356,10 @@ export function useFollowing(userId: string) {
 
         if (error) throw error
 
-        const followingList = (data || [])
-          .map((item: any) => item.following)
-          .filter(Boolean)
+        // NOTE: Supabase 타입 추론이 복잡하므로 unknown을 통해 변환
+        const followingList = ((data || []) as unknown as FollowingQueryResult[])
+          .map((item) => item.following)
+          .filter((f): f is ProfileInfo => f !== null)
 
         setFollowing(followingList)
       } catch (error) {
