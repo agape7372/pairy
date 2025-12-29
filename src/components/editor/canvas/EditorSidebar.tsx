@@ -22,15 +22,11 @@ import type { InputFieldConfig, ImageSlot, ColorConfig } from '@/types/template'
 /**
  * 텍스트 입력 필드
  */
-function TextInputField({
-  field,
-  value,
-  onChange,
-}: {
+const TextInputField = React.forwardRef<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement, {
   field: InputFieldConfig
   value: string
   onChange: (value: string) => void
-}) {
+}>(function TextInputField({ field, value, onChange }, ref) {
   if (field.type === 'textarea') {
     return (
       <div className="space-y-1">
@@ -39,6 +35,7 @@ function TextInputField({
           {field.required && <span className="text-red-400 ml-1">*</span>}
         </label>
         <textarea
+          ref={ref as React.Ref<HTMLTextAreaElement>}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={field.placeholder}
@@ -56,6 +53,7 @@ function TextInputField({
           {field.label}
         </label>
         <input
+          ref={ref as React.Ref<HTMLInputElement>}
           type="date"
           value={value}
           onChange={(e) => onChange(e.target.value)}
@@ -72,6 +70,7 @@ function TextInputField({
           {field.label}
         </label>
         <select
+          ref={ref as React.Ref<HTMLSelectElement>}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-300"
@@ -94,6 +93,7 @@ function TextInputField({
         {field.required && <span className="text-red-400 ml-1">*</span>}
       </label>
       <input
+        ref={ref as React.Ref<HTMLInputElement>}
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -102,7 +102,7 @@ function TextInputField({
       />
     </div>
   )
-}
+})
 
 /**
  * 이미지 업로드 필드
@@ -121,6 +121,7 @@ function ImageUploadField({
   onRemove: () => void
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [isDragging, setIsDragging] = useState(false)
 
   const handleFileChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -134,6 +135,43 @@ function ImageUploadField({
     [onUpload]
   )
 
+  // 드래그 앤 드롭 핸들러
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+  }, [])
+
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(true)
+  }, [])
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+  }, [])
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+
+    const files = e.dataTransfer.files
+    if (files.length > 0) {
+      const file = files[0]
+      // 이미지 파일만 허용
+      if (file.type.startsWith('image/')) {
+        onUpload(file)
+      }
+    }
+  }, [onUpload])
+
+  const openFileDialog = useCallback(() => {
+    fileInputRef.current?.click()
+  }, [])
+
   return (
     <div className="space-y-2">
       <label className="block text-xs font-medium text-gray-600">
@@ -142,14 +180,32 @@ function ImageUploadField({
       </label>
 
       {imageUrl ? (
-        <div className="relative group">
+        <div
+          className={cn(
+            'relative group cursor-pointer rounded-xl overflow-hidden border-2 transition-colors',
+            isDragging ? 'border-primary-400 bg-primary-50' : 'border-transparent'
+          )}
+          onClick={openFileDialog}
+          onDragOver={handleDragOver}
+          onDragEnter={handleDragEnter}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+        >
           <img
             src={imageUrl}
             alt={field.label}
-            className="w-full h-32 object-cover rounded-xl border border-gray-200"
+            className="w-full h-32 object-cover rounded-xl"
           />
+          {/* 오버레이 - 호버 시 변경 안내 */}
+          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+            <span className="text-white text-xs font-medium">클릭하여 변경</span>
+          </div>
+          {/* 삭제 버튼 */}
           <button
-            onClick={onRemove}
+            onClick={(e) => {
+              e.stopPropagation()
+              onRemove()
+            }}
             className="absolute top-2 right-2 p-1.5 bg-black/60 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity focus:opacity-100"
             aria-label={`${field.label} 이미지 삭제`}
           >
@@ -157,14 +213,33 @@ function ImageUploadField({
           </button>
         </div>
       ) : (
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          className="w-full h-32 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center gap-2 text-gray-400 hover:border-primary-400 hover:text-primary-500 transition-colors"
+        <div
+          onClick={openFileDialog}
+          onDragOver={handleDragOver}
+          onDragEnter={handleDragEnter}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          className={cn(
+            'w-full h-32 border-2 border-dashed rounded-xl flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors',
+            isDragging
+              ? 'border-primary-400 bg-primary-50 text-primary-500'
+              : 'border-gray-300 text-gray-400 hover:border-primary-400 hover:text-primary-500'
+          )}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault()
+              openFileDialog()
+            }
+          }}
           aria-label={`${field.label} 이미지 업로드`}
         >
           <Upload className="w-6 h-6" aria-hidden="true" />
-          <span className="text-xs">클릭하여 업로드</span>
-        </button>
+          <span className="text-xs text-center">
+            {isDragging ? '여기에 놓으세요' : '클릭 또는 드래그하여 업로드'}
+          </span>
+        </div>
       )}
 
       <input
@@ -246,19 +321,7 @@ function ColorPickerField({
 /**
  * 슬롯별 입력 그룹
  */
-function SlotInputGroup({
-  slot,
-  fields,
-  formData,
-  imageUrl,
-  onFieldChange,
-  onImageUpload,
-  onImageRemove,
-  onResetTransform,
-  hasTransform,
-  isExpanded,
-  onToggle,
-}: {
+const SlotInputGroup = React.forwardRef<HTMLDivElement, {
   slot: ImageSlot
   fields: InputFieldConfig[]
   formData: Record<string, string | undefined>
@@ -270,12 +333,32 @@ function SlotInputGroup({
   hasTransform?: boolean
   isExpanded: boolean
   onToggle: () => void
-}) {
+  isSelected?: boolean
+}>(function SlotInputGroup({
+  slot,
+  fields,
+  formData,
+  imageUrl,
+  onFieldChange,
+  onImageUpload,
+  onImageRemove,
+  onResetTransform,
+  hasTransform,
+  isExpanded,
+  onToggle,
+  isSelected,
+}, ref) {
   const imageField = fields.find((f) => f.type === 'image')
   const textFields = fields.filter((f) => f.type !== 'image')
 
   return (
-    <div className="border border-gray-200 rounded-xl overflow-hidden">
+    <div
+      ref={ref}
+      className={cn(
+        'border rounded-xl overflow-hidden transition-colors',
+        isSelected ? 'border-primary-400 ring-2 ring-primary-200' : 'border-gray-200'
+      )}
+    >
       <button
         onClick={onToggle}
         className="w-full px-4 py-3 flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors"
@@ -325,7 +408,7 @@ function SlotInputGroup({
       )}
     </div>
   )
-}
+})
 
 // ============================================
 // 메인 사이드바 컴포넌트
@@ -345,6 +428,8 @@ export default function EditorSidebar({ isOpen = true, onClose }: EditorSidebarP
     images,
     colors,
     slotTransforms,
+    selectedSlotId,
+    selectedTextId,
     updateFormField,
     updateImage,
     updateColor,
@@ -354,12 +439,68 @@ export default function EditorSidebar({ isOpen = true, onClose }: EditorSidebarP
   const [activeTab, setActiveTab] = useState<Tab>('slots')
   const [expandedSlots, setExpandedSlots] = useState<Set<string>>(new Set())
 
+  // 슬롯 섹션 refs
+  const slotRefs = useRef<Record<string, HTMLDivElement | null>>({})
+
   // 버그 수정: 템플릿 변경 시 expandedSlots 동기화
   useEffect(() => {
     if (templateConfig?.layers.slots) {
       setExpandedSlots(new Set(templateConfig.layers.slots.map((s) => s.id)))
     }
   }, [templateConfig])
+
+  // 슬롯 선택 시 자동 탭 전환 및 스크롤
+  useEffect(() => {
+    if (selectedSlotId && templateConfig) {
+      // 슬롯 탭으로 전환
+      setActiveTab('slots')
+
+      // 해당 슬롯 펼치기
+      setExpandedSlots((prev) => {
+        const next = new Set(prev)
+        next.add(selectedSlotId)
+        return next
+      })
+
+      // 약간의 딜레이 후 스크롤 (DOM 업데이트 대기)
+      setTimeout(() => {
+        const slotElement = slotRefs.current[selectedSlotId]
+        if (slotElement) {
+          slotElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }
+      }, 100)
+    }
+  }, [selectedSlotId, templateConfig])
+
+  // 텍스트 선택 시 해당 필드로 스크롤
+  useEffect(() => {
+    if (selectedTextId && templateConfig) {
+      // 텍스트 ID로 입력 필드 찾기 (textId는 보통 field.key와 매핑됨)
+      const field = templateConfig.inputFields.find(f => f.key === selectedTextId)
+
+      if (field) {
+        if (field.slotId) {
+          // 슬롯에 속한 필드면 슬롯 탭으로 이동
+          setActiveTab('slots')
+          setExpandedSlots((prev) => {
+            const next = new Set(prev)
+            next.add(field.slotId!)
+            return next
+          })
+
+          setTimeout(() => {
+            const slotElement = slotRefs.current[field.slotId!]
+            if (slotElement) {
+              slotElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+            }
+          }, 100)
+        } else {
+          // 일반 텍스트 필드면 텍스트 탭으로 이동
+          setActiveTab('general')
+        }
+      }
+    }
+  }, [selectedTextId, templateConfig])
 
   if (!templateConfig) {
     return (
@@ -505,6 +646,7 @@ export default function EditorSidebar({ isOpen = true, onClose }: EditorSidebarP
               return (
                 <SlotInputGroup
                   key={slot.id}
+                  ref={(el) => { slotRefs.current[slot.id] = el }}
                   slot={slot}
                   fields={fields}
                   formData={formData}
@@ -516,6 +658,7 @@ export default function EditorSidebar({ isOpen = true, onClose }: EditorSidebarP
                   hasTransform={hasTransform}
                   isExpanded={expandedSlots.has(slot.id)}
                   onToggle={() => toggleSlotExpand(slot.id)}
+                  isSelected={selectedSlotId === slot.id}
                 />
               )
             })}

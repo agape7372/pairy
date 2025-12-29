@@ -146,6 +146,8 @@ Canvas 기반 에디터 재구축 (react-konva)
 | Sprint 19 | 이미지 마스킹 고도화 (GlobalCompositeOperation) | ✅ | 2025-12-29 |
 | Sprint 20 | 드래그 앤 드롭 인터랙션 | ✅ | 2025-12-29 |
 | Sprint 21 | 마이그레이션 & 테스트 설정 | ✅ | 2025-12-29 |
+| Sprint 22 | UX 종합 개선 (핀치줌, 단축키, 내보내기, 자동저장) | ✅ | 2025-12-29 |
+| Sprint 23 | 코드 리뷰 및 버그 수정 | ✅ | 2025-12-29 |
 
 ### Phase 4 Sprint 16 완료 (템플릿 스키마)
 - [x] 템플릿 타입 정의 (`src/types/template.ts`)
@@ -202,6 +204,30 @@ Canvas 기반 에디터 재구축 (react-konva)
 - [x] Playwright E2E 테스트 구성
 - [x] npm scripts 추가 (analyze, test, test:watch, test:e2e)
 
+### Phase 4 Sprint 22 완료 (UX 종합 개선)
+- [x] 핀치 줌 제스처 지원 (모바일 2손가락)
+- [x] 키보드 단축키 확장 (?, Ctrl+0/1/+/-, 방향키, Delete)
+- [x] 단축키 도움말 모달 (? 키)
+- [x] 내보내기 포맷 선택 (PNG/JPG/WebP)
+- [x] 내보내기 해상도 선택 (1x/2x/3x)
+- [x] 내보내기 진행률 표시
+- [x] 실행취소/다시실행 카운터 표시
+- [x] Toast 알림 시스템 개선 (타이틀, 액션 버튼)
+- [x] 자동 저장 (30초 디바운스)
+- [x] 이전 작업 복구 알림 (24시간 이내)
+- [x] Store 확장 (레이어 상태, 히스토리 정보, 이미지 삭제)
+- [x] 캔버스 터치 시 사이드바 자동 연동
+- [x] 이미지 업로드 드래그 앤 드롭
+
+### Phase 4 Sprint 23 완료 (코드 리뷰 및 버그 수정)
+- [x] 미사용 상태 변수 제거 (showRecoveryToast)
+- [x] 파일명 sanitization 헬퍼 추가 (XSS 방지)
+- [x] localStorage QuotaExceededError 처리 및 사용자 알림
+- [x] 자동 저장 race condition 방지 (디바운스 + getState())
+- [x] 복구 토스트 중복 표시 방지 (ref 사용)
+- [x] formatTimeAgo 함수 호이스팅 문제 해결 (useCallback)
+- [x] 미사용 contentRef 제거 (EditorSidebar)
+
 ### Phase 4 목표
 - [x] react-konva 기반 캔버스 에디터
 - [x] 템플릿 JSON 스키마
@@ -216,6 +242,14 @@ Canvas 기반 에디터 재구축 (react-konva)
 
 | 날짜 | 커밋 | 설명 |
 |------|------|------|
+| 2025-12-29 | 569713f | fix: 종합 코드 리뷰 기반 버그 수정 |
+| 2025-12-29 | 5b413f1 | feat: 자동 저장 및 복구 알림 기능 추가 |
+| 2025-12-29 | 66140bd | feat: 캔버스 에디터 접근성 및 성능 종합 개선 |
+| 2025-12-29 | 8c97401 | feat: 캔버스 에디터 접근성 및 성능 종합 개선 |
+| 2025-12-29 | ab687ae | feat: 이미지 업로드 드래그 앤 드롭 및 UX 개선 |
+| 2025-12-29 | 4f2c4aa | feat: 캔버스 터치 시 사이드바 자동 연동 |
+| 2025-12-29 | 14f28c3 | fix: 모바일 캔버스 줌 레이아웃 수정 |
+| 2025-12-29 | 2b5f388 | feat: 캔버스 자동 화면 맞춤 기능 추가 |
 | 2025-12-28 | eec444b | docs: 운영비 및 수익 모델 문서 추가 |
 | 2025-12-28 | 6845320 | feat: 크리에이터 경험 기능 구현 |
 | 2025-12-28 | - | feat: Sprint 9 + 10 마이페이지 강화 및 검색/필터링 |
