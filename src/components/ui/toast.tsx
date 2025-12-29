@@ -11,8 +11,13 @@ export type ToastType = 'success' | 'error' | 'warning' | 'info'
 export interface Toast {
   id: string
   message: string
+  title?: string
   type: ToastType
   duration?: number
+  action?: {
+    label: string
+    onClick: () => void
+  }
 }
 
 // 토스트 아이콘
@@ -38,14 +43,24 @@ const toastIconStyles: Record<ToastType, string> = {
   info: 'text-blue-500',
 }
 
+// 토스트 옵션 타입
+interface ToastOptions {
+  title?: string
+  duration?: number
+  action?: {
+    label: string
+    onClick: () => void
+  }
+}
+
 // 토스트 Context
 interface ToastContextType {
   toasts: Toast[]
-  showToast: (message: string, type?: ToastType, duration?: number) => void
-  success: (message: string, duration?: number) => void
-  error: (message: string, duration?: number) => void
-  warning: (message: string, duration?: number) => void
-  info: (message: string, duration?: number) => void
+  showToast: (message: string, type?: ToastType, options?: ToastOptions) => string
+  success: (message: string, options?: ToastOptions) => string
+  error: (message: string, options?: ToastOptions) => string
+  warning: (message: string, options?: ToastOptions) => string
+  info: (message: string, options?: ToastOptions) => string
   removeToast: (id: string) => void
 }
 
@@ -60,11 +75,19 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const showToast = useCallback(
-    (message: string, type: ToastType = 'info', duration: number = 3000) => {
+    (message: string, type: ToastType = 'info', options?: ToastOptions): string => {
       const id = `toast-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-      const newToast: Toast = { id, message, type, duration }
+      const duration = options?.duration ?? (type === 'error' ? 6000 : 4000)
+      const newToast: Toast = {
+        id,
+        message,
+        title: options?.title,
+        type,
+        duration,
+        action: options?.action,
+      }
 
-      setToasts((prev) => [...prev, newToast])
+      setToasts((prev) => [...prev.slice(-4), newToast]) // 최대 5개 유지
 
       // 자동 제거
       if (duration > 0) {
@@ -72,27 +95,29 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           removeToast(id)
         }, duration)
       }
+
+      return id
     },
     [removeToast]
   )
 
   const success = useCallback(
-    (message: string, duration?: number) => showToast(message, 'success', duration),
+    (message: string, options?: ToastOptions) => showToast(message, 'success', options),
     [showToast]
   )
 
   const error = useCallback(
-    (message: string, duration?: number) => showToast(message, 'error', duration),
+    (message: string, options?: ToastOptions) => showToast(message, 'error', options),
     [showToast]
   )
 
   const warning = useCallback(
-    (message: string, duration?: number) => showToast(message, 'warning', duration),
+    (message: string, options?: ToastOptions) => showToast(message, 'warning', options),
     [showToast]
   )
 
   const info = useCallback(
-    (message: string, duration?: number) => showToast(message, 'info', duration),
+    (message: string, options?: ToastOptions) => showToast(message, 'info', options),
     [showToast]
   )
 
@@ -126,7 +151,11 @@ function ToastContainer({
   if (toasts.length === 0) return null
 
   return (
-    <div className="fixed bottom-4 right-4 z-[100] flex flex-col gap-2 max-w-sm w-full pointer-events-none">
+    <div
+      className="fixed bottom-4 right-4 z-[100] flex flex-col gap-2 max-w-sm w-full pointer-events-none"
+      role="region"
+      aria-label="알림"
+    >
       {toasts.map((toast) => (
         <ToastItem key={toast.id} toast={toast} onRemove={onRemove} />
       ))}
@@ -147,37 +176,40 @@ function ToastItem({
   return (
     <div
       className={cn(
-        'pointer-events-auto flex items-start gap-3 p-4 rounded-xl border shadow-lg animate-slide-up',
+        'pointer-events-auto flex items-start gap-3 p-4 rounded-xl border shadow-lg',
+        'animate-slide-up backdrop-blur-sm',
         toastStyles[toast.type]
       )}
+      role="alert"
+      aria-live="polite"
     >
-      <Icon className={cn('w-5 h-5 shrink-0 mt-0.5', toastIconStyles[toast.type])} />
-      <p className="flex-1 text-sm font-medium">{toast.message}</p>
+      <Icon className={cn('w-5 h-5 shrink-0 mt-0.5', toastIconStyles[toast.type])} aria-hidden="true" />
+      <div className="flex-1 min-w-0">
+        {toast.title && (
+          <p className="font-semibold text-sm">{toast.title}</p>
+        )}
+        <p className={cn('text-sm', toast.title ? 'opacity-90' : 'font-medium')}>
+          {toast.message}
+        </p>
+        {toast.action && (
+          <button
+            onClick={() => {
+              toast.action?.onClick()
+              onRemove(toast.id)
+            }}
+            className="mt-2 text-sm font-medium underline hover:no-underline transition-all"
+          >
+            {toast.action.label}
+          </button>
+        )}
+      </div>
       <button
         onClick={() => onRemove(toast.id)}
-        className="shrink-0 p-1 rounded-lg hover:bg-black/5 transition-colors"
+        className="shrink-0 p-1 rounded-lg hover:bg-black/10 transition-colors"
+        aria-label="알림 닫기"
       >
-        <X className="w-4 h-4" />
+        <X className="w-4 h-4" aria-hidden="true" />
       </button>
-    </div>
-  )
-}
-
-// 모바일용 상단 토스트 (선택적)
-export function TopToastContainer({
-  toasts,
-  onRemove,
-}: {
-  toasts: Toast[]
-  onRemove: (id: string) => void
-}) {
-  if (toasts.length === 0) return null
-
-  return (
-    <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[100] flex flex-col gap-2 max-w-sm w-full px-4 pointer-events-none">
-      {toasts.map((toast) => (
-        <ToastItem key={toast.id} toast={toast} onRemove={onRemove} />
-      ))}
     </div>
   )
 }

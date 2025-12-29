@@ -27,6 +27,16 @@ interface SlotTransforms {
   [slotId: string]: SlotImageTransform
 }
 
+/** 레이어 상태 (표시/잠금) */
+interface LayerState {
+  visible: boolean
+  locked: boolean
+}
+
+interface LayerStates {
+  [slotId: string]: LayerState
+}
+
 interface CanvasEditorState {
   // 템플릿 설정
   templateConfig: TemplateConfig | null
@@ -40,6 +50,9 @@ interface CanvasEditorState {
 
   // 슬롯 내 이미지 변환 상태 (드래그/줌)
   slotTransforms: SlotTransforms
+
+  // 레이어 상태 (표시/잠금)
+  layerStates: LayerStates
 
   // UI 상태
   selectedSlotId: string | null
@@ -87,6 +100,17 @@ interface CanvasEditorActions {
   redo: () => void
   canUndo: () => boolean
   canRedo: () => boolean
+  getHistoryInfo: () => { current: number; total: number; canUndo: number; canRedo: number }
+
+  // 레이어 상태
+  setLayerVisible: (slotId: string, visible: boolean) => void
+  setLayerLocked: (slotId: string, locked: boolean) => void
+  toggleLayerVisible: (slotId: string) => void
+  toggleLayerLocked: (slotId: string) => void
+  getLayerState: (slotId: string) => LayerState
+
+  // 이미지 삭제
+  removeImage: (dataKey: string) => void
 
   // 저장
   markDirty: () => void
@@ -113,6 +137,12 @@ const defaultSlotTransform: SlotImageTransform = {
   rotation: 0,
 }
 
+// 기본 레이어 상태
+const defaultLayerState: LayerState = {
+  visible: true,
+  locked: false,
+}
+
 // ============================================
 // 초기 상태
 // ============================================
@@ -133,6 +163,7 @@ const initialState: CanvasEditorState = {
   images: {},
   colors: defaultColors,
   slotTransforms: {},
+  layerStates: {},
 
   selectedSlotId: null,
   selectedTextId: null,
@@ -180,12 +211,19 @@ export const useCanvasEditorStore = create<CanvasEditorState & CanvasEditorActio
             }
           })
 
+          // 레이어 상태 초기화
+          const layerStates: LayerStates = {}
+          config.layers.slots.forEach((slot) => {
+            layerStates[slot.id] = { ...defaultLayerState }
+          })
+
           set({
             templateConfig: config,
             colors,
             formData,
             images: {},
             slotTransforms: {},
+            layerStates,
             selectedSlotId: config.layers.slots[0]?.id || null,
             selectedTextId: null,
             isDirty: false,
@@ -338,6 +376,83 @@ export const useCanvasEditorStore = create<CanvasEditorState & CanvasEditorActio
 
         canUndo: () => get().historyIndex > 0,
         canRedo: () => get().historyIndex < get().history.length - 1,
+
+        getHistoryInfo: () => {
+          const state = get()
+          return {
+            current: state.historyIndex + 1,
+            total: state.history.length,
+            canUndo: state.historyIndex,
+            canRedo: state.history.length - 1 - state.historyIndex,
+          }
+        },
+
+        // 레이어 상태
+        setLayerVisible: (slotId, visible) => {
+          set((state) => ({
+            layerStates: {
+              ...state.layerStates,
+              [slotId]: {
+                ...(state.layerStates[slotId] || defaultLayerState),
+                visible,
+              },
+            },
+          }))
+        },
+
+        setLayerLocked: (slotId, locked) => {
+          set((state) => ({
+            layerStates: {
+              ...state.layerStates,
+              [slotId]: {
+                ...(state.layerStates[slotId] || defaultLayerState),
+                locked,
+              },
+            },
+          }))
+        },
+
+        toggleLayerVisible: (slotId) => {
+          const state = get()
+          const current = state.layerStates[slotId] || defaultLayerState
+          set({
+            layerStates: {
+              ...state.layerStates,
+              [slotId]: { ...current, visible: !current.visible },
+            },
+          })
+        },
+
+        toggleLayerLocked: (slotId) => {
+          const state = get()
+          const current = state.layerStates[slotId] || defaultLayerState
+          set({
+            layerStates: {
+              ...state.layerStates,
+              [slotId]: { ...current, locked: !current.locked },
+            },
+          })
+        },
+
+        getLayerState: (slotId) => {
+          const state = get()
+          return state.layerStates[slotId] || defaultLayerState
+        },
+
+        // 이미지 삭제
+        removeImage: (dataKey) => {
+          set((state) => {
+            const newImages = { ...state.images }
+            // blob URL 해제
+            const existingUrl = newImages[dataKey]
+            if (existingUrl && existingUrl.startsWith('blob:')) {
+              URL.revokeObjectURL(existingUrl)
+            }
+            delete newImages[dataKey]
+            return { images: newImages, isDirty: true }
+          })
+          get().pushHistory()
+        },
 
         // 저장
         markDirty: () => set({ isDirty: true }),

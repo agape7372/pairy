@@ -15,12 +15,30 @@ import {
   Save,
   Loader2,
   PanelRight,
+  Keyboard,
+  Image as ImageIcon,
 } from 'lucide-react'
-import { Button } from '@/components/ui'
+import { Button, useToast } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
 import { useCanvasEditorStore } from '@/stores/canvasEditorStore'
 import EditorSidebar from './EditorSidebar'
+import KeyboardShortcutsModal from './KeyboardShortcutsModal'
 import type { TemplateConfig, TemplateRendererRef } from '@/types/template'
+
+// 내보내기 포맷 타입
+type ExportFormat = 'png' | 'jpg' | 'webp'
+
+interface ExportOption {
+  format: ExportFormat
+  label: string
+  quality?: number
+}
+
+const exportFormats: ExportOption[] = [
+  { format: 'png', label: 'PNG (무손실)' },
+  { format: 'jpg', label: 'JPG (고압축)', quality: 0.92 },
+  { format: 'webp', label: 'WebP (최적화)', quality: 0.9 },
+]
 
 // react-konva는 SSR과 호환되지 않으므로 동적 import
 const TemplateRenderer = dynamic(() => import('./TemplateRenderer'), {
@@ -78,16 +96,29 @@ export default function CanvasEditor({
     redo,
     canUndo,
     canRedo,
+    getHistoryInfo,
     markSaved,
     updateSlotTransform,
+    removeImage,
   } = useCanvasEditorStore()
+
+  // Toast
+  const toast = useToast()
 
   // Local state
   const [title, setTitle] = useState(initialTitle || '새 작업')
   const [isExporting, setIsExporting] = useState(false)
+  const [exportProgress, setExportProgress] = useState(0)
   const [showExportModal, setShowExportModal] = useState(false)
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false) // 모바일용 사이드바 토글
-  const [exportError, setExportError] = useState<string | null>(null) // 내보내기 에러 상태
+  const [showShortcutsModal, setShowShortcutsModal] = useState(false)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const [exportError, setExportError] = useState<string | null>(null)
+  const [exportFormat, setExportFormat] = useState<ExportFormat>('png')
+  const [exportScale, setExportScale] = useState(2)
+
+  // 핀치 줌 상태
+  const lastTouchDistance = useRef<number | null>(null)
+  const lastZoom = useRef(zoom)
 
   // 슬롯 클릭 핸들러 (모바일에서 사이드바 자동 열기)
   const handleSlotClick = useCallback((slotId: string | null) => {
@@ -208,63 +239,257 @@ export default function CanvasEditor({
     // TODO: 실제 저장 로직 구현
     console.log('Saving...', { formData, images, colors })
     markSaved()
-  }, [formData, images, colors, markSaved])
+    toast.success('저장되었습니다')
+  }, [formData, images, colors, markSaved, toast])
 
-  // 키보드 단축키
+  // 선택된 슬롯 이동 (화살표 키)
+  const moveSelectedSlot = useCallback((dx: number, dy: number) => {
+    if (!selectedSlotId || !templateConfig) return
+
+    const slot = templateConfig.layers.slots.find(s => s.id === selectedSlotId)
+    if (!slot) return
+
+    const currentTransform = slotTransforms[selectedSlotId] || { x: 0, y: 0, scale: 1, rotation: 0 }
+
+    // 픽셀을 정규화된 좌표로 변환 (-1 ~ 1 범위)
+    const normalizedDx = dx / (slot.transform.width / 2)
+    const normalizedDy = dy / (slot.transform.height / 2)
+
+    updateSlotTransform(selectedSlotId, {
+      x: Math.max(-1, Math.min(1, currentTransform.x + normalizedDx)),
+      y: Math.max(-1, Math.min(1, currentTransform.y + normalizedDy)),
+    })
+  }, [selectedSlotId, templateConfig, slotTransforms, updateSlotTransform])
+
+  // 키보드 단축키 (확장)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // 입력 필드에서는 단축키 무시
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return
+      }
+
+      const isCtrlOrCmd = e.ctrlKey || e.metaKey
+
+      // ? : 단축키 도움말
+      if (e.key === '?' || (e.shiftKey && e.key === '/')) {
+        e.preventDefault()
+        setShowShortcutsModal(true)
+        return
+      }
+
+      // ESC: 선택 해제 또는 모달 닫기
+      if (e.key === 'Escape') {
+        if (showExportModal) {
+          setShowExportModal(false)
+        } else if (showShortcutsModal) {
+          setShowShortcutsModal(false)
+        } else {
+          selectSlot(null)
+          selectText(null)
+        }
+        return
+      }
+
       // Ctrl/Cmd + Z: Undo
-      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+      if (isCtrlOrCmd && e.key === 'z' && !e.shiftKey) {
         e.preventDefault()
-        if (canUndo()) undo()
+        if (canUndo()) {
+          undo()
+          toast.info('실행 취소')
+        }
+        return
       }
+
       // Ctrl/Cmd + Shift + Z 또는 Ctrl/Cmd + Y: Redo
-      if (
-        ((e.ctrlKey || e.metaKey) && e.key === 'z' && e.shiftKey) ||
-        ((e.ctrlKey || e.metaKey) && e.key === 'y')
-      ) {
+      if ((isCtrlOrCmd && e.key === 'z' && e.shiftKey) || (isCtrlOrCmd && e.key === 'y')) {
         e.preventDefault()
-        if (canRedo()) redo()
+        if (canRedo()) {
+          redo()
+          toast.info('다시 실행')
+        }
+        return
       }
+
       // Ctrl/Cmd + S: Save
-      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+      if (isCtrlOrCmd && e.key === 's') {
         e.preventDefault()
         handleSave()
+        return
+      }
+
+      // Ctrl/Cmd + E: 내보내기 모달
+      if (isCtrlOrCmd && e.key === 'e') {
+        e.preventDefault()
+        setShowExportModal(true)
+        return
+      }
+
+      // Ctrl/Cmd + 0: 줌 100%
+      if (isCtrlOrCmd && e.key === '0') {
+        e.preventDefault()
+        setZoom(1)
+        return
+      }
+
+      // Ctrl/Cmd + 1: 화면에 맞춤
+      if (isCtrlOrCmd && e.key === '1') {
+        e.preventDefault()
+        handleFitToScreen()
+        return
+      }
+
+      // Ctrl/Cmd + +: 확대
+      if (isCtrlOrCmd && (e.key === '=' || e.key === '+')) {
+        e.preventDefault()
+        setZoom(Math.min(2, zoom + 0.1))
+        return
+      }
+
+      // Ctrl/Cmd + -: 축소
+      if (isCtrlOrCmd && e.key === '-') {
+        e.preventDefault()
+        setZoom(Math.max(0.25, zoom - 0.1))
+        return
+      }
+
+      // 화살표 키: 선택된 슬롯 이동
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        if (selectedSlotId) {
+          e.preventDefault()
+          const step = e.shiftKey ? 10 : 1 // Shift: 10px, 일반: 1px
+          switch (e.key) {
+            case 'ArrowUp': moveSelectedSlot(0, -step); break
+            case 'ArrowDown': moveSelectedSlot(0, step); break
+            case 'ArrowLeft': moveSelectedSlot(-step, 0); break
+            case 'ArrowRight': moveSelectedSlot(step, 0); break
+          }
+        }
+        return
+      }
+
+      // Delete/Backspace: 선택된 이미지 삭제
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (selectedSlotId && templateConfig) {
+          const slot = templateConfig.layers.slots.find(s => s.id === selectedSlotId)
+          if (slot && images[slot.dataKey]) {
+            e.preventDefault()
+            removeImage(slot.dataKey)
+            toast.info('이미지가 삭제되었습니다')
+          }
+        }
+        return
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-    // 버그 수정: handleSave 의존성 추가
-  }, [undo, redo, canUndo, canRedo, handleSave])
+  }, [
+    undo, redo, canUndo, canRedo, handleSave, handleFitToScreen,
+    zoom, setZoom, selectSlot, selectText, selectedSlotId, templateConfig,
+    images, removeImage, moveSelectedSlot, showExportModal, showShortcutsModal, toast
+  ])
 
-  // PNG 내보내기 (메모이제이션)
-  const handleExport = useCallback(async (scale: number = 2) => {
+  // 핀치 줌 핸들러
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      const touch1 = e.touches[0]
+      const touch2 = e.touches[1]
+      const distance = Math.hypot(
+        touch2.clientX - touch1.clientX,
+        touch2.clientY - touch1.clientY
+      )
+      lastTouchDistance.current = distance
+      lastZoom.current = zoom
+    }
+  }, [zoom])
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 2 && lastTouchDistance.current !== null) {
+      e.preventDefault()
+      const touch1 = e.touches[0]
+      const touch2 = e.touches[1]
+      const distance = Math.hypot(
+        touch2.clientX - touch1.clientX,
+        touch2.clientY - touch1.clientY
+      )
+
+      const scale = distance / lastTouchDistance.current
+      const newZoom = Math.max(0.25, Math.min(2, lastZoom.current * scale))
+      setZoom(newZoom)
+    }
+  }, [setZoom])
+
+  const handleTouchEnd = useCallback(() => {
+    lastTouchDistance.current = null
+  }, [])
+
+  // 이미지 내보내기 (포맷 및 스케일 지원)
+  const handleExport = useCallback(async () => {
     const renderer = rendererRef.current
     if (!renderer) return
 
     setIsExporting(true)
+    setExportProgress(0)
     setExportError(null)
 
     try {
-      const dataUrl = await renderer.exportToImage(scale)
+      // 진행률 시뮬레이션
+      setExportProgress(20)
+      await new Promise(resolve => setTimeout(resolve, 100))
+
+      setExportProgress(50)
+      const dataUrl = await renderer.exportToImage(exportScale)
       if (!dataUrl) throw new Error('이미지 생성에 실패했습니다')
 
+      setExportProgress(80)
+
+      // 포맷 변환 (PNG가 아닌 경우)
+      let finalDataUrl = dataUrl
+      const formatOption = exportFormats.find(f => f.format === exportFormat)
+
+      if (exportFormat !== 'png' && formatOption) {
+        const img = new Image()
+        await new Promise<void>((resolve, reject) => {
+          img.onload = () => resolve()
+          img.onerror = reject
+          img.src = dataUrl
+        })
+
+        const canvas = document.createElement('canvas')
+        canvas.width = img.width
+        canvas.height = img.height
+        const ctx = canvas.getContext('2d')
+        if (ctx) {
+          ctx.drawImage(img, 0, 0)
+          finalDataUrl = canvas.toDataURL(`image/${exportFormat}`, formatOption.quality || 1)
+        }
+      }
+
+      setExportProgress(100)
+
       // 다운로드
+      const extension = exportFormat
       const link = document.createElement('a')
-      link.download = `${title}_${new Date().toISOString().slice(0, 10)}${scale > 1 ? `@${scale}x` : ''}.png`
-      link.href = dataUrl
+      link.download = `${title}_${new Date().toISOString().slice(0, 10)}${exportScale > 1 ? `@${exportScale}x` : ''}.${extension}`
+      link.href = finalDataUrl
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
+
       setShowExportModal(false)
+      toast.success('이미지가 저장되었습니다', {
+        title: '내보내기 완료',
+      })
     } catch (err) {
       console.error('Export failed:', err)
       setExportError(err instanceof Error ? err.message : '내보내기 중 오류가 발생했습니다')
+      toast.error('내보내기에 실패했습니다')
     } finally {
       setIsExporting(false)
+      setExportProgress(0)
     }
-  }, [title])
+  }, [title, exportFormat, exportScale, toast])
 
   // 모달 닫기 핸들러
   const closeExportModal = useCallback(() => {
@@ -273,17 +498,6 @@ export default function CanvasEditor({
       setExportError(null)
     }
   }, [isExporting])
-
-  // ESC 키로 모달 닫기
-  useEffect(() => {
-    const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && showExportModal && !isExporting) {
-        closeExportModal()
-      }
-    }
-    window.addEventListener('keydown', handleEsc)
-    return () => window.removeEventListener('keydown', handleEsc)
-  }, [showExportModal, isExporting, closeExportModal])
 
   // 로딩 상태
   if (isLoading) {
@@ -343,22 +557,26 @@ export default function CanvasEditor({
 
         {/* 우측: 액션 버튼 */}
         <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-          {/* Undo/Redo */}
+          {/* Undo/Redo with history indicator */}
           <div className="flex items-center gap-1" role="group" aria-label="실행 취소/다시 실행">
             <button
               onClick={undo}
               disabled={!canUndo()}
               className={cn(
-                'p-2 rounded-lg transition-colors',
+                'p-2 rounded-lg transition-colors relative',
                 canUndo()
                   ? 'text-gray-500 hover:bg-gray-100'
                   : 'text-gray-300 cursor-not-allowed'
               )}
-              title="실행 취소 (Ctrl+Z)"
+              title={`실행 취소 (Ctrl+Z) - ${getHistoryInfo().canUndo}개 취소 가능`}
               aria-label="실행 취소"
             >
               <Undo2 className="w-4 h-4" aria-hidden="true" />
             </button>
+            {/* 히스토리 카운터 */}
+            <span className="text-xs text-gray-400 min-w-[2.5rem] text-center hidden sm:block" title="실행취소/다시실행 가능 횟수">
+              {getHistoryInfo().canUndo}/{getHistoryInfo().canRedo}
+            </span>
             <button
               onClick={redo}
               disabled={!canRedo()}
@@ -368,12 +586,22 @@ export default function CanvasEditor({
                   ? 'text-gray-500 hover:bg-gray-100'
                   : 'text-gray-300 cursor-not-allowed'
               )}
-              title="다시 실행 (Ctrl+Y)"
+              title={`다시 실행 (Ctrl+Y) - ${getHistoryInfo().canRedo}개 다시 실행 가능`}
               aria-label="다시 실행"
             >
               <Redo2 className="w-4 h-4" aria-hidden="true" />
             </button>
           </div>
+
+          {/* 단축키 도움말 */}
+          <button
+            onClick={() => setShowShortcutsModal(true)}
+            className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg hidden sm:block"
+            title="단축키 도움말 (?)"
+            aria-label="단축키 도움말"
+          >
+            <Keyboard className="w-4 h-4" aria-hidden="true" />
+          </button>
 
           {/* 저장 - 아이콘만 모바일에서 */}
           <Button
@@ -414,8 +642,14 @@ export default function CanvasEditor({
 
       {/* 메인 영역 */}
       <div className="flex-1 flex overflow-hidden">
-        {/* 캔버스 영역 */}
-        <main className="flex-1 relative overflow-auto" ref={containerRef}>
+        {/* 캔버스 영역 - 핀치 줌 지원 */}
+        <main
+          className="flex-1 relative overflow-auto touch-pan-x touch-pan-y"
+          ref={containerRef}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
           {/* 줌 컨트롤 */}
           <div
             className="absolute top-4 right-4 flex items-center gap-2 bg-white rounded-lg shadow-sm border border-gray-200 p-1 z-10"
@@ -503,7 +737,7 @@ export default function CanvasEditor({
         />
       </div>
 
-      {/* 내보내기 모달 - z-index를 사이드바(z-50)보다 높게 설정 */}
+      {/* 내보내기 모달 - 확장된 옵션 */}
       {showExportModal && (
         <div
           className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60]"
@@ -516,45 +750,85 @@ export default function CanvasEditor({
             className="bg-white rounded-2xl max-w-md w-full mx-4 p-6 animate-scale-in"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 id="export-modal-title" className="text-xl font-bold text-gray-900 mb-4">
-              이미지 내보내기
-            </h3>
-
-            <div className="space-y-3 mb-6">
-              <button
-                onClick={() => handleExport(1)}
-                disabled={isExporting}
-                className="w-full p-4 border border-gray-200 rounded-xl text-left hover:border-primary-400 hover:bg-primary-50 transition-colors disabled:opacity-50"
-              >
-                <p className="font-medium text-gray-900">기본 화질 (1x)</p>
-                <p className="text-sm text-gray-500">
-                  {templateConfig.canvas.width} x {templateConfig.canvas.height}px
-                </p>
-              </button>
-
-              <button
-                onClick={() => handleExport(2)}
-                disabled={isExporting}
-                className="w-full p-4 border-2 border-primary-400 rounded-xl text-left bg-primary-50 disabled:opacity-50"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-gray-900">고화질 (2x)</p>
-                    <p className="text-sm text-gray-500">
-                      {templateConfig.canvas.width * 2} x {templateConfig.canvas.height * 2}px
-                    </p>
-                  </div>
-                  <span className="px-2 py-1 bg-primary-400 text-white text-xs font-medium rounded-lg">
-                    추천
-                  </span>
-                </div>
-              </button>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 bg-primary-100 rounded-xl">
+                <ImageIcon className="w-6 h-6 text-primary-600" aria-hidden="true" />
+              </div>
+              <div>
+                <h3 id="export-modal-title" className="text-lg font-bold text-gray-900">
+                  이미지 내보내기
+                </h3>
+                <p className="text-sm text-gray-500">포맷과 해상도를 선택하세요</p>
+              </div>
             </div>
 
+            {/* 포맷 선택 */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">파일 포맷</label>
+              <div className="grid grid-cols-3 gap-2">
+                {exportFormats.map((format) => (
+                  <button
+                    key={format.format}
+                    onClick={() => setExportFormat(format.format)}
+                    disabled={isExporting}
+                    className={cn(
+                      'p-3 rounded-xl border-2 text-center transition-all',
+                      exportFormat === format.format
+                        ? 'border-primary-400 bg-primary-50 text-primary-700'
+                        : 'border-gray-200 hover:border-gray-300 text-gray-700'
+                    )}
+                  >
+                    <span className="block text-sm font-medium">{format.format.toUpperCase()}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 해상도 선택 */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">해상도</label>
+              <div className="space-y-2">
+                {[1, 2, 3].map((scale) => (
+                  <button
+                    key={scale}
+                    onClick={() => setExportScale(scale)}
+                    disabled={isExporting}
+                    className={cn(
+                      'w-full p-3 rounded-xl border-2 text-left transition-all flex items-center justify-between',
+                      exportScale === scale
+                        ? 'border-primary-400 bg-primary-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                    )}
+                  >
+                    <div>
+                      <span className="font-medium text-gray-900">{scale}x</span>
+                      <span className="text-sm text-gray-500 ml-2">
+                        {templateConfig.canvas.width * scale} × {templateConfig.canvas.height * scale}px
+                      </span>
+                    </div>
+                    {scale === 2 && (
+                      <span className="px-2 py-0.5 bg-primary-400 text-white text-xs font-medium rounded-full">
+                        추천
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 진행 표시바 */}
             {isExporting && (
-              <div className="flex items-center justify-center gap-2 text-gray-500 mb-4" aria-live="polite">
-                <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
-                <span>이미지 생성 중...</span>
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-gray-600">내보내는 중...</span>
+                  <span className="text-sm font-medium text-gray-900">{exportProgress}%</span>
+                </div>
+                <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-primary-400 rounded-full transition-all duration-300"
+                    style={{ width: `${exportProgress}%` }}
+                  />
+                </div>
               </div>
             )}
 
@@ -564,18 +838,43 @@ export default function CanvasEditor({
               </div>
             )}
 
-            <div className="flex justify-end">
+            {/* 액션 버튼 */}
+            <div className="flex gap-2">
               <Button
                 variant="ghost"
                 onClick={closeExportModal}
                 disabled={isExporting}
+                className="flex-1"
               >
                 취소
+              </Button>
+              <Button
+                onClick={handleExport}
+                disabled={isExporting}
+                className="flex-1"
+              >
+                {isExporting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    처리 중...
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-4 h-4 mr-2" />
+                    내보내기
+                  </>
+                )}
               </Button>
             </div>
           </div>
         </div>
       )}
+
+      {/* 단축키 도움말 모달 */}
+      <KeyboardShortcutsModal
+        isOpen={showShortcutsModal}
+        onClose={() => setShowShortcutsModal(false)}
+      />
     </div>
   )
 }
