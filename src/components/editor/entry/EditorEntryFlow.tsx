@@ -13,7 +13,7 @@ import { isSupabaseConfigured } from '@/lib/supabase/client'
 import { ModeSelectionStep } from './ModeSelectionStep'
 import { TemplateSelectionStep } from './TemplateSelectionStep'
 import { TitleInputStep } from './TitleInputStep'
-import { ENTRY_STEPS, PAGE_TRANSITION_VARIANTS } from '@/types/editor-entry'
+import { ENTRY_STEPS } from '@/types/editor-entry'
 
 // ============================================
 // 애니메이션 설정
@@ -141,8 +141,8 @@ export function EditorEntryFlow({ className }: EditorEntryFlowProps) {
 
   return (
     <div className={cn('min-h-screen bg-gray-50', className)}>
-      {/* 헤더 */}
-      <header className="sticky top-0 z-50 bg-white border-b border-gray-200">
+      {/* 헤더 - Glass Effect */}
+      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-200/50">
         <div className="max-w-4xl mx-auto px-4">
           <div className="flex items-center justify-between h-14">
             {/* 뒤로가기 */}
