@@ -5,6 +5,7 @@ import { Users, Palette, Check, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { useEditorEntryStore } from '@/stores/editorEntryStore'
 import { EDITOR_MODES, type EditorMode } from '@/types/editor-entry'
+import { WordReveal } from '@/components/ui/text-reveal'
 
 interface ModeSelectionStepProps {
   className?: string
@@ -19,19 +20,20 @@ export function ModeSelectionStep({ className }: ModeSelectionStepProps) {
 
   return (
     <div className={cn('w-full max-w-2xl mx-auto', className)}>
-      {/* 헤더 */}
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="text-center mb-8"
-      >
+      {/* 헤더 - WordReveal 적용 */}
+      <div className="text-center mb-8">
         <h2 className="text-2xl font-bold text-gray-900 mb-2">
-          어떻게 작업할까요?
+          <WordReveal text="어떻게 작업할까요?" wordDelay={0.06} />
         </h2>
-        <p className="text-gray-500">
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+          className="text-gray-500"
+        >
           혼자서 또는 함께, 원하는 방식을 선택하세요
-        </p>
-      </motion.div>
+        </motion.p>
+      </div>
 
       {/* 모드 선택 카드 */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

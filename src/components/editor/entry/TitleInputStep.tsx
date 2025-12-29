@@ -7,6 +7,7 @@ import { ArrowRight, Loader2, Users, UserPlus } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { Button } from '@/components/ui'
 import { useEditorEntryStore } from '@/stores/editorEntryStore'
+import { WordReveal } from '@/components/ui/text-reveal'
 // NOTE: useCollabSession은 Duo 모드 세션 생성 시 활성화 예정
 // import { useCollabSession } from '@/hooks/useCollabSession'
 
@@ -116,19 +117,20 @@ export function TitleInputStep({ className }: TitleInputStepProps) {
 
   return (
     <div className={cn('w-full max-w-xl mx-auto', className)}>
-      {/* 헤더 */}
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="text-center mb-8"
-      >
+      {/* 헤더 - WordReveal 적용 */}
+      <div className="text-center mb-8">
         <h2 className="text-2xl font-bold text-gray-900 mb-2">
-          거의 다 됐어요!
+          <WordReveal text="거의 다 됐어요!" wordDelay={0.08} />
         </h2>
-        <p className="text-gray-500">
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+          className="text-gray-500"
+        >
           작업에 이름을 붙여주세요
-        </p>
-      </motion.div>
+        </motion.p>
+      </div>
 
       {/* 선택된 템플릿 정보 */}
       {selectedTemplate && (

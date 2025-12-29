@@ -11,6 +11,7 @@ import {
   type TemplateSource,
   type SelectedTemplate,
 } from '@/types/editor-entry'
+import { WordReveal } from '@/components/ui/text-reveal'
 
 // ============================================
 // 기본 템플릿 데이터
@@ -95,19 +96,20 @@ export function TemplateSelectionStep({ className }: TemplateSelectionStepProps)
 
   return (
     <div className={cn('w-full max-w-3xl mx-auto', className)}>
-      {/* 헤더 */}
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="text-center mb-6"
-      >
+      {/* 헤더 - WordReveal 적용 */}
+      <div className="text-center mb-6">
         <h2 className="text-2xl font-bold text-gray-900 mb-2">
-          어떤 틀로 시작할까요?
+          <WordReveal text="어떤 틀로 시작할까요?" wordDelay={0.06} />
         </h2>
-        <p className="text-gray-500">
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+          className="text-gray-500"
+        >
           {mode === 'duo' ? '친구와 함께 작업할 템플릿을 선택하세요' : '마음에 드는 템플릿을 선택하세요'}
-        </p>
-      </motion.div>
+        </motion.p>
+      </div>
 
       {/* 탭 네비게이션 */}
       <motion.div
