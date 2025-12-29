@@ -11,6 +11,7 @@ import {
   ZoomIn,
   ZoomOut,
   RotateCcw,
+  Maximize,
   Save,
   Loader2,
   PanelRight,
@@ -116,6 +117,73 @@ export default function CanvasEditor({
   const handleZoomIn = useCallback(() => setZoom(zoom + 0.1), [zoom, setZoom])
   const handleZoomOut = useCallback(() => setZoom(zoom - 0.1), [zoom, setZoom])
   const handleZoomReset = useCallback(() => setZoom(1), [setZoom])
+
+  // 화면 맞춤 줌 계산
+  const calculateFitZoom = useCallback(() => {
+    if (!containerRef.current || !templateConfig) return 1
+
+    const container = containerRef.current
+    // 패딩 고려 (p-8 = 32px * 2 = 64px 양쪽)
+    const padding = 64
+    const availableWidth = container.clientWidth - padding
+    const availableHeight = container.clientHeight - padding
+
+    const canvasWidth = templateConfig.canvas.width
+    const canvasHeight = templateConfig.canvas.height
+
+    // 가로/세로 비율 중 작은 값 선택 (캔버스가 컨테이너에 맞게)
+    const scaleX = availableWidth / canvasWidth
+    const scaleY = availableHeight / canvasHeight
+    const fitZoom = Math.min(scaleX, scaleY)
+
+    // 최소 0.25, 최대 1.5 범위로 제한 (너무 크거나 작지 않게)
+    return Math.max(0.25, Math.min(1.5, fitZoom * 0.95)) // 5% 마진
+  }, [templateConfig])
+
+  // 화면 맞춤 핸들러
+  const handleFitToScreen = useCallback(() => {
+    const fitZoom = calculateFitZoom()
+    setZoom(fitZoom)
+  }, [calculateFitZoom, setZoom])
+
+  // 템플릿 로드 후 자동 화면 맞춤 (모바일에서 특히 유용)
+  useEffect(() => {
+    if (templateConfig && containerRef.current) {
+      // 약간의 딜레이로 DOM 렌더링 완료 후 계산
+      const timer = setTimeout(() => {
+        const fitZoom = calculateFitZoom()
+        // 모바일 환경이거나 캔버스가 화면보다 클 때만 자동 맞춤
+        if (fitZoom < 1) {
+          setZoom(fitZoom)
+        }
+      }, 100)
+      return () => clearTimeout(timer)
+    }
+  }, [templateConfig, calculateFitZoom, setZoom])
+
+  // 윈도우 리사이즈 시 자동 맞춤 (디바운스)
+  useEffect(() => {
+    let resizeTimer: NodeJS.Timeout
+
+    const handleResize = () => {
+      clearTimeout(resizeTimer)
+      resizeTimer = setTimeout(() => {
+        if (templateConfig && containerRef.current) {
+          const fitZoom = calculateFitZoom()
+          // 현재 줌이 화면보다 클 때만 자동 축소
+          if (zoom > fitZoom) {
+            setZoom(fitZoom)
+          }
+        }
+      }, 150)
+    }
+
+    window.addEventListener('resize', handleResize)
+    return () => {
+      window.removeEventListener('resize', handleResize)
+      clearTimeout(resizeTimer)
+    }
+  }, [templateConfig, calculateFitZoom, zoom, setZoom])
 
   // 저장 (useCallback으로 메모이제이션)
   const handleSave = useCallback(async () => {
@@ -362,6 +430,15 @@ export default function CanvasEditor({
               aria-label="줌 100%로 초기화"
             >
               <RotateCcw className="w-4 h-4" aria-hidden="true" />
+            </button>
+            <div className="w-px h-4 bg-gray-200" aria-hidden="true" />
+            <button
+              onClick={handleFitToScreen}
+              className="p-1.5 text-gray-500 hover:bg-gray-100 rounded"
+              title="화면에 맞춤"
+              aria-label="캔버스를 화면에 맞춤"
+            >
+              <Maximize className="w-4 h-4" aria-hidden="true" />
             </button>
           </div>
 
