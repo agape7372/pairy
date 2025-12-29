@@ -245,26 +245,41 @@ function TemplateCard({ template, index, onSelect }: TemplateCardProps) {
     <motion.button
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.1 }}
+      transition={{ delay: index * 0.1, type: 'spring', stiffness: 300, damping: 20 }}
+      whileHover={{ y: -4, transition: { duration: 0.2 } }}
+      whileTap={{ scale: 0.98 }}
       onClick={() => onSelect(template)}
       className={cn(
         'group relative bg-white rounded-2xl border-2 border-gray-200 p-6 text-left',
-        'hover:border-primary-400 hover:shadow-lg transition-all',
+        'transition-all duration-300 ease-out',
+        'hover:border-primary-400 hover:shadow-[0_8px_24px_rgba(255,180,180,0.3)]',
         'focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2'
       )}
     >
-      {/* NEW 뱃지 */}
+      {/* NEW 뱃지 - 반짝 효과 */}
       {template.isNew && (
-        <span className="absolute top-3 right-3 inline-flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-primary-400 to-accent-400 text-white text-xs font-medium rounded-full">
+        <motion.span
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ delay: index * 0.1 + 0.2, type: 'spring', stiffness: 400 }}
+          className="absolute top-3 right-3 inline-flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-primary-400 to-accent-400 text-white text-xs font-medium rounded-full badge-sparkle"
+        >
           <Sparkles className="w-3 h-3" />
           NEW
-        </span>
+        </motion.span>
       )}
 
-      {/* 이모지 아이콘 */}
-      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center text-3xl mb-4 group-hover:scale-110 transition-transform">
+      {/* 이모지 아이콘 - 호버 시 살랑살랑 */}
+      <motion.div
+        className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center text-3xl mb-4"
+        whileHover={{
+          scale: 1.1,
+          rotate: [0, -5, 5, -3, 3, 0],
+          transition: { rotate: { duration: 0.6 } }
+        }}
+      >
         {template.emoji}
-      </div>
+      </motion.div>
 
       {/* 제목 */}
       <h3 className="text-lg font-bold text-gray-900 mb-1">

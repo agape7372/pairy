@@ -496,6 +496,345 @@ body {
   cursor: pointer;
 }
 
+/* === 뿅뿅 반짝 인터랙션 === */
+
+/* 귀여운 바운스 - 탄력있는 팝 효과 */
+@keyframes cuteBounce {
+  0% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(1.08);
+  }
+  50% {
+    transform: scale(0.95);
+  }
+  70% {
+    transform: scale(1.03);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* 젤리 효과 - 눌렀다 튀어오르는 느낌 */
+@keyframes jelly {
+  0%, 100% {
+    transform: scale(1);
+  }
+  25% {
+    transform: scale(0.9, 1.1);
+  }
+  50% {
+    transform: scale(1.1, 0.9);
+  }
+  75% {
+    transform: scale(0.95, 1.05);
+  }
+}
+
+/* 작은 반짝임 - 은은한 트윙클 */
+@keyframes twinkle {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+    filter: brightness(1.2);
+  }
+}
+
+/* 살랑살랑 - 부드러운 흔들림 */
+@keyframes swing {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  20% {
+    transform: rotate(2deg);
+  }
+  40% {
+    transform: rotate(-2deg);
+  }
+  60% {
+    transform: rotate(1deg);
+  }
+  80% {
+    transform: rotate(-1deg);
+  }
+}
+
+/* 완료 축하 - 작은 타다 효과 */
+@keyframes tadaCute {
+  0% {
+    transform: scale(1) rotate(0deg);
+  }
+  10%, 20% {
+    transform: scale(0.95) rotate(-2deg);
+  }
+  30%, 50%, 70% {
+    transform: scale(1.05) rotate(2deg);
+  }
+  40%, 60% {
+    transform: scale(1.05) rotate(-2deg);
+  }
+  80%, 100% {
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+/* 하트 펄스 - 심장 뛰는 느낌 */
+@keyframes heartPulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  15% {
+    transform: scale(1.15);
+  }
+  30% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.1);
+  }
+}
+
+/* 별 반짝 - 스파클 포인트 */
+@keyframes starPop {
+  0% {
+    transform: scale(0) rotate(0deg);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2) rotate(180deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) rotate(360deg);
+    opacity: 1;
+  }
+}
+
+/* === 뿅뿅 반짝 클래스 === */
+
+/* 귀여운 버튼 - 호버 시 살짝 올라가며 빛남 */
+.btn-cute {
+  position: relative;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.btn-cute:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px var(--primary-200);
+}
+
+.btn-cute:active {
+  transform: translateY(0) scale(0.97);
+  animation: jelly 0.4s ease-out;
+}
+
+/* 귀여운 버튼 - Primary 버전 (은은한 글로우) */
+.btn-cute-primary {
+  position: relative;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.btn-cute-primary::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: 0 0 0 0 var(--primary-300);
+  transition: box-shadow 0.3s ease-out;
+}
+
+.btn-cute-primary:hover {
+  transform: translateY(-2px);
+}
+
+.btn-cute-primary:hover::after {
+  box-shadow: 0 0 16px 4px var(--primary-200);
+}
+
+.btn-cute-primary:active {
+  transform: translateY(0) scale(0.97);
+}
+
+/* 태그 바운스 - 호버 시 톡 튀어오름 */
+.tag-bounce {
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.tag-bounce:hover {
+  transform: translateY(-2px) scale(1.05);
+}
+
+/* 카드 귀여움 - 호버 시 부드럽게 올라가며 테두리 빛남 */
+.card-cute {
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  border: 2px solid transparent;
+  background: linear-gradient(white, white) padding-box,
+              linear-gradient(135deg, transparent, transparent) border-box;
+}
+
+.card-cute:hover {
+  transform: translateY(-4px);
+  background: linear-gradient(white, white) padding-box,
+              linear-gradient(135deg, var(--primary-300), var(--accent-300)) border-box;
+  box-shadow: 0 8px 24px rgba(255, 217, 217, 0.4);
+}
+
+/* 선택됨 - 뿅 효과 */
+.selected-pop {
+  animation: cuteBounce 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* 완료 축하 */
+.complete-tada {
+  animation: tadaCute 0.6s ease-out;
+}
+
+/* 아이콘 살랑살랑 */
+.icon-swing:hover {
+  animation: swing 0.5s ease-in-out;
+}
+
+/* 하트 펄스 (좋아요 등) */
+.heart-pulse {
+  animation: heartPulse 0.6s ease-out;
+}
+
+/* 입력 포커스 반짝 */
+.input-sparkle {
+  transition: all 0.2s ease-out;
+}
+
+.input-sparkle:focus {
+  border-color: var(--primary-400);
+  box-shadow: 0 0 0 3px var(--primary-100),
+              0 0 12px var(--primary-200);
+}
+
+/* 체크 완료 스파클 */
+.check-sparkle {
+  position: relative;
+}
+
+.check-sparkle::after {
+  content: '✨';
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  font-size: 12px;
+  opacity: 0;
+  transform: scale(0);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.check-sparkle.checked::after {
+  opacity: 1;
+  transform: scale(1);
+  animation: starPop 0.5s ease-out;
+}
+
+/* 링크 반짝 - 호버 시 은은한 빛 */
+.link-sparkle {
+  transition: all 0.2s ease-out;
+}
+
+.link-sparkle:hover {
+  color: var(--primary-500);
+  text-shadow: 0 0 8px var(--primary-200);
+}
+
+/* 로딩 스피너 귀여움 */
+.spinner-cute {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 스파클 장식 요소 */
+.sparkle-deco {
+  position: relative;
+}
+
+.sparkle-deco::before,
+.sparkle-deco::after {
+  content: '✦';
+  position: absolute;
+  font-size: 10px;
+  color: var(--primary-300);
+  opacity: 0;
+  transition: all 0.3s ease-out;
+}
+
+.sparkle-deco::before {
+  top: -6px;
+  left: -6px;
+}
+
+.sparkle-deco::after {
+  bottom: -6px;
+  right: -6px;
+}
+
+.sparkle-deco:hover::before,
+.sparkle-deco:hover::after {
+  opacity: 1;
+  animation: twinkle 1s ease-in-out infinite;
+}
+
+/* 프로그레스 바 반짝 */
+.progress-sparkle {
+  position: relative;
+  overflow: hidden;
+}
+
+.progress-sparkle::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.4),
+    transparent
+  );
+  animation: shimmer 2s infinite;
+}
+
+/* 뱃지 반짝 (NEW, 프리미엄 등) */
+.badge-sparkle {
+  position: relative;
+  overflow: hidden;
+}
+
+.badge-sparkle::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
+  animation: shimmer 3s infinite;
+}
+
 /* === 유틸리티 === */
 
 /* 트랜지션 프리셋 */

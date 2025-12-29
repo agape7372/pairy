@@ -2,7 +2,7 @@ import { forwardRef, type HTMLAttributes } from 'react'
 import { cn } from '@/lib/utils/cn'
 
 export interface CardProps extends HTMLAttributes<HTMLDivElement> {
-  variant?: 'default' | 'interactive'
+  variant?: 'default' | 'interactive' | 'cute'
 }
 
 const Card = forwardRef<HTMLDivElement, CardProps>(
@@ -12,8 +12,16 @@ const Card = forwardRef<HTMLDivElement, CardProps>(
         ref={ref}
         className={cn(
           'bg-white rounded-[20px] border border-gray-200',
+          // 기본 인터랙티브 (기존 호환)
           variant === 'interactive' &&
             'hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer',
+          // 귀여운 인터랙티브 (뿅뿅 반짝)
+          variant === 'cute' && `
+            cursor-pointer transition-all duration-300 ease-out
+            hover:translate-y-[-4px] hover:shadow-[0_8px_24px_rgba(255,217,217,0.4)]
+            hover:border-primary-200
+            active:translate-y-[-2px] active:scale-[0.99]
+          `,
           className
         )}
         {...props}

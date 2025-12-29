@@ -101,17 +101,39 @@ export function EditorEntryFlow({ className }: EditorEntryFlowProps) {
     }
   }
 
-  // 로딩 중
+  // 로딩 중 - 귀여운 스피너
   if (userLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: 'spring', stiffness: 300 }}
           className="text-center"
         >
-          <div className="w-12 h-12 border-4 border-primary-200 border-t-primary-400 rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-500">로딩 중...</p>
+          {/* 귀여운 로딩 애니메이션 */}
+          <motion.div
+            className="w-16 h-16 mx-auto mb-4 relative"
+            animate={{ rotate: 360 }}
+            transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+          >
+            <div className="absolute inset-0 rounded-full border-4 border-primary-100" />
+            <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-primary-400 border-r-accent-400" />
+            <motion.div
+              className="absolute inset-2 flex items-center justify-center"
+              animate={{ scale: [1, 1.1, 1] }}
+              transition={{ duration: 1.5, repeat: Infinity }}
+            >
+              <span className="text-2xl">✨</span>
+            </motion.div>
+          </motion.div>
+          <motion.p
+            className="text-gray-500"
+            animate={{ opacity: [0.5, 1, 0.5] }}
+            transition={{ duration: 1.5, repeat: Infinity }}
+          >
+            준비 중이에요...
+          </motion.p>
         </motion.div>
       </div>
     )
@@ -147,13 +169,19 @@ export function EditorEntryFlow({ className }: EditorEntryFlowProps) {
             </button>
           </div>
 
-          {/* 진행 바 */}
-          <div className="h-1 bg-gray-100 -mx-4">
+          {/* 진행 바 - 반짝 효과 */}
+          <div className="h-1.5 bg-gray-100 -mx-4 rounded-full overflow-hidden">
             <motion.div
-              className="h-full bg-gradient-to-r from-primary-400 to-accent-400"
+              className="h-full bg-gradient-to-r from-primary-400 via-accent-400 to-primary-400 bg-[length:200%_100%] progress-sparkle"
               initial={{ width: 0 }}
-              animate={{ width: `${progressPercent}%` }}
-              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              animate={{
+                width: `${progressPercent}%`,
+                backgroundPosition: ['0% 0%', '100% 0%'],
+              }}
+              transition={{
+                width: { type: 'spring', stiffness: 300, damping: 30 },
+                backgroundPosition: { duration: 2, repeat: Infinity, ease: 'linear' }
+              }}
             />
           </div>
         </div>
@@ -184,7 +212,7 @@ export function EditorEntryFlow({ className }: EditorEntryFlowProps) {
         )}
       </AnimatePresence>
 
-      {/* 스텝 인디케이터 */}
+      {/* 스텝 인디케이터 - 귀여운 진행 표시 */}
       <div className="max-w-4xl mx-auto px-4 py-6">
         <div className="flex items-center justify-center gap-2">
           {ENTRY_STEPS.map((s, index) => {
@@ -195,25 +223,45 @@ export function EditorEntryFlow({ className }: EditorEntryFlowProps) {
               <div key={s} className="flex items-center gap-2">
                 <motion.div
                   className={cn(
-                    'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors',
+                    'w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold',
                     isActive
-                      ? 'bg-primary-400 text-white'
+                      ? 'bg-gradient-to-br from-primary-400 to-accent-400 text-white shadow-[0_2px_8px_rgba(255,180,180,0.5)]'
                       : isCompleted
                       ? 'bg-primary-200 text-primary-600'
-                      : 'bg-gray-200 text-gray-400'
+                      : 'bg-gray-100 text-gray-400'
                   )}
-                  animate={isActive ? { scale: [1, 1.1, 1] } : {}}
-                  transition={{ duration: 0.3 }}
+                  initial={false}
+                  animate={
+                    isActive
+                      ? { scale: [1, 1.15, 1], transition: { duration: 0.4, type: 'spring' } }
+                      : isCompleted
+                      ? { scale: 1 }
+                      : { scale: 1 }
+                  }
                 >
-                  {index + 1}
+                  {isCompleted ? (
+                    <motion.span
+                      initial={{ scale: 0, rotate: -180 }}
+                      animate={{ scale: 1, rotate: 0 }}
+                      transition={{ type: 'spring', stiffness: 400 }}
+                    >
+                      ✓
+                    </motion.span>
+                  ) : (
+                    index + 1
+                  )}
                 </motion.div>
                 {index < ENTRY_STEPS.length - 1 && (
-                  <div
-                    className={cn(
-                      'w-8 h-0.5',
-                      isCompleted ? 'bg-primary-300' : 'bg-gray-200'
-                    )}
-                  />
+                  <motion.div
+                    className="w-8 h-1 rounded-full bg-gray-200 overflow-hidden"
+                  >
+                    <motion.div
+                      className="h-full bg-gradient-to-r from-primary-300 to-accent-300"
+                      initial={{ width: 0 }}
+                      animate={{ width: isCompleted ? '100%' : '0%' }}
+                      transition={{ duration: 0.4, ease: 'easeOut' }}
+                    />
+                  </motion.div>
                 )}
               </div>
             )
