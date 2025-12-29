@@ -19,7 +19,7 @@ interface TextRevealProps {
   text: string
   /** 추가 className */
   className?: string
-  /** 래퍼 요소 타입 */
+  /** 래퍼 요소 타입 - 변경 이유: prop이 실제로 사용되도록 수정 */
   as?: 'h1' | 'h2' | 'h3' | 'h4' | 'p' | 'span'
   /** 각 글자 간 딜레이 (초) */
   charDelay?: number
@@ -29,16 +29,31 @@ interface TextRevealProps {
   once?: boolean
 }
 
+// 변경 이유: motion 컴포넌트 매핑을 상수로 정의하여 동적 요소 지원
+const motionComponents = {
+  h1: motion.h1,
+  h2: motion.h2,
+  h3: motion.h3,
+  h4: motion.h4,
+  p: motion.p,
+  span: motion.span,
+} as const
+
 export function TextReveal({
   text,
   className,
-  as: Component = 'span',
+  as = 'span',
   charDelay = 0.03,
   animateOnView = true,
   once = true,
 }: TextRevealProps) {
-  const ref = useRef<HTMLElement>(null)
+  // 변경 이유: 동적 요소 타입을 지원하기 위해 HTMLElement 기반 ref 사용
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const ref = useRef<any>(null)
   const isInView = useInView(ref, { once, margin: '-50px' })
+
+  // 변경 이유: as prop에 따라 동적으로 motion 컴포넌트 선택
+  const MotionComponent = motionComponents[as]
 
   // 글자 단위로 분리
   const chars = text.split('')
@@ -70,8 +85,9 @@ export function TextReveal({
   }
 
   return (
-    <motion.span
-      ref={ref as React.RefObject<HTMLSpanElement>}
+    // 변경 이유: 하드코딩된 motion.span 대신 동적 MotionComponent 사용
+    <MotionComponent
+      ref={ref}
       className={cn('text-reveal-container inline-block', className)}
       variants={containerVariants}
       initial="hidden"
@@ -88,7 +104,7 @@ export function TextReveal({
           {char === ' ' ? '\u00A0' : char}
         </motion.span>
       ))}
-    </motion.span>
+    </MotionComponent>
   )
 }
 

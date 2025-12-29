@@ -1,8 +1,13 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+// 변경 이유: useCallback 추가, 배열 의존성 안정화를 위해
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils/cn'
+
+// 변경 이유: 기본 색상을 컴포넌트 외부에 상수로 정의하여 useMemo 의존성 안정화
+const DEFAULT_COLORS = ['#FFD9D9', '#FFEAEA', '#D7FAFA', '#FFF5CC', '#E8D7FA'] as const
+const DEFAULT_HOVER_COLORS = ['#FFD9D9', '#D7FAFA', '#FFF5CC'] as const
 
 // ============================================
 // 손그림 스타일 별 SVG들 (Doodle Style)
@@ -79,7 +84,7 @@ interface DoodleStarsProps {
   /** 별 개수 */
   count?: number
   /** 색상 팔레트 */
-  colors?: string[]
+  colors?: readonly string[]
   /** 최소 크기 (px) */
   minSize?: number
   /** 최대 크기 (px) */
@@ -92,14 +97,19 @@ interface DoodleStarsProps {
 
 export function DoodleStars({
   count = 15,
-  colors = ['#FFD9D9', '#FFEAEA', '#D7FAFA', '#FFF5CC', '#E8D7FA'],
+  // 변경 이유: 기본값을 외부 상수로 변경하여 매 렌더마다 새 배열 생성 방지
+  colors = DEFAULT_COLORS,
   minSize = 8,
   maxSize = 24,
   className,
   glowRatio = 0.4,
 }: DoodleStarsProps) {
+  // 변경 이유: colors를 JSON.stringify로 비교하여 내용이 같으면 재계산 방지
+  const colorsKey = JSON.stringify(colors)
+
   const stars = useMemo(() => {
     const starTypes: StarType[] = ['four', 'six', 'doodle', 'dot']
+    const colorArray = JSON.parse(colorsKey) as string[]
 
     return Array.from({ length: count }, (_, i) => ({
       id: `star-${i}`,
@@ -109,10 +119,10 @@ export function DoodleStars({
       y: Math.random() * 100,
       delay: Math.random() * 4, // 0~4초 랜덤 딜레이
       duration: Math.random() * 2 + 1.5, // 1.5~3.5초
-      color: colors[Math.floor(Math.random() * colors.length)],
+      color: colorArray[Math.floor(Math.random() * colorArray.length)],
       glow: Math.random() < glowRatio,
     }))
-  }, [count, colors, minSize, maxSize, glowRatio])
+  }, [count, colorsKey, minSize, maxSize, glowRatio])
 
   return (
     <div className={cn('doodle-stars', className)}>
@@ -148,7 +158,7 @@ interface SparklesProps {
   /** 반짝이 개수 */
   count?: number
   /** 색상 팔레트 */
-  colors?: string[]
+  colors?: readonly string[]
   /** 최소 크기 (px) */
   minSize?: number
   /** 최대 크기 (px) */
@@ -161,14 +171,19 @@ interface SparklesProps {
 
 export function Sparkles({
   count = 12,
-  colors = ['#FFD9D9', '#FFEAEA', '#D7FAFA', '#FFF5CC', '#E8D7FA'],
+  // 변경 이유: 기본값을 외부 상수로 변경
+  colors = DEFAULT_COLORS,
   minSize = 8,
   maxSize = 20,
   className,
   children,
 }: SparklesProps) {
+  // 변경 이유: colors를 JSON.stringify로 비교
+  const colorsKey = JSON.stringify(colors)
+
   const stars = useMemo(() => {
     const starTypes: StarType[] = ['four', 'six', 'doodle']
+    const colorArray = JSON.parse(colorsKey) as string[]
 
     return Array.from({ length: count }, (_, i) => ({
       id: `sparkle-${i}`,
@@ -178,10 +193,10 @@ export function Sparkles({
       y: Math.random() * 100,
       delay: Math.random() * 3,
       duration: Math.random() * 1.5 + 1.5,
-      color: colors[Math.floor(Math.random() * colors.length)],
+      color: colorArray[Math.floor(Math.random() * colorArray.length)],
       glow: Math.random() < 0.3,
     }))
-  }, [count, colors, minSize, maxSize])
+  }, [count, colorsKey, minSize, maxSize])
 
   return (
     <div className={cn('relative', className)}>
@@ -339,17 +354,20 @@ interface HoverSparklesProps {
   /** 활성화 여부 */
   active?: boolean
   /** 색상 팔레트 */
-  colors?: string[]
+  colors?: readonly string[]
   /** 클래스명 */
   className?: string
 }
 
 export function HoverSparkles({
   active = false,
-  colors = ['#FFD9D9', '#D7FAFA', '#FFF5CC'],
+  // 변경 이유: 기본값을 외부 상수로 변경
+  colors = DEFAULT_HOVER_COLORS,
   className,
 }: HoverSparklesProps) {
   const [sparkles, setSparkles] = useState<HoverSparkleInstance[]>([])
+  // 변경 이유: colors를 JSON.stringify로 비교하여 내용 기반 의존성 체크
+  const colorsKey = JSON.stringify(colors)
 
   useEffect(() => {
     if (!active) {
@@ -358,6 +376,7 @@ export function HoverSparkles({
     }
 
     const starTypes: StarType[] = ['four', 'six', 'doodle']
+    const colorArray = JSON.parse(colorsKey) as string[]
 
     // 호버 시 반짝이 생성
     const newSparkles = Array.from({ length: 6 }, (_, i) => ({
@@ -366,7 +385,7 @@ export function HoverSparkles({
       size: Math.random() * 12 + 8,
       x: Math.random() * 100,
       y: Math.random() * 100,
-      color: colors[Math.floor(Math.random() * colors.length)],
+      color: colorArray[Math.floor(Math.random() * colorArray.length)],
     }))
 
     setSparkles(newSparkles)
@@ -377,7 +396,7 @@ export function HoverSparkles({
     }, 1000)
 
     return () => clearTimeout(timer)
-  }, [active, colors])
+  }, [active, colorsKey])
 
   return (
     <div className={cn('absolute inset-0 overflow-hidden pointer-events-none', className)}>

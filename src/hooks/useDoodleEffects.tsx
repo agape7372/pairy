@@ -15,7 +15,7 @@ import { useAnimation } from '@/contexts/AnimationContext'
 // ============================================
 
 interface CursorTrailOptions {
-  /** 트레일 점 개수 (기본 4) */
+  /** 트레일 점 개수 (기본 4, 최대 6) */
   count?: number
   /** 활성화 여부 */
   enabled?: boolean
@@ -28,8 +28,13 @@ interface TrailDot {
   y: number
 }
 
+// 변경 이유: count 최대값을 6으로 제한하여 ease가 음수가 되는 것 방지
+const MAX_TRAIL_COUNT = 6
+
 export function useCursorTrail(options: CursorTrailOptions = {}) {
-  const { count = 4, enabled = true, doodleOnly = true } = options
+  // 변경 이유: count를 MAX_TRAIL_COUNT로 제한하여 ease 음수 방지
+  const { count: rawCount = 4, enabled = true, doodleOnly = true } = options
+  const count = Math.min(rawCount, MAX_TRAIL_COUNT)
   const { mode } = useAnimation()
 
   const [isActive, setIsActive] = useState(false)
@@ -44,6 +49,8 @@ export function useCursorTrail(options: CursorTrailOptions = {}) {
   useEffect(() => {
     if (!shouldRun) {
       setIsActive(false)
+      // 변경 이유: ref 배열 정리하여 메모리 누수 방지
+      dotsRef.current = []
       return
     }
 
@@ -68,8 +75,8 @@ export function useCursorTrail(options: CursorTrailOptions = {}) {
           ? { x: mouseX, y: mouseY }
           : positionsRef.current[i - 1]
 
-        // 부드러운 추적 (easing)
-        const ease = 0.2 - (i * 0.03)
+        // 변경 이유: ease 최소값을 0.05로 보장하여 항상 양수 유지
+        const ease = Math.max(0.05, 0.2 - (i * 0.03))
         pos.x += (target.x - pos.x) * ease
         pos.y += (target.y - pos.y) * ease
 
@@ -94,6 +101,8 @@ export function useCursorTrail(options: CursorTrailOptions = {}) {
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current)
       }
+      // 변경 이유: cleanup 시 ref 배열 정리
+      dotsRef.current = []
     }
   }, [shouldRun, count])
 
@@ -107,7 +116,10 @@ export function useCursorTrail(options: CursorTrailOptions = {}) {
           <div
             key={i}
             ref={(el) => {
-              if (el) dotsRef.current[i] = el
+              // 변경 이유: null 체크 후 할당, 언마운트 시 정리
+              if (el) {
+                dotsRef.current[i] = el
+              }
             }}
             className={`cursor-trail-dot ${isActive ? 'active' : ''}`}
           />
@@ -151,6 +163,17 @@ export function useConfetti(options: ConfettiOptions = {}) {
 
   const [particles, setParticles] = useState<ConfettiParticle[]>([])
   const { mode } = useAnimation()
+  // 변경 이유: 언마운트 시 setTimeout 정리를 위한 ref
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  // 변경 이유: 컴포넌트 언마운트 시 timeout 정리
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
+    }
+  }, [])
 
   const trigger = useCallback((originX?: number, originY?: number) => {
     // Premium 모드에서는 다른 효과 사용
@@ -178,8 +201,11 @@ export function useConfetti(options: ConfettiOptions = {}) {
 
     setParticles(newParticles)
 
-    // 일정 시간 후 제거
-    setTimeout(() => {
+    // 변경 이유: 이전 timeout 정리 후 새로 설정
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current)
+    }
+    timeoutRef.current = setTimeout(() => {
       setParticles([])
     }, duration)
   }, [count, emojis, duration, mode])
@@ -218,12 +244,27 @@ export function useConfetti(options: ConfettiOptions = {}) {
 export function useSuccessPulse() {
   const [isPulsing, setIsPulsing] = useState(false)
   const { mode } = useAnimation()
+  // 변경 이유: 언마운트 시 setTimeout 정리를 위한 ref
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  // 변경 이유: 컴포넌트 언마운트 시 timeout 정리
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
+    }
+  }, [])
 
   const trigger = useCallback(() => {
     if (mode !== 'premium') return
 
     setIsPulsing(true)
-    setTimeout(() => setIsPulsing(false), 800)
+    // 변경 이유: 이전 timeout 정리 후 새로 설정
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current)
+    }
+    timeoutRef.current = setTimeout(() => setIsPulsing(false), 800)
   }, [mode])
 
   return { trigger, isPulsing, className: isPulsing ? 'success-pulse' : '' }

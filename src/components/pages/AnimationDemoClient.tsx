@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+// 변경 이유: useEffect, useRef 추가 (setTimeout 정리용)
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Sparkles,
@@ -19,7 +20,8 @@ import { Button } from '@/components/ui'
 import { AnimationProvider, useAnimation, DOODLE_SPRING, PREMIUM_EASE } from '@/contexts/AnimationContext'
 import { DoodleStars, InlineSparkle } from '@/components/ui/sparkles'
 import { WordReveal, TextReveal } from '@/components/ui/text-reveal'
-import { useMagnetic, useTilt, springPresets } from '@/hooks/useAdvancedInteractions'
+// 변경 이유: 미사용 springPresets 제거
+import { useMagnetic, useTilt } from '@/hooks/useAdvancedInteractions'
 import { useScrollReveal, useCountUp } from '@/hooks/useScrollReveal'
 import { useCursorTrail, useConfetti, useSuccessPulse, useMouseGlow } from '@/hooks/useDoodleEffects'
 import { cn } from '@/lib/utils/cn'
@@ -31,7 +33,19 @@ import { cn } from '@/lib/utils/cn'
 function DemoContent() {
   const { mode, toggleMode, transition } = useAnimation()
   const [showModal, setShowModal] = useState(false)
-  const [successTriggered, setSuccessTriggered] = useState(false)
+  // 변경 이유: 미사용 successTriggered state 제거, 대신 시각적 피드백만 사용
+
+  // 변경 이유: setTimeout 정리를 위한 ref
+  const successTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  // 변경 이유: 컴포넌트 언마운트 시 timeout 정리
+  useEffect(() => {
+    return () => {
+      if (successTimeoutRef.current) {
+        clearTimeout(successTimeoutRef.current)
+      }
+    }
+  }, [])
 
   // 효과 훅들
   const { TrailDots } = useCursorTrail({ doodleOnly: true })
@@ -43,10 +57,9 @@ function DemoContent() {
 
   // 성공 효과 트리거
   const handleSuccess = useCallback((e: React.MouseEvent) => {
-    setSuccessTriggered(true)
     triggerConfetti(e.clientX, e.clientY)
     triggerPulse()
-    setTimeout(() => setSuccessTriggered(false), 1000)
+    // 변경 이유: 미사용 state 업데이트 제거 (triggerConfetti/triggerPulse가 자체 상태 관리)
   }, [triggerConfetti, triggerPulse])
 
   // 현재 모드 라벨

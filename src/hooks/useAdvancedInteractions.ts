@@ -1,6 +1,7 @@
 'use client'
 
-import { useRef, useEffect, useState, useCallback } from 'react'
+// 변경 이유: 미사용 useCallback 제거
+import { useRef, useEffect, useState } from 'react'
 import { useMotionValue, useSpring, useTransform, MotionValue } from 'framer-motion'
 
 /**
@@ -142,15 +143,17 @@ interface UseTiltOptions {
   disabled?: boolean
 }
 
+// 변경 이유: style.transform이 정적 값이 아닌 MotionValue를 반환하도록 수정
+// 사용 방법: <motion.div style={{ transform, transformStyle: 'preserve-3d' }}>
 interface UseTiltReturn {
   ref: React.RefObject<HTMLElement | null>
   rotateX: MotionValue<number>
   rotateY: MotionValue<number>
   isHovering: boolean
-  style: {
-    transform: string
-    transformStyle: 'preserve-3d'
-  }
+  /** MotionValue로 반환 - motion 컴포넌트의 style prop에 직접 사용 */
+  transform: MotionValue<string>
+  /** CSS transformStyle 속성값 */
+  transformStyle: 'preserve-3d'
 }
 
 export function useTilt(options: UseTiltOptions = {}): UseTiltReturn {
@@ -208,8 +211,8 @@ export function useTilt(options: UseTiltOptions = {}): UseTiltReturn {
     }
   }, [disabled, maxTilt, rotateXValue, rotateYValue])
 
-  // transform 스타일 생성
-  const transformStyle = useTransform(
+  // 변경 이유: useTransform 결과를 MotionValue로 직접 반환하여 반응형 업데이트 지원
+  const transform = useTransform(
     [rotateX, rotateY],
     ([rx, ry]) => `perspective(${perspective}px) rotateX(${rx}deg) rotateY(${ry}deg)`
   )
@@ -219,10 +222,8 @@ export function useTilt(options: UseTiltOptions = {}): UseTiltReturn {
     rotateX,
     rotateY,
     isHovering,
-    style: {
-      transform: transformStyle.get(),
-      transformStyle: 'preserve-3d' as const,
-    },
+    transform,
+    transformStyle: 'preserve-3d' as const,
   }
 }
 
