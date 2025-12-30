@@ -326,6 +326,7 @@ function BannerSlider() {
 
 // ============================================
 // Bento 카테고리 그리드
+// 변경 이유: 답답한 ring 테두리 효과 → 부드러운 그림자 + 떠오르는 효과로 개선
 // ============================================
 
 function BentoCategoryGrid() {
@@ -346,13 +347,13 @@ function BentoCategoryGrid() {
                 href={`/templates?category=${key}`}
                 className={cn(
                   'group relative overflow-hidden rounded-2xl p-5 transition-all duration-300',
-                  'hover:ring-2 hover:ring-offset-2',
+                  // 변경 이유: ring 효과 제거 → 그림자 + translateY로 부드러운 호버 효과
+                  'hover:shadow-lg hover:-translate-y-1',
                   idx === 0 && 'md:col-span-2 md:row-span-2',
                   category.bgColor.replace('-100', '-50')
                 )}
                 style={{
                   transitionDelay: `${idx * 100}ms`,
-                  ['--ring-color' as string]: category.color.replace('text-', 'rgb(var(--'),
                 }}
               >
                 {/* 배경 패턴 */}
@@ -365,7 +366,7 @@ function BentoCategoryGrid() {
 
                 <div className="relative">
                   <div className={cn(
-                    'w-12 h-12 rounded-xl flex items-center justify-center mb-3 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3',
+                    'w-12 h-12 rounded-xl flex items-center justify-center mb-3 transition-transform duration-300 group-hover:scale-110',
                     category.bgColor
                   )}>
                     <Icon className={cn('w-6 h-6', category.color)} />
@@ -378,9 +379,9 @@ function BentoCategoryGrid() {
                   </div>
                 </div>
 
-                {/* 호버 시 그라데이션 오버레이 */}
+                {/* 변경 이유: 호버 시 그라데이션 오버레이 - 더 subtle하게 */}
                 <div className={cn(
-                  'absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-300',
+                  'absolute inset-0 opacity-0 group-hover:opacity-5 transition-opacity duration-300',
                   `bg-gradient-to-br ${category.bgColor.replace('-100', '-400').replace('bg-', 'from-')} to-transparent`
                 )} />
               </Link>
