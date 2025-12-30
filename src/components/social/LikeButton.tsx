@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Heart, Loader2 } from 'lucide-react'
 import { useLikes } from '@/hooks/useLikes'
+import { useParticle, ParticleContainer } from '@/hooks/useParticle'
 import { cn } from '@/lib/utils/cn'
 
 interface LikeButtonProps {
@@ -27,6 +28,18 @@ export function LikeButton({
   const { isLiked, likeCount, isLoading, toggle } = useLikes(templateId, initialLikeCount)
   const [isAnimating, setIsAnimating] = useState(false)
   const [isToggling, setIsToggling] = useState(false)
+  const buttonRef = useRef<HTMLButtonElement>(null)
+
+  // 💕 좋아요 시 하트 파티클
+  const { emit, containerProps } = useParticle({
+    type: 'heart',
+    count: 8,
+    direction: 'fountain',
+    colors: ['#FFD9D9', '#FFCACA', '#E8A8A8', '#FF9E9E'],
+    sizeRange: [10, 18],
+    duration: 900,
+    distanceRange: [40, 80],
+  })
 
   const handleClick = async () => {
     if (isToggling) return
@@ -35,6 +48,12 @@ export function LikeButton({
     setIsAnimating(true)
 
     const success = await toggle()
+
+    // 좋아요할 때만 파티클 효과
+    if (success && !isLiked && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect()
+      emit(rect.width / 2, rect.height / 2)
+    }
 
     // 애니메이션 지속 시간
     setTimeout(() => setIsAnimating(false), 300)
@@ -93,40 +112,44 @@ export function LikeButton({
   }
 
   return (
-    <button
-      onClick={handleClick}
-      disabled={isToggling}
-      className={cn(
-        'flex items-center gap-1.5 rounded-full transition-all duration-200',
-        sizeClasses[size],
-        variantClasses[variant],
-        'group',
-        className
-      )}
-      aria-label={isLiked ? '좋아요 취소' : '좋아요'}
-    >
-      <Heart
+    <div className="relative inline-block">
+      <button
+        ref={buttonRef}
+        onClick={handleClick}
+        disabled={isToggling}
         className={cn(
-          iconSizes[size],
-          'transition-all duration-200',
-          isLiked
-            ? 'fill-red-500 text-red-500'
-            : 'text-gray-400 group-hover:text-red-400',
-          isAnimating && 'scale-125'
+          'flex items-center gap-1.5 rounded-full transition-all duration-200',
+          sizeClasses[size],
+          variantClasses[variant],
+          'group',
+          className
         )}
-      />
-      {showCount && (
-        <span
+        aria-label={isLiked ? '좋아요 취소' : '좋아요'}
+      >
+        <Heart
           className={cn(
-            textSizes[size],
-            'font-medium transition-colors',
-            isLiked ? 'text-red-500' : 'text-gray-500 group-hover:text-red-400'
+            iconSizes[size],
+            'transition-all duration-200',
+            isLiked
+              ? 'fill-red-500 text-red-500'
+              : 'text-gray-400 group-hover:text-red-400',
+            isAnimating && 'scale-125'
           )}
-        >
-          {likeCount.toLocaleString()}
-        </span>
-      )}
-    </button>
+        />
+        {showCount && (
+          <span
+            className={cn(
+              textSizes[size],
+              'font-medium transition-colors',
+              isLiked ? 'text-red-500' : 'text-gray-500 group-hover:text-red-400'
+            )}
+          >
+            {likeCount.toLocaleString()}
+          </span>
+        )}
+      </button>
+      <ParticleContainer {...containerProps} />
+    </div>
   )
 }
 
@@ -146,13 +169,34 @@ export function LikeIconButton({
 }: LikeIconButtonProps) {
   const { isLiked, toggle } = useLikes(templateId)
   const [isAnimating, setIsAnimating] = useState(false)
+  const buttonRef = useRef<HTMLButtonElement>(null)
+
+  // 💕 좋아요 시 하트 파티클
+  const { emit, containerProps } = useParticle({
+    type: 'heart',
+    count: 6,
+    direction: 'fountain',
+    colors: ['#FFD9D9', '#FFCACA', '#E8A8A8'],
+    sizeRange: [8, 14],
+    duration: 700,
+    distanceRange: [30, 60],
+  })
 
   const handleClick = async (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
 
+    const wasLiked = initialIsLiked !== undefined ? initialIsLiked : isLiked
+
     setIsAnimating(true)
     await toggle()
+
+    // 좋아요할 때만 파티클 효과
+    if (!wasLiked && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect()
+      emit(rect.width / 2, rect.height / 2)
+    }
+
     setTimeout(() => setIsAnimating(false), 300)
 
     if (onToggle) onToggle()
@@ -161,22 +205,26 @@ export function LikeIconButton({
   const liked = initialIsLiked !== undefined ? initialIsLiked : isLiked
 
   return (
-    <button
-      onClick={handleClick}
-      className={cn(
-        'p-2 rounded-full transition-all duration-200',
-        'hover:bg-red-50',
-        className
-      )}
-      aria-label={liked ? '좋아요 취소' : '좋아요'}
-    >
-      <Heart
+    <div className="relative inline-block">
+      <button
+        ref={buttonRef}
+        onClick={handleClick}
         className={cn(
-          'w-5 h-5 transition-all duration-200',
-          liked ? 'fill-red-500 text-red-500' : 'text-gray-400 hover:text-red-400',
-          isAnimating && 'scale-125'
+          'p-2 rounded-full transition-all duration-200',
+          'hover:bg-red-50',
+          className
         )}
-      />
-    </button>
+        aria-label={liked ? '좋아요 취소' : '좋아요'}
+      >
+        <Heart
+          className={cn(
+            'w-5 h-5 transition-all duration-200',
+            liked ? 'fill-red-500 text-red-500' : 'text-gray-400 hover:text-red-400',
+            isAnimating && 'scale-125'
+          )}
+        />
+      </button>
+      <ParticleContainer {...containerProps} />
+    </div>
   )
 }
