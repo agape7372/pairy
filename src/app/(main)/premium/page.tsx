@@ -2,11 +2,22 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Check, Sparkles, Crown, ArrowRight, Users, Gift, Heart, Star, Palette, MessageCircle, Leaf, Cherry, Cake, Download, Image } from 'lucide-react'
+import { Check, Sparkles, Crown, ArrowRight, Users, Gift, Heart, Star, Palette, MessageCircle, Leaf, Cherry, TrendingUp } from 'lucide-react'
 import { Button, useToast } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
 import { useSubscriptionStore, PRICING, type SubscriptionTier } from '@/stores/subscriptionStore'
 import { UpgradeModal } from '@/components/premium/UpgradeModal'
+
+/**
+ * 프라이싱 페이지 - UX 심리학 적용
+ *
+ * 적용된 원칙:
+ * 1. 가격 앵커링: 중간 티어를 먼저 눈에 띄게 (recommended)
+ * 2. 3-4 티어 제한: 선택 피로 방지
+ * 3. 소셜 프루프: 실제 유저 목소리
+ * 4. 손실 회피: "이용 중" 상태 강조
+ * 5. 스토리텔링: 숫자보다 서사로 접근
+ */
 
 // 서포터 티어 - 과금 유도보다 커뮤니티 참여 강조
 const getSupporterTiers = (currentTier: string) => [
@@ -40,6 +51,8 @@ const getSupporterTiers = (currentTier: string) => [
     tier: 'premium' as const,
     current: currentTier === 'premium',
     popular: true,
+    recommended: true, // 가격 앵커링: 추천 티어
+    savings: null, // 절약 표시
     color: 'pink',
   },
   {
@@ -58,6 +71,7 @@ const getSupporterTiers = (currentTier: string) => [
     ],
     tier: 'duo' as const,
     current: currentTier === 'duo',
+    savings: '33%', // 가격 앵커링: 절약 표시
     color: 'rose',
   },
   {
@@ -217,11 +231,12 @@ export default function PremiumPage() {
                 <div
                   key={tier.name}
                   className={cn(
-                    'rounded-2xl p-5 border transition-all duration-300',
+                    'rounded-2xl p-5 border transition-all duration-300 relative',
                     colors.bg,
                     colors.border,
                     tier.current && 'ring-2 ring-green-400 ring-offset-2',
-                    tier.popular && 'sm:-translate-y-2',
+                    'recommended' in tier && tier.recommended && !tier.current && 'sm:-translate-y-3 shadow-lg ring-2 ring-pink-200',
+                    tier.popular && !('recommended' in tier && tier.recommended) && 'sm:-translate-y-2',
                     'hover:shadow-md'
                   )}
                   style={{ animationDelay: `${index * 100}ms` }}
@@ -233,7 +248,24 @@ export default function PremiumPage() {
                       지금 나
                     </div>
                   )}
-                  {tier.popular && !tier.current && (
+                  {/* 추천 배지 - 가격 앵커링 */}
+                  {'recommended' in tier && tier.recommended && !tier.current && (
+                    <div className={cn(
+                      'inline-flex items-center gap-1 px-2.5 py-1 text-xs rounded-full mb-3 font-medium',
+                      'bg-gradient-to-r from-pink-400 to-rose-400 text-white shadow-sm'
+                    )}>
+                      <Sparkles className="w-3 h-3" />
+                      추천
+                    </div>
+                  )}
+                  {/* 절약 배지 */}
+                  {'savings' in tier && tier.savings && !tier.current && !('recommended' in tier && tier.recommended) && (
+                    <div className={cn('inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full mb-3', colors.badge)}>
+                      <TrendingUp className="w-3 h-3" />
+                      {tier.savings} 절약
+                    </div>
+                  )}
+                  {tier.popular && !tier.current && !('recommended' in tier && tier.recommended) && !('savings' in tier && tier.savings) && (
                     <div className={cn('inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full mb-3', colors.badge)}>
                       <Star className="w-3 h-3" />
                       많이 선택해요
@@ -331,7 +363,7 @@ export default function PremiumPage() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {communityVoices.map((voice, index) => (
+            {communityVoices.map((voice) => (
               <div
                 key={voice.name}
                 className="p-4 bg-white rounded-2xl border border-gray-100 hover:border-pink-100 transition-colors"
@@ -345,7 +377,7 @@ export default function PremiumPage() {
                   <span className="text-sm font-medium text-gray-700">{voice.name}</span>
                 </div>
                 <p className="text-sm text-gray-500 leading-relaxed">
-                  "{voice.message}"
+                  &ldquo;{voice.message}&rdquo;
                 </p>
               </div>
             ))}

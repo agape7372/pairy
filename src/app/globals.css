@@ -55,6 +55,85 @@
   /* Background */
   --background: #FEFEFE;
   --foreground: #5A5252;
+
+  /* Card & Surface */
+  --card: #FFFFFF;
+  --card-foreground: #5A5252;
+  --muted: #F8F6F5;
+  --muted-foreground: #8A8080;
+
+  /* Border */
+  --border: #F0EAEA;
+  --ring: #FFD9D9;
+}
+
+/* === 다크 모드 ===
+ * UX 서사: "밤하늘 아래 피어나는 창작의 정원"
+ * 파스텔 톤을 유지하면서도 눈의 피로를 덜어줍니다.
+ */
+[data-theme="dark"] {
+  /* Primary - 어둠 속 딸기빛 */
+  --primary-50: #2A2020;
+  --primary-100: #3D2828;
+  --primary-200: #5A3838;
+  --primary-300: #8A5858;
+  --primary-400: #C48888;
+  --primary-500: #D99999;
+  --primary-600: #E8A8A8;
+  --primary-700: #FFCACA;
+  --primary-800: #FFD9D9;
+  --primary-900: #FFF0F0;
+
+  /* Accent - 어둠 속 민트빛 */
+  --accent-50: #1A2626;
+  --accent-100: #2A3636;
+  --accent-200: #3A5050;
+  --accent-300: #5A8080;
+  --accent-400: #7ABFBF;
+  --accent-500: #8ECECE;
+  --accent-600: #9FD9D9;
+  --accent-700: #B8F0F0;
+  --accent-800: #D7FAFA;
+  --accent-900: #EDFCFC;
+
+  /* Warm Gray - Dark */
+  --gray-50: #1E1A1A;
+  --gray-100: #2A2424;
+  --gray-200: #3D3636;
+  --gray-300: #524A4A;
+  --gray-400: #6A6060;
+  --gray-500: #8A8080;
+  --gray-600: #B8ACAC;
+  --gray-700: #E0D8D8;
+  --gray-800: #F0EAEA;
+  --gray-900: #F8F6F5;
+
+  /* Semantic Colors - Dark */
+  --success-light: #1A2A1A;
+  --success: #6BBF6B;
+  --success-dark: #8DD88D;
+
+  --warning-light: #2A2A1A;
+  --warning: #E8C56B;
+  --warning-dark: #F0D88D;
+
+  --error-light: #2A1A1A;
+  --error: #D98080;
+  --error-dark: #E89999;
+
+  /* Background - 눈이 편안한 다크 */
+  --background: #1A1616;
+  --foreground: #E0D8D8;
+
+  /* Card & Surface */
+  --card: #242020;
+  --card-foreground: #E0D8D8;
+  --muted: #2A2424;
+  --muted-foreground: #8A8080;
+
+  /* Border */
+  --border: #3D3636;
+  --ring: #5A3838;
 }
 
 @theme inline {
@@ -106,6 +185,16 @@
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+
+  /* Card & Surface */
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  /* Border */
+  --color-border: var(--border);
+  --color-ring: var(--ring);
 
   /* Font Family - Korean-friendly system fonts */
   --font-sans: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', system-ui, sans-serif;
