@@ -44,3 +44,31 @@ global.ResizeObserver = jest.fn().mockImplementation(() => ({
 // URL.createObjectURL mock
 global.URL.createObjectURL = jest.fn(() => 'blob:mock-url')
 global.URL.revokeObjectURL = jest.fn()
+
+// IntersectionObserver mock
+const mockIntersectionObserver = jest.fn()
+mockIntersectionObserver.mockReturnValue({
+  observe: jest.fn(),
+  unobserve: jest.fn(),
+  disconnect: jest.fn(),
+})
+global.IntersectionObserver = mockIntersectionObserver
+
+// requestAnimationFrame mock
+global.requestAnimationFrame = jest.fn((cb) => setTimeout(cb, 16))
+global.cancelAnimationFrame = jest.fn((id) => clearTimeout(id))
+
+// performance.now mock
+global.performance.now = jest.fn(() => Date.now())
+
+// matchMedia mock (for prefers-reduced-motion)
+global.matchMedia = jest.fn().mockImplementation((query) => ({
+  matches: false,
+  media: query,
+  onchange: null,
+  addListener: jest.fn(),
+  removeListener: jest.fn(),
+  addEventListener: jest.fn(),
+  removeEventListener: jest.fn(),
+  dispatchEvent: jest.fn(),
+}))
