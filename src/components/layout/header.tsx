@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Menu, X, User, LogOut, Library, Sparkles, PenTool, Heart } from 'lucide-react'
+import { Menu, X, User, LogOut, Library, Sparkles, PenTool, Heart, Info } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
@@ -16,6 +16,7 @@ const navLinks = [
   { href: '/my/library', label: '내 서재', icon: Heart },
   { href: '/editor/new', label: '에디터', icon: PenTool },
   { href: '/premium', label: '프리미엄', icon: Sparkles },
+  { href: '/about', label: '소개', icon: Info },
 ]
 
 // 티어별 배지 색상
