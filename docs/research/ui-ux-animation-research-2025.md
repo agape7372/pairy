@@ -592,6 +592,351 @@ Pairy 디자인 시스템과 조화:
 
 ---
 
+## 14. 디자인 시스템 사례 분석
+
+### 14.1 주요 디자인 시스템
+
+| 시스템 | 특징 | Pairy 참고 포인트 |
+|--------|------|------------------|
+| **Carbon (IBM)** | 포괄적 문서화, 접근성 중심 | 컴포넌트 문서화 방식 |
+| **Atlassian** | 사용 사례별 상세 가이드 | UX 가이드라인 |
+| **Chakra UI** | 접근성 우선, 직관적 API | React 컴포넌트 패턴 |
+| **Radix UI** | Headless, 로직/스타일 분리 | 유연한 컴포넌트 |
+| **shadcn/ui** | Tailwind 기반, 복사-붙여넣기 | 빠른 구현 |
+
+### 14.2 Linear 디자인 철학
+- 극도로 정제된 미니멀리즘
+- 키보드 중심 인터페이스
+- 부드러운 애니메이션과 피드백
+- 다크모드 최적화
+
+---
+
+## 15. 게이미피케이션 & 감정적 디자인
+
+### 15.1 게이미피케이션 요소
+
+| 요소 | 목적 | 예시 |
+|------|------|------|
+| **배지/뱃지** | 성취감, 인정 | Duolingo 스트릭 배지 |
+| **레벨/랭크** | 진행감 | 사용자 등급 시스템 |
+| **포인트** | 보상, 동기부여 | 활동 포인트 |
+| **리더보드** | 경쟁, 비교 | 주간 랭킹 |
+| **진행바** | 목표 시각화 | 프로필 완성도 |
+| **챌린지** | 참여 유도 | 주간 미션 |
+
+### 15.2 감정적 디자인 (Emotional Design)
+
+**Donald Norman의 3단계**
+1. **Visceral**: 첫인상, 시각적 매력
+2. **Behavioral**: 사용성, 기능성
+3. **Reflective**: 의미, 자아 정체성
+
+**Delight Moments 만들기**
+- Asana의 "Celebration Creatures" (작업 완료 시)
+- Mailchimp의 하이파이브 애니메이션
+- Twitter/X의 하트 애니메이션
+
+### 15.3 Pairy 적용
+- 크리에이터 배지 시스템
+- 다운로드/좋아요 마일스톤 축하
+- 서포터 전용 시각적 구분
+
+---
+
+## 16. Empty State & 에러 UI
+
+### 16.1 Empty State 유형
+
+| 유형 | 상황 | 디자인 접근 |
+|------|------|------------|
+| **First Use** | 신규 사용자 | 가이드, CTA |
+| **User Cleared** | 작업 완료 | 축하, 다음 액션 |
+| **No Results** | 검색 결과 없음 | 대안 제시 |
+| **Error** | 문제 발생 | 명확한 설명, 해결책 |
+
+### 16.2 모범 사례
+```
+┌─────────────────────────────────────┐
+│         [일러스트/아이콘]           │
+│                                     │
+│      "아직 저장한 자료가 없어요"     │
+│    마음에 드는 자료를 찾아보세요     │
+│                                     │
+│       [ 자료 둘러보기 → ]           │
+└─────────────────────────────────────┘
+```
+
+### 16.3 창의적 404 페이지 예시
+- **IKEA**: 404를 제품으로 표현
+- **Figma**: 인터랙티브 벡터 조작
+- **Spotify**: "404s and Heartbreaks" 플레이리스트 컨셉
+
+---
+
+## 17. 온보딩 UX 패턴
+
+### 17.1 주요 패턴
+
+| 패턴 | 설명 | 사용 시점 |
+|------|------|----------|
+| **Welcome Message** | 첫 인사, 기대 설정 | 첫 로그인 |
+| **Product Tour** | 3-5개 툴팁 가이드 | 핵심 기능 소개 |
+| **Checklist** | 완료해야 할 작업 목록 | 설정 과정 |
+| **Progress Bar** | 완료율 시각화 | 긴 설정 과정 |
+| **Persona-Based** | 사용자 유형별 맞춤 | 다양한 사용 사례 |
+
+### 17.2 2025 AI 트렌드
+- 사용자 행동 기반 적응형 플로우
+- AI 기반 세그먼테이션
+- 실시간 생성 가이드 콘텐츠
+
+### 17.3 핵심 원칙
+- 첫 사용 80% 이탈 방지
+- 3-5개 핵심 액션에 집중
+- Progressive Disclosure
+- 바로 가치를 경험하게
+
+---
+
+## 18. 타이포그래피 트렌드 2025
+
+### 18.1 Variable Fonts
+
+```css
+/* 단일 파일로 다양한 스타일 */
+@font-face {
+  font-family: 'InterVariable';
+  src: url('Inter.var.woff2') format('woff2');
+  font-weight: 100 900;
+}
+
+.text {
+  font-variation-settings: 'wght' 450;
+}
+```
+
+**장점**:
+- 파일 크기 감소 (여러 폰트 → 1개)
+- 반응형 타이포그래피
+- 부드러운 가중치 전환 애니메이션
+
+### 18.2 2025 트렌드
+
+| 트렌드 | 설명 |
+|--------|------|
+| **세리프 복귀** | 따뜻함, 신뢰감 |
+| **3D/Inflated** | 입체감, 장난스러움 |
+| **Art Deco** | 기하학적, 럭셔리 |
+| **손글씨 스타일** | 진정성, 개인적 느낌 |
+| **Fluid Typography** | `clamp()` 활용 반응형 |
+
+### 18.3 Fluid Typography 예시
+```css
+h1 {
+  font-size: clamp(2rem, 5vw + 1rem, 4rem);
+}
+```
+
+---
+
+## 19. UI 컴포넌트 베스트 프랙티스
+
+### 19.1 Toast/Snackbar
+
+| 항목 | 가이드라인 |
+|------|-----------|
+| **위치** | 모바일: 하단, 웹: 우하단 |
+| **시간** | 3-5초 (글자 수에 따라) |
+| **개수** | 한 번에 1개만 |
+| **액션** | 간단하고 되돌리기 쉬운 것만 |
+
+### 19.2 Modal/Dialog
+
+**사용 시점**:
+- 중요한 확인 필요 (삭제, 결제)
+- 집중 필요한 입력 폼
+- 컨텍스트 전환
+
+**피해야 할 상황**:
+- 에러 메시지 (배너 사용)
+- 연속 모달
+- 너무 자주 사용
+
+### 19.3 Form Validation
+
+```
+┌─ 인라인 검증 ─────────────────────┐
+│ ✓ 이메일, 비밀번호 즉시 피드백    │
+│ ✓ 필드 이탈 시 검증              │
+│ ✗ 타이핑 중 방해하지 않기        │
+└──────────────────────────────────┘
+
+┌─ 제출 후 검증 ────────────────────┐
+│ ✓ 복잡한 폼에 적합               │
+│ ✓ 전체 에러 한 번에 표시         │
+│ ✓ 인라인과 하이브리드 가능       │
+└──────────────────────────────────┘
+```
+
+---
+
+## 20. 마켓플레이스 UX
+
+### 20.1 필터 UI 베스트 프랙티스
+
+- **필터 상태 명확히**: 적용된 필터 칩으로 표시
+- **결과 수 표시**: 각 옵션 옆에 개수
+- **실시간 업데이트**: 필터 변경 시 즉시 반영
+- **카테고리별 필터**: 상품 유형에 맞는 필터
+
+### 20.2 검색 UX
+
+- 검색바 상단 중앙 배치
+- 자동완성 드롭다운
+- 최근 검색, 최근 본 항목
+- Federated Search (여러 카테고리 동시)
+
+### 20.3 갤러리 레이아웃
+
+| 레이아웃 | 특징 | 사용 사례 |
+|----------|------|----------|
+| **Grid** | 균일, 정돈됨 | 상품 목록 |
+| **Masonry** | Pinterest 스타일 | 다양한 비율 이미지 |
+| **Quilted** | Google Photos | 하이라이트 강조 |
+
+---
+
+## 21. 다크모드 디자인
+
+### 21.1 색상 가이드라인
+
+| 요소 | 권장 | 피해야 할 것 |
+|------|------|-------------|
+| **배경** | `#121212` (다크 그레이) | `#000000` (순수 검정) |
+| **텍스트** | `rgba(255,255,255,0.87)` | `#FFFFFF` (순수 흰색) |
+| **강조색** | 채도 낮춘 파스텔 | 과포화 네온 |
+
+### 21.2 접근성 체크
+
+- 텍스트 대비: 4.5:1 이상
+- UI 요소 대비: 3:1 이상
+- 난독증 사용자: 극단적 대비 피하기
+- 사용자 선택권 제공
+
+---
+
+## 22. 네오브루탈리즘 (Neubrutalism)
+
+### 22.1 특징
+
+"Anti-design" 철학으로 기존 UI 규칙을 거부
+
+| 요소 | 설명 |
+|------|------|
+| **색상** | 클래시, 고대비, 미우트 |
+| **그림자** | 하드 쉐도우, 오프셋 |
+| **타이포** | 대담하지만 가독성 유지 |
+| **보더** | 두꺼운 검정 테두리 |
+| **그라디언트** | 없음 (플랫 컬러) |
+
+### 22.2 대표 사례
+- Figma 웹사이트
+- Gumroad
+- WORKWITHUS
+
+### 22.3 Pairy와의 관계
+Pairy의 "Soft & Calm" 원칙과는 상반됨. 부분적 요소만 참고 가능:
+- 특별 이벤트 페이지
+- 크리에이터 프로필 커스텀 옵션
+
+---
+
+## 23. 반응형 디자인 2025
+
+### 23.1 브레이크포인트
+
+| 디바이스 | 너비 |
+|----------|------|
+| 모바일 | 360-480px |
+| 태블릿 | 768px |
+| 데스크탑 | 1024-1280px |
+| 대형 | 1440px+ |
+
+### 23.2 Mobile-First 원칙
+
+1. 모바일 뷰포트 먼저 디자인
+2. Progressive Enhancement로 확장
+3. 터치 친화적 (48px 최소 탭 영역)
+4. 세로 스크롤 우선
+
+### 23.3 Adaptive Navigation
+
+- 모바일: 햄버거 메뉴
+- 태블릿: 아이콘 + 라벨
+- 데스크탑: 전체 네비게이션
+
+---
+
+## 24. 프로그레스 인디케이터
+
+### 24.1 대기 시간별 권장
+
+| 시간 | 권장 패턴 |
+|------|----------|
+| < 1초 | 없음 (글리치 느낌) |
+| 1-3초 | 스피너, 스켈레톤 |
+| 3-10초 | 진행률 바, 퍼센트 |
+| > 10초 | 단계별 진행, 예상 시간 |
+
+### 24.2 인지 속도 향상 팁
+
+```css
+/* 끝에서 빨라지는 진행바 → 더 빠르게 느껴짐 */
+.progress-bar {
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+```
+
+---
+
+## 25. Motion 라이브러리 (구 Framer Motion)
+
+### 25.1 2025 업데이트
+- React 19 Concurrent Rendering 지원
+- 개선된 Layout Animations
+- 대량 요소 성능 향상
+
+### 25.2 핵심 패턴
+
+```tsx
+// Exit Animation
+<AnimatePresence>
+  {isVisible && (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+    />
+  )}
+</AnimatePresence>
+
+// Layout Animation
+<motion.div layout>
+  {/* 크기/위치 변경 시 자동 애니메이션 */}
+</motion.div>
+
+// Gesture
+<motion.button
+  whileHover={{ scale: 1.05 }}
+  whileTap={{ scale: 0.95 }}
+>
+  Click
+</motion.button>
+```
+
+---
+
 ## 참고 출처
 
 ### UI/UX 트렌드
@@ -615,3 +960,53 @@ Pairy 디자인 시스템과 조화:
 ### 한국/일본 트렌드
 - [Wix 한국 블로그 - 2025 웹디자인 트렌드](https://ko.wix.com/blog/post/new-web-design-trends)
 - [Humble Bunny - Japanese Web Design](https://www.humblebunny.com/japanese-web-design-trends-in-japan/)
+
+### 디자인 시스템
+- [UXPin - Best Design Systems 2025](https://www.uxpin.com/studio/blog/best-design-system-examples/)
+- [Carbon Design System](https://carbondesignsystem.com/)
+- [Atlassian Design System](https://atlassian.design/)
+
+### 게이미피케이션
+- [Arounda - Gamification 2025](https://arounda.agency/blog/gamification-in-product-design-in-2024-ui-ux)
+- [Designlab - Gamification in UX](https://designlab.com/blog/gamification-in-ux-enhancing-engagement-and-interaction)
+
+### 온보딩 UX
+- [DesignerUp - 200 Onboarding Flows Study](https://designerup.co/blog/i-studied-the-ux-ui-of-over-200-onboarding-flows-heres-everything-i-learned/)
+- [Chameleon - Onboarding Patterns](https://www.chameleon.io/blog/onboarding-ux-patterns)
+
+### 크리에이터 플랫폼
+- [Sacra - Gumroad Analysis](https://sacra.com/research/gumroad-android-creator-economy/)
+- [Whop - Gumroad vs Patreon](https://whop.com/blog/gumroad-vs-patreon/)
+
+### UI 컴포넌트
+- [LogRocket - Toast Notifications](https://blog.logrocket.com/ux-design/toast-notifications/)
+- [LogRocket - Modal UX](https://blog.logrocket.com/ux-design/modal-ux-design-patterns-examples-best-practices/)
+- [Eleken - Empty State UX](https://www.eleken.co/blog-posts/empty-state-ux)
+
+### 마켓플레이스 UX
+- [Pencil & Paper - Filter UX](https://www.pencilandpaper.io/articles/ux-pattern-analysis-enterprise-filtering)
+- [Rigby - Marketplace UX](https://www.rigbyjs.com/blog/marketplace-ux)
+
+### 타이포그래피
+- [Fontfabric - Typography Trends 2025](https://www.fontfabric.com/blog/top-typography-trends-2025/)
+- [FontsArena - Variable Fonts 2025](https://fontsarena.com/blog/design-trends-2025-variable-fonts-responsive-typography-studio-workflows/)
+
+### 다크모드 & 접근성
+- [Design Studio - Dark Mode Best Practices](https://www.designstudiouiux.com/blog/dark-mode-ui-design-best-practices/)
+- [Smashing Magazine - Inclusive Dark Mode](https://www.smashingmagazine.com/2025/04/inclusive-dark-mode-designing-accessible-dark-themes/)
+
+### 네오브루탈리즘
+- [Bejamas - Neubrutalism Trend](https://bejamas.com/blog/neubrutalism-web-design-trend)
+- [SVGator - Visual Guide](https://www.svgator.com/blog/what-is-neubrutalism/)
+
+### 일러스트레이션
+- [Lummi - Illustration Styles 2025](https://www.lummi.ai/blog/illustration-styles-2025)
+- [Fireart - Illustration Trends](https://fireart.studio/blog/illustration-trends/)
+
+### 404 페이지
+- [404s.design](https://www.404s.design/) - 큐레이션 갤러리
+- [Canva - Creative 404 Pages](https://www.canva.com/learn/404-page-design/)
+
+### 모션 라이브러리
+- [Motion Dev](https://motion.dev/) - 공식 문서
+- [Luxis Design - Advanced Framer Motion 2025](https://www.luxisdesign.io/blog/mastering-framer-motion-advanced-animation-techniques-for-2025)
