@@ -150,10 +150,10 @@ const trendingTemplates = [
 ]
 
 const popularCreators = [
-  { id: 'strawberry123', name: '딸기크림', avatar: null, followers: 1234, templates: 23, verified: true, color: 'from-pink-400 to-rose-400' },
-  { id: 'cherry_art', name: '체리블라썸', avatar: null, followers: 892, templates: 15, verified: true, color: 'from-red-400 to-pink-400' },
-  { id: 'fairy_art', name: '페어리', avatar: null, followers: 756, templates: 18, verified: true, color: 'from-purple-400 to-pink-400' },
-  { id: 'moonlight', name: '문라이트', avatar: null, followers: 543, templates: 12, verified: false, color: 'from-indigo-400 to-purple-400' },
+  { id: 'strawberry123', name: '딸기크림', avatar: null, followers: 1234, templates: 23, verified: true },
+  { id: 'cherry_art', name: '체리블라썸', avatar: null, followers: 892, templates: 15, verified: true },
+  { id: 'fairy_art', name: '페어리', avatar: null, followers: 756, templates: 18, verified: true },
+  { id: 'moonlight', name: '문라이트', avatar: null, followers: 543, templates: 12, verified: false },
 ]
 
 const recentTemplates = [
@@ -536,8 +536,9 @@ function TrendingSection() {
       <div className="max-w-[1200px] mx-auto">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-100 to-red-100 flex items-center justify-center">
-              <Flame className="w-6 h-6 text-orange-500" />
+            {/* 변경 이유: 그라데이션 → 단색으로 통일 */}
+            <div className="w-12 h-12 rounded-xl bg-primary-100 flex items-center justify-center">
+              <Flame className="w-6 h-6 text-primary-400" />
             </div>
             <div>
               <h2 className="text-xl font-bold text-gray-900">지금 뜨는 틀</h2>
@@ -570,7 +571,8 @@ function TrendingSection() {
 }
 
 // ============================================
-// 인기 크리에이터 (Glassmorphism + Gradient Border)
+// 인기 크리에이터 (미니멀 리디자인)
+// 변경 이유: 촌스러운 그라데이션 테두리/아바타 제거 → 깔끔한 단색 + 그림자로 통일
 // ============================================
 
 function CreatorCard({ creator, index }: { creator: typeof popularCreators[0]; index: number }) {
@@ -579,36 +581,31 @@ function CreatorCard({ creator, index }: { creator: typeof popularCreators[0]; i
   return (
     <Link
       href={`/creator/${creator.id}`}
-      className="group relative"
+      className="group block"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       style={{ animationDelay: `${index * 100}ms` }}
     >
-      {/* Gradient Border */}
-      <div className={cn(
-        'absolute -inset-0.5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-sm',
-        `bg-gradient-to-r ${creator.color}`
-      )} />
-
-      <div className="relative bg-white/80 backdrop-blur-sm rounded-2xl p-5 border border-gray-100 text-center transition-all duration-300 group-hover:bg-white">
-        {/* 아바타 */}
+      {/* 변경 이유: 그라데이션 테두리 제거 → 깔끔한 흰색 카드 + 호버 시 그림자 */}
+      <div className="bg-white rounded-2xl p-5 border border-gray-100 text-center transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+        {/* 아바타 - 변경 이유: 그라데이션 → 브랜드 컬러(primary) 단색 */}
         <div className="relative mx-auto mb-4">
           <div className={cn(
-            'w-20 h-20 rounded-full flex items-center justify-center overflow-hidden transition-all duration-500',
-            `bg-gradient-to-br ${creator.color}`,
-            isHovered && 'scale-105 shadow-lg'
+            'w-20 h-20 rounded-full flex items-center justify-center overflow-hidden transition-all duration-300',
+            'bg-primary-100',
+            isHovered && 'scale-105'
           )}>
             {creator.avatar ? (
               <img src={creator.avatar} alt="" className="w-full h-full object-cover" />
             ) : (
-              <span className="text-3xl font-bold text-white">
+              <span className="text-2xl font-bold text-primary-400">
                 {creator.name[0]}
               </span>
             )}
           </div>
           {creator.verified && (
-            <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-white rounded-full flex items-center justify-center shadow-md">
-              <CheckCircle className="w-5 h-5 text-blue-500" fill="currentColor" />
+            <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-white rounded-full flex items-center justify-center shadow-sm border border-gray-100">
+              <CheckCircle className="w-4 h-4 text-blue-500" fill="currentColor" />
             </div>
           )}
         </div>
@@ -626,24 +623,9 @@ function CreatorCard({ creator, index }: { creator: typeof popularCreators[0]; i
           </span>
         </div>
 
-        {/* 호버 시 변형되는 버튼 */}
-        <div className="relative h-9 overflow-hidden">
-          <div className={cn(
-            'absolute inset-0 flex items-center justify-center transition-all duration-300',
-            isHovered ? '-translate-y-full opacity-0' : 'translate-y-0 opacity-100'
-          )}>
-            <span className="text-sm text-gray-400">프로필 보기</span>
-          </div>
-          <Button
-            variant="primary"
-            size="sm"
-            className={cn(
-              'w-full transition-all duration-300',
-              isHovered ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'
-            )}
-          >
-            팔로우
-          </Button>
+        {/* 변경 이유: 복잡한 버튼 애니메이션 → 심플한 텍스트 링크 */}
+        <div className="text-sm text-gray-400 group-hover:text-primary-400 transition-colors">
+          프로필 보기 →
         </div>
       </div>
     </Link>
@@ -653,13 +635,15 @@ function CreatorCard({ creator, index }: { creator: typeof popularCreators[0]; i
 function PopularCreatorsSection() {
   const { ref, isVisible } = useScrollReveal()
 
+  // 변경 이유: 그라데이션 배경 제거 → 단색
   return (
-    <section ref={ref} className="py-10 px-4 bg-gradient-to-b from-gray-50 to-white">
+    <section ref={ref} className="py-10 px-4 bg-gray-50">
       <div className="max-w-[1200px] mx-auto">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center">
-              <Crown className="w-6 h-6 text-purple-500" />
+            {/* 변경 이유: 그라데이션 → 단색으로 통일 */}
+            <div className="w-12 h-12 rounded-xl bg-primary-100 flex items-center justify-center">
+              <Crown className="w-6 h-6 text-primary-400" />
             </div>
             <div>
               <h2 className="text-xl font-bold text-gray-900">인기 크리에이터</h2>
@@ -694,8 +678,9 @@ function RecentUploadsSection() {
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <div className="relative">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-100 to-emerald-100 flex items-center justify-center">
-                <Clock className="w-6 h-6 text-green-500" />
+              {/* 변경 이유: 그라데이션 → 단색으로 통일 */}
+              <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center">
+                <Clock className="w-6 h-6 text-gray-500" />
               </div>
               {/* 라이브 표시 */}
               <span className="absolute -top-1 -right-1 flex h-4 w-4">
@@ -833,43 +818,36 @@ function StatsBanner() {
 // CTA (Glassmorphism)
 // ============================================
 
+// 변경 이유: 과도한 glassmorphism + 그라데이션 → 깔끔한 단색 배경
 function CTASection() {
   return (
     <section className="py-16 px-4">
       <div className="max-w-[800px] mx-auto">
-        <div className="relative rounded-3xl overflow-hidden">
-          {/* 배경 그라데이션 */}
-          <div className="absolute inset-0 bg-gradient-to-br from-primary-300 via-primary-200 to-accent-200" />
+        {/* 변경 이유: 복잡한 레이어 구조 → 심플한 단색 배경 */}
+        <div className="bg-primary-50 rounded-3xl p-10 sm:p-14 text-center">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-white rounded-full text-sm font-medium text-gray-700 mb-6 shadow-sm">
+            <Star className="w-4 h-4 text-primary-400" fill="currentColor" />
+            100% 무료로 시작
+          </div>
 
-          {/* Glassmorphism 레이어 */}
-          <div className="absolute inset-4 bg-white/40 backdrop-blur-sm rounded-2xl" />
+          <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+            지금 시작해보세요
+          </h2>
+          <p className="text-gray-600 mb-8 max-w-md mx-auto">
+            무료로 가입하고 첫 번째 작품을 만들어보세요.
+            크리에이터가 되어 수익도 창출할 수 있어요.
+          </p>
 
-          {/* 콘텐츠 */}
-          <div className="relative p-10 sm:p-14 text-center">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/60 backdrop-blur rounded-full text-sm font-medium text-gray-700 mb-6">
-              <Star className="w-4 h-4 text-amber-500" fill="currentColor" />
-              100% 무료로 시작
-            </div>
-
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
-              지금 시작해보세요
-            </h2>
-            <p className="text-gray-600 mb-8 max-w-md mx-auto">
-              무료로 가입하고 첫 번째 작품을 만들어보세요.
-              크리에이터가 되어 수익도 창출할 수 있어요.
-            </p>
-
-            <div className="flex flex-wrap gap-4 justify-center">
-              <Button size="lg" asChild className="group">
-                <Link href="/login">
-                  무료로 시작하기
-                  <ArrowRight className="w-5 h-5 ml-2 transition-transform group-hover:translate-x-1" />
-                </Link>
-              </Button>
-              <Button variant="outline" size="lg" asChild className="bg-white/60 backdrop-blur hover:bg-white">
-                <Link href="/about">서비스 소개</Link>
-              </Button>
-            </div>
+          <div className="flex flex-wrap gap-4 justify-center">
+            <Button size="lg" asChild className="group">
+              <Link href="/login">
+                무료로 시작하기
+                <ArrowRight className="w-5 h-5 ml-2 transition-transform group-hover:translate-x-1" />
+              </Link>
+            </Button>
+            <Button variant="outline" size="lg" asChild className="bg-white hover:bg-gray-50">
+              <Link href="/about">서비스 소개</Link>
+            </Button>
           </div>
         </div>
       </div>
