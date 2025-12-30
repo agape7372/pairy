@@ -14,17 +14,12 @@ import { renderHook, act } from '@testing-library/react'
 import {
   useStaggeredGrid,
   useAdvancedStaggeredGrid,
-  type StaggeredGridOptions,
 } from '@/hooks/useStaggeredGrid'
-
-// IntersectionObserver 콜백을 저장하여 수동 트리거
-let intersectionCallback: IntersectionObserverCallback | null = null
 
 beforeEach(() => {
   // IntersectionObserver mock 리셋 및 콜백 캡처
   jest.clearAllMocks()
-  ;(global.IntersectionObserver as jest.Mock).mockImplementation((callback) => {
-    intersectionCallback = callback
+  ;(global.IntersectionObserver as jest.Mock).mockImplementation(() => {
     return {
       observe: jest.fn(),
       unobserve: jest.fn(),
@@ -295,13 +290,8 @@ describe('useAdvancedStaggeredGrid', () => {
   })
 
   it('isVisible=false일 때 모든 visibleIndices가 초기화된다', () => {
-    const { result, rerender } = renderHook(
-      ({ visible }) =>
-        useAdvancedStaggeredGrid(10, {
-          disabled: !visible,
-          chunkSize: 5,
-        }),
-      { initialProps: { visible: true } }
+    const { result } = renderHook(() =>
+      useAdvancedStaggeredGrid(10, { chunkSize: 5 })
     )
 
     act(() => {

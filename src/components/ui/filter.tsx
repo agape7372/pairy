@@ -183,13 +183,12 @@ const FilterChip = forwardRef<HTMLButtonElement, FilterChipProps>(
           </span>
         )}
 
+        {/* 변경 이유: X 아이콘은 button 내부에서 별도 onClick 없이 표시만 함
+            실제 제거 동작은 handleClick에서 처리 */}
         {removable && selected && (
           <X
-            className="w-3.5 h-3.5 ml-0.5 hover:text-primary-900"
-            onClick={(e) => {
-              e.stopPropagation()
-              onRemove?.()
-            }}
+            className="w-3.5 h-3.5 ml-0.5"
+            aria-hidden="true"
           />
         )}
       </button>

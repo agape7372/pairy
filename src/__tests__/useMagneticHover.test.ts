@@ -15,7 +15,6 @@ import { renderHook, act } from '@testing-library/react'
 import {
   useMagneticHover,
   useMagneticButton,
-  type MagneticHoverOptions,
 } from '@/hooks/useMagneticHover'
 
 // 원본 navigator 저장
@@ -34,7 +33,7 @@ beforeEach(() => {
   })
 
   // window.ontouchstart 제거
-  // @ts-ignore
+  // @ts-expect-error - ontouchstart may not exist on window in test environment
   delete global.window.ontouchstart
 })
 

@@ -114,6 +114,7 @@ export function useStaggeredGrid(
     if (once && hasAnimated) return
 
     const element = containerRef.current
+    let timeoutId: ReturnType<typeof setTimeout> | null = null
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -121,11 +122,11 @@ export function useStaggeredGrid(
           if (entry.isIntersecting) {
             // 초기 지연 후 애니메이션 시작
             if (initialDelay > 0) {
-              const timeoutId = setTimeout(() => {
+              // 변경 이유: 기존 코드는 forEach 내부에서 return하여 cleanup이 안됨
+              timeoutId = setTimeout(() => {
                 setIsVisible(true)
                 setHasAnimated(true)
               }, initialDelay)
-              return () => clearTimeout(timeoutId)
             } else {
               setIsVisible(true)
               setHasAnimated(true)
@@ -147,7 +148,13 @@ export function useStaggeredGrid(
 
     observer.observe(element)
 
-    return () => observer.disconnect()
+    // 변경 이유: timeout cleanup을 useEffect cleanup에서 처리
+    return () => {
+      observer.disconnect()
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+      }
+    }
   }, [threshold, rootMargin, once, hasAnimated, disabled, initialDelay])
 
   // 방향별 초기 transform 값

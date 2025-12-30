@@ -116,6 +116,8 @@ export function useMagneticHover(
   const [isHovering, setIsHovering] = useState(false)
   const [isInRange, setIsInRange] = useState(false)
   const animationRef = useRef<number | null>(null)
+  // 변경 이유: offset을 ref로 추적하여 callback 재생성 방지
+  const offsetRef = useRef<MagneticPosition>({ x: 0, y: 0 })
 
   // 터치 디바이스에서 비활성화
   const isDisabled = useMemo(() => {
@@ -158,12 +160,16 @@ export function useMagneticHover(
         const offsetX = (e.clientX - centerX) * effectStrength * intensity
         const offsetY = (e.clientY - centerY) * effectStrength * intensity
 
-        setOffset({
+        const newOffset = {
           x: clamp(offsetX, -maxOffset, maxOffset),
           y: clamp(offsetY, -maxOffset, maxOffset),
-        })
+        }
+        // 변경 이유: ref도 동기화하여 callback에서 최신값 접근 가능
+        offsetRef.current = newOffset
+        setOffset(newOffset)
       } else {
         setIsInRange(false)
+        offsetRef.current = { x: 0, y: 0 }
         setOffset({ x: 0, y: 0 })
       }
     },
@@ -177,6 +183,7 @@ export function useMagneticHover(
   }, [isDisabled])
 
   // 마우스 이탈 핸들러
+  // 변경 이유: offset 대신 offsetRef를 사용하여 의존성 제거 (성능 최적화)
   const handleMouseLeave = useCallback(() => {
     if (isDisabled) return
     setIsHovering(false)
@@ -187,7 +194,8 @@ export function useMagneticHover(
       cancelAnimationFrame(animationRef.current)
     }
 
-    const startOffset = { ...offset }
+    // 변경 이유: offsetRef.current 사용으로 stale closure 방지
+    const startOffset = { ...offsetRef.current }
     const startTime = performance.now()
 
     const animate = (currentTime: number) => {
@@ -197,10 +205,12 @@ export function useMagneticHover(
       // Ease out cubic
       const eased = 1 - Math.pow(1 - progress, 3)
 
-      setOffset({
+      const newOffset = {
         x: startOffset.x * (1 - eased),
         y: startOffset.y * (1 - eased),
-      })
+      }
+      offsetRef.current = newOffset
+      setOffset(newOffset)
 
       if (progress < 1) {
         animationRef.current = requestAnimationFrame(animate)
@@ -208,7 +218,7 @@ export function useMagneticHover(
     }
 
     animationRef.current = requestAnimationFrame(animate)
-  }, [isDisabled, offset, resetDuration])
+  }, [isDisabled, resetDuration])
 
   // 이벤트 리스너 등록
   useEffect(() => {

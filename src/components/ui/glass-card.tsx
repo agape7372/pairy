@@ -1,6 +1,6 @@
 'use client'
 
-import { forwardRef, type HTMLAttributes, useRef, useCallback, useState, useEffect } from 'react'
+import { forwardRef, type HTMLAttributes, useRef, useCallback, useState } from 'react'
 import { cn } from '@/lib/utils/cn'
 
 /**
@@ -117,17 +117,22 @@ const GlassCard = forwardRef<HTMLDivElement, GlassCardProps>(
         }
       : {}
 
+    // 변경 이유: ref 병합을 callback ref 패턴으로 개선
+    const setRefs = useCallback(
+      (node: HTMLDivElement | null) => {
+        innerRef.current = node
+        if (typeof ref === 'function') {
+          ref(node)
+        } else if (ref) {
+          ref.current = node
+        }
+      },
+      [ref]
+    )
+
     return (
       <div
-        ref={(node) => {
-          // Merge refs
-          (innerRef as React.MutableRefObject<HTMLDivElement | null>).current = node
-          if (typeof ref === 'function') {
-            ref(node)
-          } else if (ref) {
-            (ref as React.MutableRefObject<HTMLDivElement | null>).current = node
-          }
-        }}
+        ref={setRefs}
         className={cn(
           'rounded-2xl',
           variantClasses[variant],
