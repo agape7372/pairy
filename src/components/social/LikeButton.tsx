@@ -30,7 +30,7 @@ export function LikeButton({
   const [isToggling, setIsToggling] = useState(false)
   const buttonRef = useRef<HTMLButtonElement>(null)
 
-  // 💕 좋아요 시 하트 파티클
+  // 좋아요 시 하트 파티클
   const { emit, containerProps } = useParticle({
     type: 'heart',
     count: 8,
@@ -171,7 +171,7 @@ export function LikeIconButton({
   const [isAnimating, setIsAnimating] = useState(false)
   const buttonRef = useRef<HTMLButtonElement>(null)
 
-  // 💕 좋아요 시 하트 파티클
+  // 좋아요 시 하트 파티클
   const { emit, containerProps } = useParticle({
     type: 'heart',
     count: 6,

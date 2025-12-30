@@ -140,13 +140,13 @@ export default function PremiumPage() {
   const toast = useToast()
   const containerRef = useRef<HTMLDivElement>(null)
 
-  // 🎉 서포터 되기 화려한 축하 파티클
+  // 서포터 되기 화려한 축하 파티클
   const { emit: emitCelebration, containerProps } = useParticle({
-    type: 'emoji',
-    count: 25,
+    type: 'confetti',
+    count: 30,
     direction: 'fountain',
-    emojis: ['🎉', '✨', '💫', '🌟', '💖', '🎊', '⭐', '🦋'],
-    sizeRange: [18, 28],
+    colors: ['#FFD9D9', '#D7FAFA', '#FFCACA', '#B8F0F0', '#FFF5B8', '#E8A8A8', '#9FD9D9'],
+    sizeRange: [8, 16],
     duration: 1200,
     distanceRange: [80, 180],
   })
@@ -161,7 +161,7 @@ export default function PremiumPage() {
       const tierName = tier === 'premium' ? '서포터' : tier === 'duo' ? '페어 서포터' : '크리에이터'
       toast.success(`${tierName}가 되었어요!`)
 
-      // 🎉 화려한 축하 파티클!
+      // 화려한 축하 파티클
       if (event && containerRef.current) {
         const rect = containerRef.current.getBoundingClientRect()
         const buttonRect = (event.target as HTMLElement).getBoundingClientRect()
@@ -212,7 +212,7 @@ export default function PremiumPage() {
 
   return (
     <div ref={containerRef} className="animate-fade-in relative">
-      {/* 🎉 축하 파티클 컨테이너 */}
+      {/* 축하 파티클 컨테이너 */}
       <ParticleContainer {...containerProps} />
 
       {/* Hero - 부드럽고 친근한 톤 */}

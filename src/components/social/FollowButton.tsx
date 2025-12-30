@@ -28,7 +28,7 @@ export function FollowButton({
   const [isToggling, setIsToggling] = useState(false)
   const buttonRef = useRef<HTMLButtonElement>(null)
 
-  // ✨ 팔로우 시 스파클 파티클
+  // 팔로우 시 스파클 파티클
   const { emit, containerProps } = useParticle({
     type: 'sparkle',
     count: 12,
