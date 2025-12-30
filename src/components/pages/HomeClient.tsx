@@ -181,7 +181,7 @@ function StatCounter({ value, label }: { value: number; label: string }) {
   )
 }
 
-/** 템플릿 카드 - 호버 시 빛나며 떠오르는 효과 */
+/** 템플릿 카드 - 깔끔한 호버 효과 */
 function TemplateCard({ template, index }: { template: typeof sampleTemplates[0]; index: number }) {
   const { ref, isVisible } = useScrollReveal({ threshold: 0.2 })
   const IconComponent = template.icon
@@ -191,21 +191,16 @@ function TemplateCard({ template, index }: { template: typeof sampleTemplates[0]
       href={`/templates/${template.id}`}
       ref={ref as React.RefObject<HTMLAnchorElement>}
       className={`
-        group block bg-white rounded-[20px] overflow-hidden border border-gray-200
-        card-interactive glow-border
+        group block bg-white rounded-[20px] overflow-hidden border border-gray-100
+        transition-all duration-300 hover:shadow-lg hover:-translate-y-1
         ${isVisible ? 'animate-float-up' : 'opacity-0'}
       `}
       style={{ animationDelay: `${index * 100}ms` }}
     >
-      {/* 프리뷰 - 호버 시 아이콘이 살짝 흔들림 */}
+      {/* 프리뷰 */}
       <div className={`aspect-[4/3] bg-gradient-to-br ${template.bgGradient} flex items-center justify-center relative overflow-hidden`}>
-        {/* 배경 빛 효과 */}
-        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-white/30 rounded-full blur-2xl" />
-        </div>
-
         <IconComponent
-          className={`w-12 h-12 ${template.iconColor} transition-transform duration-300 group-hover:scale-110 group-hover:animate-wiggle relative z-10`}
+          className={`w-12 h-12 ${template.iconColor} transition-transform duration-300 group-hover:scale-110 relative z-10`}
           strokeWidth={1.5}
         />
       </div>
@@ -216,7 +211,7 @@ function TemplateCard({ template, index }: { template: typeof sampleTemplates[0]
           {template.title}
         </h3>
         <div className="flex items-center gap-3 text-sm text-gray-500 mb-3">
-          <span className="flex items-center gap-1 transition-transform group-hover:scale-105">
+          <span className="flex items-center gap-1">
             <Heart className="w-4 h-4" strokeWidth={1.5} />
             {template.likeCount.toLocaleString()}
           </span>
@@ -243,7 +238,7 @@ function FeatureCard({ feature, index }: { feature: typeof features[0]; index: n
       ref={ref as React.RefObject<HTMLDivElement>}
       className={`
         bg-white rounded-[16px] sm:rounded-[20px] p-4 sm:p-6 border border-gray-200
-        text-center card-interactive
+        text-center transition-all duration-300 hover:shadow-lg hover:-translate-y-1
         ${isVisible ? 'animate-float-up' : 'opacity-0'}
       `}
       style={{ animationDelay: `${index * 150}ms` }}
@@ -300,7 +295,7 @@ function StepCard({ step, index, isLast }: { step: typeof steps[0]; index: numbe
         </div>
       )}
 
-      <div className="bg-white rounded-[16px] sm:rounded-[20px] p-4 sm:p-6 border border-gray-200 card-interactive">
+      <div className="bg-white rounded-[16px] sm:rounded-[20px] p-4 sm:p-6 border border-gray-200 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
         <div className="flex items-center gap-3 sm:gap-4 mb-3 sm:mb-4">
           <div className="w-12 sm:w-14 h-12 sm:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center transition-transform duration-300 hover:scale-105 hover:rotate-3">
             <step.icon className="w-5 sm:w-6 h-5 sm:h-6 text-gray-700" strokeWidth={1.5} />
@@ -328,7 +323,7 @@ function TestimonialCard({ testimonial, index }: { testimonial: typeof testimoni
       ref={ref as React.RefObject<HTMLDivElement>}
       className={`
         bg-white rounded-[16px] sm:rounded-[20px] p-4 sm:p-6 border border-gray-200
-        card-interactive
+        transition-all duration-300 hover:shadow-lg hover:-translate-y-1
         ${isVisible ? 'animate-float-up' : 'opacity-0'}
       `}
       style={{ animationDelay: `${index * 100}ms` }}
@@ -369,7 +364,7 @@ function PricingCard({ plan, index }: { plan: typeof pricingPlans[0]; index: num
       style={{ animationDelay: `${index * 150}ms` }}
     >
       {plan.popular && (
-        <div className="inline-block px-3 py-1 bg-primary-400 text-white text-xs font-medium rounded-full mb-3 sm:mb-4 animate-pulse-glow">
+        <div className="inline-block px-3 py-1 bg-primary-400 text-white text-xs font-medium rounded-full mb-3 sm:mb-4">
           인기
         </div>
       )}
@@ -389,7 +384,7 @@ function PricingCard({ plan, index }: { plan: typeof pricingPlans[0]; index: num
       </ul>
       <Button
         variant={plan.variant === 'primary' ? 'primary' : 'outline'}
-        className="w-full btn-press"
+        className="w-full"
         asChild
       >
         <Link href="/login">{plan.cta}</Link>
@@ -428,9 +423,9 @@ function HeroSection() {
       />
 
       <div className="relative max-w-[900px] mx-auto text-center">
-        {/* 뱃지 - 순차 등장 */}
-        <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary-100 rounded-full text-sm text-primary-700 mb-6 animate-slide-up magic-border">
-          <Zap className="w-4 h-4 animate-pulse" strokeWidth={1.5} />
+        {/* 뱃지 */}
+        <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary-100 rounded-full text-sm text-primary-700 mb-6 animate-slide-up">
+          <Zap className="w-4 h-4" strokeWidth={1.5} />
           <span>자캐러를 위한 페어틀 플랫폼</span>
         </div>
 
@@ -450,20 +445,20 @@ function HeroSection() {
 
         {/* CTA 버튼들 */}
         <div className="flex flex-wrap gap-4 justify-center animate-slide-up delay-300">
-          <Button size="lg" className="btn-press animate-pulse-glow" asChild>
+          <Button size="lg" asChild>
             <Link href="/templates">
               틀 둘러보기
               <ArrowRight className="w-5 h-5 ml-2" strokeWidth={1.5} />
             </Link>
           </Button>
-          <Button variant="outline" size="lg" className="btn-press" asChild>
+          <Button variant="outline" size="lg" asChild>
             <Link href="/login">무료로 시작하기</Link>
           </Button>
         </div>
 
         {/* 히어로 비주얼 - 살아있는 에디터 목업 */}
         <div className="mt-10 sm:mt-16 relative animate-float-up delay-400">
-          <div className="bg-white rounded-[16px] sm:rounded-[24px] shadow-xl border border-gray-200 overflow-hidden mx-auto max-w-[700px] glow-border">
+          <div className="bg-white rounded-[16px] sm:rounded-[24px] shadow-xl border border-gray-200 overflow-hidden mx-auto max-w-[700px]">
             <div className="bg-gradient-to-br from-primary-100 to-accent-100 aspect-video flex items-center justify-center relative p-4">
               {/* 에디터 목업 */}
               <div className="flex gap-2 sm:gap-4 scale-75 sm:scale-100">
@@ -569,7 +564,7 @@ function CTASection() {
             <span className="sm:hidden"> </span>페어리가 여러분의 이야기를 기다리고 있어요.
           </p>
           <div className="flex flex-wrap gap-3 sm:gap-4 justify-center relative">
-            <Button size="lg" className="btn-press animate-pulse-glow" asChild>
+            <Button size="lg" asChild>
               <Link href="/login">
                 무료로 시작하기
                 <ArrowRight className="w-4 sm:w-5 h-4 sm:h-5 ml-2" strokeWidth={1.5} />
