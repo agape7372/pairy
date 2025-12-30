@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Check, Sparkles, Crown, ArrowRight, Users, Gift, Heart, Star, Coffee, Palette, MessageCircle } from 'lucide-react'
+import { Check, Sparkles, Crown, ArrowRight, Users, Gift, Heart, Star, Palette, MessageCircle, Leaf, Cherry, Cake, Download, Image } from 'lucide-react'
 import { Button, useToast } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
 import { useSubscriptionStore, PRICING, type SubscriptionTier } from '@/stores/subscriptionStore'
@@ -12,8 +12,8 @@ import { UpgradeModal } from '@/components/premium/UpgradeModal'
 const getSupporterTiers = (currentTier: string) => [
   {
     name: '일반 유저',
-    emoji: '🌱',
-    tagline: '환영해요!',
+    icon: Leaf,
+    tagline: '환영해요',
     description: '무료로 Pairy를 체험해보세요',
     monthlyPrice: 0,
     perks: [
@@ -27,15 +27,15 @@ const getSupporterTiers = (currentTier: string) => [
   },
   {
     name: '서포터',
-    emoji: '🍓',
-    tagline: '고마워요!',
+    icon: Cherry,
+    tagline: '고마워요',
     description: '창작자들을 응원하는 마음으로',
     monthlyPrice: PRICING.premium.monthly,
     perks: [
       '모든 자료 무제한',
       '워터마크 제거',
       '고해상도 저장',
-      '서포터 전용 배지 ✨',
+      '서포터 전용 배지',
     ],
     tier: 'premium' as const,
     current: currentTier === 'premium',
@@ -44,8 +44,8 @@ const getSupporterTiers = (currentTier: string) => [
   },
   {
     name: '페어 서포터',
-    emoji: '🍰',
-    tagline: '둘이라 좋아!',
+    icon: Heart,
+    tagline: '둘이라 좋아',
     description: '소중한 사람과 함께 후원해요',
     monthlyPrice: PRICING.duo.monthly,
     perPersonPrice: PRICING.duo.perPerson,
@@ -54,7 +54,7 @@ const getSupporterTiers = (currentTier: string) => [
       '2인이 함께 이용',
       '공유 서재 기능',
       '매월 보너스 크레딧',
-      '페어 전용 배지 💕',
+      '페어 전용 배지',
     ],
     tier: 'duo' as const,
     current: currentTier === 'duo',
@@ -62,8 +62,8 @@ const getSupporterTiers = (currentTier: string) => [
   },
   {
     name: '크리에이터',
-    emoji: '👑',
-    tagline: '멋져요!',
+    icon: Crown,
+    tagline: '멋져요',
     description: '직접 자료를 만들어 공유해요',
     monthlyPrice: PRICING.creator.monthly,
     perks: [
@@ -71,7 +71,7 @@ const getSupporterTiers = (currentTier: string) => [
       '자료 업로드 무제한',
       '수익 배분 70%',
       '분석 대시보드',
-      '크리에이터 배지 ⭐',
+      '크리에이터 배지',
     ],
     tier: 'creator' as const,
     current: currentTier === 'creator',
@@ -83,20 +83,17 @@ const getSupporterTiers = (currentTier: string) => [
 const communityVoices = [
   {
     name: '딸기우유',
-    avatar: '🐰',
-    message: '서포터 배지 달고 다니니까 기분이 좋아요~',
+    message: '서포터 배지 달고 다니니까 기분이 좋아요',
     tier: 'premium',
   },
   {
     name: '민트초코',
-    avatar: '🐱',
-    message: '남친이랑 페어로 쓰는데 공유 폴더가 진짜 편해요',
+    message: '페어로 쓰는데 공유 폴더가 진짜 편해요',
     tier: 'duo',
   },
   {
     name: 'ゆき',
-    avatar: '🐻',
-    message: '제가 만든 틀로 수익이 나니까 신기해요 ㅎㅎ',
+    message: '제가 만든 틀로 수익이 나니까 신기해요',
     tier: 'creator',
   },
 ]
@@ -105,23 +102,19 @@ const communityVoices = [
 const faqs = [
   {
     q: '언제든 그만둘 수 있나요?',
-    a: '물론이에요! 언제든 자유롭게 해지할 수 있고, 해지해도 기간이 끝날 때까지는 그대로 쓸 수 있어요.',
-    emoji: '💭',
+    a: '물론이에요. 언제든 자유롭게 해지할 수 있고, 해지해도 기간이 끝날 때까지는 그대로 쓸 수 있어요.',
   },
   {
     q: '페어 서포터는 누구랑 써도 되나요?',
-    a: '네! 친구, 연인, 가족... 함께 창작하는 사람이라면 누구든 좋아요.',
-    emoji: '👭',
+    a: '네. 친구, 연인, 가족... 함께 창작하는 사람이라면 누구든 좋아요.',
   },
   {
     q: '결제는 어떻게 하나요?',
     a: '카드, 카카오페이, 네이버페이 등 편한 방법으로 할 수 있어요. (준비 중)',
-    emoji: '💳',
   },
   {
     q: '환불은 가능한가요?',
     a: '7일 이내에 아직 사용 안 하셨다면 전액 환불해드려요.',
-    emoji: '🔄',
   },
 ]
 
@@ -139,7 +132,7 @@ export default function PremiumPage() {
     if (isDemoMode) {
       subscribe(tier, 'monthly')
       const tierName = tier === 'premium' ? '서포터' : tier === 'duo' ? '페어 서포터' : '크리에이터'
-      toast.success(`${tierName}가 되었어요! 🎉`)
+      toast.success(`${tierName}가 되었어요!`)
     } else {
       setSelectedTier(tier as 'premium' | 'creator' | 'duo')
       setShowUpgradeModal(true)
@@ -152,24 +145,28 @@ export default function PremiumPage() {
       border: 'border-gray-200',
       badge: 'bg-gray-100 text-gray-600',
       button: 'bg-gray-100 text-gray-500 cursor-default',
+      icon: 'text-gray-400',
     },
     pink: {
       bg: 'bg-gradient-to-br from-pink-50 to-rose-50',
       border: 'border-pink-200',
       badge: 'bg-pink-100 text-pink-600',
       button: 'bg-gradient-to-r from-pink-400 to-rose-400 text-white hover:from-pink-500 hover:to-rose-500',
+      icon: 'text-pink-400',
     },
     rose: {
       bg: 'bg-gradient-to-br from-rose-50 to-pink-50',
       border: 'border-rose-200',
       badge: 'bg-rose-100 text-rose-600',
       button: 'bg-gradient-to-r from-rose-400 to-pink-400 text-white hover:from-rose-500 hover:to-pink-500',
+      icon: 'text-rose-400',
     },
     amber: {
       bg: 'bg-gradient-to-br from-amber-50 to-orange-50',
       border: 'border-amber-200',
       badge: 'bg-amber-100 text-amber-600',
       button: 'bg-gradient-to-r from-amber-400 to-orange-400 text-white hover:from-amber-500 hover:to-orange-500',
+      icon: 'text-amber-400',
     },
   }
 
@@ -185,9 +182,9 @@ export default function PremiumPage() {
         </div>
 
         <div className="max-w-[600px] mx-auto">
-          {/* 친근한 이모지 인사 */}
-          <div className="text-5xl mb-6 animate-bounce-subtle">
-            ☕
+          {/* 아이콘 */}
+          <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-primary-100 flex items-center justify-center">
+            <Sparkles className="w-8 h-8 text-primary-400" />
           </div>
 
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-4">
@@ -196,7 +193,7 @@ export default function PremiumPage() {
 
           <p className="text-gray-500 leading-relaxed">
             여러분의 작은 후원이 크리에이터들에게<br />
-            큰 힘이 돼요. 감사합니다 💕
+            큰 힘이 돼요. 감사합니다.
           </p>
         </div>
       </section>
@@ -214,6 +211,7 @@ export default function PremiumPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {tiers.map((tier, index) => {
               const colors = tierColors[tier.color as keyof typeof tierColors]
+              const IconComponent = tier.icon
 
               return (
                 <div
@@ -242,9 +240,11 @@ export default function PremiumPage() {
                     </div>
                   )}
 
-                  {/* 이모지 + 이름 */}
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-2xl">{tier.emoji}</span>
+                  {/* 아이콘 + 이름 */}
+                  <div className="flex items-center gap-3 mb-1">
+                    <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center', tier.color === 'gray' ? 'bg-gray-100' : `bg-${tier.color}-100`)}>
+                      <IconComponent className={cn('w-5 h-5', colors.icon)} />
+                    </div>
                     <div>
                       <h3 className="font-bold text-gray-800">{tier.name}</h3>
                       <p className="text-xs text-gray-400">{tier.tagline}</p>
@@ -274,7 +274,7 @@ export default function PremiumPage() {
                     )}
                   </div>
 
-                  {/* 혜택 리스트 - 체크보다 점 */}
+                  {/* 혜택 리스트 */}
                   <ul className="space-y-2 mb-5">
                     {tier.perks.map((perk) => (
                       <li key={perk} className="flex items-start gap-2 text-sm text-gray-600">
@@ -313,7 +313,7 @@ export default function PremiumPage() {
           {isDemoMode && (
             <div className="mt-8 p-4 bg-amber-50/50 border border-amber-100 rounded-xl text-center">
               <p className="text-sm text-amber-600">
-                🎮 데모 모드예요 - 결제 없이 체험해볼 수 있어요
+                데모 모드예요 - 결제 없이 체험해볼 수 있어요
               </p>
             </div>
           )}
@@ -331,13 +331,17 @@ export default function PremiumPage() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {communityVoices.map((voice) => (
+            {communityVoices.map((voice, index) => (
               <div
                 key={voice.name}
                 className="p-4 bg-white rounded-2xl border border-gray-100 hover:border-pink-100 transition-colors"
               >
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-2xl">{voice.avatar}</span>
+                  <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center">
+                    <span className="text-xs font-medium text-primary-500">
+                      {voice.name.charAt(0)}
+                    </span>
+                  </div>
                   <span className="text-sm font-medium text-gray-700">{voice.name}</span>
                 </div>
                 <p className="text-sm text-gray-500 leading-relaxed">
@@ -349,10 +353,12 @@ export default function PremiumPage() {
         </div>
       </section>
 
-      {/* 페어 서포터 설명 - 귀여운 일러스트 스타일 */}
+      {/* 페어 서포터 설명 */}
       <section className="py-12 px-4 bg-gradient-to-b from-rose-50/50 to-transparent">
         <div className="max-w-[600px] mx-auto text-center">
-          <div className="text-4xl mb-4">👫</div>
+          <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-rose-100 flex items-center justify-center">
+            <Users className="w-7 h-7 text-rose-400" />
+          </div>
           <h2 className="text-xl font-bold text-gray-800 mb-3">
             페어 서포터
           </h2>
@@ -383,7 +389,9 @@ export default function PremiumPage() {
         <div className="max-w-[600px] mx-auto">
           <div className="p-6 bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl border border-amber-100">
             <div className="flex items-start gap-4">
-              <div className="text-3xl">🎨</div>
+              <div className="w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
+                <Palette className="w-6 h-6 text-amber-500" />
+              </div>
               <div>
                 <h3 className="font-bold text-gray-800 mb-1">
                   직접 만들어보고 싶다면?
@@ -396,7 +404,7 @@ export default function PremiumPage() {
                   className="inline-flex items-center gap-2 px-4 py-2 bg-amber-100 hover:bg-amber-200 rounded-xl text-sm font-medium text-amber-700 transition-colors"
                   onClick={() => handleSelectTier('creator')}
                 >
-                  <Palette className="w-4 h-4" />
+                  <Crown className="w-4 h-4" />
                   크리에이터 알아보기
                 </button>
               </div>
@@ -420,13 +428,8 @@ export default function PremiumPage() {
                 key={faq.q}
                 className="p-4 bg-white rounded-xl border border-gray-100"
               >
-                <div className="flex items-start gap-3">
-                  <span className="text-xl">{faq.emoji}</span>
-                  <div>
-                    <h3 className="font-medium text-gray-800 text-sm mb-1">{faq.q}</h3>
-                    <p className="text-sm text-gray-500">{faq.a}</p>
-                  </div>
-                </div>
+                <h3 className="font-medium text-gray-800 text-sm mb-1">{faq.q}</h3>
+                <p className="text-sm text-gray-500">{faq.a}</p>
               </div>
             ))}
           </div>
@@ -454,17 +457,6 @@ export default function PremiumPage() {
         onClose={() => setShowUpgradeModal(false)}
         requiredTier={selectedTier}
       />
-
-      {/* CSS for subtle animations */}
-      <style jsx>{`
-        @keyframes bounce-subtle {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-5px); }
-        }
-        .animate-bounce-subtle {
-          animation: bounce-subtle 3s ease-in-out infinite;
-        }
-      `}</style>
     </div>
   )
 }
