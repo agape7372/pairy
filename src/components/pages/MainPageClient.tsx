@@ -18,7 +18,6 @@ import {
   ChevronRight,
   Heart,
   Download,
-  Sparkles,
   TrendingUp,
   Clock,
   Star,
@@ -31,8 +30,6 @@ import {
   Image,
   Pencil,
   ScrollText,
-  Play,
-  Bookmark,
   ExternalLink,
 } from 'lucide-react'
 import { Button, Tag } from '@/components/ui'
@@ -41,6 +38,7 @@ import {
   RESOURCE_CATEGORIES,
   type ResourceCategory,
 } from '@/types/resources'
+import { useLikes } from '@/hooks/useLikes'
 
 // ============================================
 // 커스텀 훅: Scroll Reveal
@@ -395,13 +393,24 @@ function BentoCategoryGrid() {
 }
 
 // ============================================
-// 트렌딩 카드 (Tilt 효과 + 콘텐츠 리빌)
+// 트렌딩 카드 (미니멀 리디자인)
+// 변경 이유: 촌스러운 금색 뱃지 제거, 과도한 버튼 정리, 실제 기능 연결
 // ============================================
 
 function TrendingCard({ template, rank }: { template: typeof trendingTemplates[0]; rank: number }) {
   const { ref, transform, handleMouseMove, handleMouseLeave } = useTiltEffect()
   const [isHovered, setIsHovered] = useState(false)
   const category = RESOURCE_CATEGORIES[template.category]
+
+  // 변경 이유: 실제 좋아요 기능 연결
+  const { isLiked, likeCount, toggle: toggleLike } = useLikes(template.id, template.stats.likes)
+
+  // 변경 이유: 좋아요 버튼 클릭 시 Link 이벤트 차단
+  const handleLikeClick = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    await toggleLike()
+  }
 
   return (
     <Link
@@ -413,7 +422,7 @@ function TrendingCard({ template, rank }: { template: typeof trendingTemplates[0
       <div
         ref={ref}
         onMouseMove={handleMouseMove}
-        className="relative bg-white rounded-2xl overflow-hidden border border-gray-100 transition-all duration-300"
+        className="relative bg-white rounded-2xl overflow-hidden border border-gray-100 transition-all duration-300 hover:border-gray-200 hover:shadow-lg"
         style={{ transform }}
       >
         {/* 프리뷰 */}
@@ -421,24 +430,27 @@ function TrendingCard({ template, rank }: { template: typeof trendingTemplates[0
           'aspect-square flex items-center justify-center relative overflow-hidden',
           category.bgColor.replace('-100', '-50')
         )}>
-          {/* 순위 뱃지 */}
+          {/* 변경 이유: 순위 뱃지 - 미니멀하게 재디자인 */}
           <div className={cn(
-            'absolute top-3 left-3 w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm z-10 transition-all duration-300',
-            rank <= 3 ? 'bg-gradient-to-br from-amber-400 to-orange-500 text-white' : 'bg-white text-gray-700 shadow-md'
+            'absolute top-3 left-3 w-7 h-7 rounded-full flex items-center justify-center font-semibold text-xs z-10 transition-all duration-300',
+            rank === 1 && 'bg-primary-400 text-white',
+            rank === 2 && 'bg-primary-300 text-white',
+            rank === 3 && 'bg-primary-200 text-primary-700',
+            rank > 3 && 'bg-white/90 text-gray-500 backdrop-blur-sm'
           )}>
             {rank}
           </div>
 
-          {/* 프리미엄 뱃지 */}
+          {/* 변경 이유: 프리미엄 뱃지 - 작고 심플하게 */}
           {template.isPremium && (
-            <div className="absolute top-3 right-3 px-2 py-1 bg-gradient-to-r from-amber-400 to-orange-400 rounded-lg z-10">
-              <Sparkles className="w-4 h-4 text-white" />
+            <div className="absolute top-3 right-3 px-1.5 py-0.5 bg-gray-900/80 backdrop-blur-sm rounded text-[10px] font-bold text-white z-10">
+              PRO
             </div>
           )}
 
-          {/* NEW 뱃지 */}
+          {/* NEW 뱃지 - 더 subtle하게 */}
           {template.isNew && (
-            <div className="absolute bottom-3 left-3 px-2 py-0.5 bg-green-500 text-white text-xs font-bold rounded-full z-10 animate-pulse">
+            <div className="absolute bottom-3 left-3 px-2 py-0.5 bg-white/90 backdrop-blur-sm text-primary-500 text-[10px] font-bold rounded-full z-10">
               NEW
             </div>
           )}
@@ -446,31 +458,34 @@ function TrendingCard({ template, rank }: { template: typeof trendingTemplates[0
           {/* 이모지 */}
           <span className={cn(
             'text-5xl transition-all duration-500',
-            isHovered && 'scale-125 rotate-12'
+            isHovered && 'scale-110'
           )}>
             {category.emoji}
           </span>
 
-          {/* 호버 시 오버레이 액션 */}
-          <div className={cn(
-            'absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent flex items-end justify-center gap-2 pb-4 transition-all duration-300',
-            isHovered ? 'opacity-100' : 'opacity-0'
-          )}>
-            <button className="w-10 h-10 rounded-full bg-white flex items-center justify-center hover:scale-110 transition-transform">
-              <Heart className="w-5 h-5 text-gray-700" />
-            </button>
-            <button className="w-10 h-10 rounded-full bg-white flex items-center justify-center hover:scale-110 transition-transform">
-              <Bookmark className="w-5 h-5 text-gray-700" />
-            </button>
-            <button className="w-10 h-10 rounded-full bg-primary-400 flex items-center justify-center hover:scale-110 transition-transform">
-              <Play className="w-5 h-5 text-white" fill="white" />
-            </button>
-          </div>
+          {/* 변경 이유: 호버 시 좋아요 버튼 하나만 - 심플하게 */}
+          <button
+            onClick={handleLikeClick}
+            className={cn(
+              'absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 z-20',
+              template.isPremium ? 'top-10' : 'top-3',
+              isHovered ? 'opacity-100 scale-100' : 'opacity-0 scale-90',
+              isLiked
+                ? 'bg-red-50 text-red-500'
+                : 'bg-white/90 backdrop-blur-sm text-gray-500 hover:text-red-500 hover:bg-red-50'
+            )}
+            aria-label={isLiked ? '좋아요 취소' : '좋아요'}
+          >
+            <Heart
+              className="w-4 h-4 transition-transform hover:scale-110"
+              fill={isLiked ? 'currentColor' : 'none'}
+            />
+          </button>
         </div>
 
         {/* 콘텐츠 */}
         <div className="p-4">
-          <h3 className="font-semibold text-gray-900 truncate mb-1">
+          <h3 className="font-semibold text-gray-900 truncate mb-1 group-hover:text-primary-500">
             {template.title}
           </h3>
           <div className="flex items-center gap-1 text-sm text-gray-500 mb-3">
@@ -480,14 +495,14 @@ function TrendingCard({ template, rank }: { template: typeof trendingTemplates[0
             )}
           </div>
 
-          {/* 스탯 - 호버 시 색상 변경 */}
+          {/* 스탯 */}
           <div className="flex items-center gap-4 text-sm">
             <span className={cn(
               'flex items-center gap-1 transition-colors',
-              isHovered ? 'text-red-400' : 'text-gray-400'
+              isLiked ? 'text-red-500' : 'text-gray-400'
             )}>
-              <Heart className="w-4 h-4" fill={isHovered ? 'currentColor' : 'none'} />
-              {template.stats.likes.toLocaleString()}
+              <Heart className="w-4 h-4" fill={isLiked ? 'currentColor' : 'none'} />
+              {likeCount.toLocaleString()}
             </span>
             <span className="flex items-center gap-1 text-gray-400">
               <Download className="w-4 h-4" />
@@ -496,11 +511,10 @@ function TrendingCard({ template, rank }: { template: typeof trendingTemplates[0
           </div>
         </div>
 
-        {/* 호버 시 Glow 효과 */}
+        {/* 호버 시 subtle한 테두리 강조 */}
         <div className={cn(
-          'absolute -inset-1 rounded-2xl opacity-0 -z-10 blur-xl transition-opacity duration-500',
-          isHovered && 'opacity-30',
-          category.bgColor.replace('-100', '-400')
+          'absolute inset-0 rounded-2xl border-2 border-primary-200 opacity-0 transition-opacity duration-300 pointer-events-none',
+          isHovered && 'opacity-100'
         )} />
       </div>
     </Link>
