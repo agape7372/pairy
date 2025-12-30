@@ -1,12 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import Link from 'next/link'
 import { Check, Sparkles, Crown, ArrowRight, Users, Gift, Heart, Star, Palette, MessageCircle, Leaf, Cherry, TrendingUp } from 'lucide-react'
 import { Button, useToast } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
 import { useSubscriptionStore, PRICING, type SubscriptionTier } from '@/stores/subscriptionStore'
 import { UpgradeModal } from '@/components/premium/UpgradeModal'
+import { useParticle, ParticleContainer } from '@/hooks/useParticle'
 
 /**
  * 프라이싱 페이지 - UX 심리학 적용
@@ -137,16 +138,41 @@ export default function PremiumPage() {
   const [selectedTier, setSelectedTier] = useState<'premium' | 'creator' | 'duo'>('premium')
   const { subscription, subscribe, isDemoMode } = useSubscriptionStore()
   const toast = useToast()
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  // 서포터 되기 화려한 축하 파티클
+  const { emit: emitCelebration, containerProps } = useParticle({
+    type: 'confetti',
+    count: 30,
+    direction: 'fountain',
+    colors: ['#FFD9D9', '#D7FAFA', '#FFCACA', '#B8F0F0', '#FFF5B8', '#E8A8A8', '#9FD9D9'],
+    sizeRange: [8, 16],
+    duration: 1200,
+    distanceRange: [80, 180],
+  })
 
   const tiers = getSupporterTiers(subscription.tier)
 
-  const handleSelectTier = (tier: SubscriptionTier) => {
+  const handleSelectTier = (tier: SubscriptionTier, event?: React.MouseEvent) => {
     if (tier === 'free' || tier === subscription.tier) return
 
     if (isDemoMode) {
       subscribe(tier, 'monthly')
       const tierName = tier === 'premium' ? '서포터' : tier === 'duo' ? '페어 서포터' : '크리에이터'
       toast.success(`${tierName}가 되었어요!`)
+
+      // 화려한 축하 파티클
+      if (event && containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect()
+        const buttonRect = (event.target as HTMLElement).getBoundingClientRect()
+        const x = buttonRect.left - rect.left + buttonRect.width / 2
+        const y = buttonRect.top - rect.top + buttonRect.height / 2
+        emitCelebration(x, y)
+
+        // 더 화려하게! 여러 번 emit
+        setTimeout(() => emitCelebration(x - 50, y), 100)
+        setTimeout(() => emitCelebration(x + 50, y), 200)
+      }
     } else {
       setSelectedTier(tier as 'premium' | 'creator' | 'duo')
       setShowUpgradeModal(true)
@@ -185,7 +211,10 @@ export default function PremiumPage() {
   }
 
   return (
-    <div className="animate-fade-in">
+    <div ref={containerRef} className="animate-fade-in relative">
+      {/* 축하 파티클 컨테이너 */}
+      <ParticleContainer {...containerProps} />
+
       {/* Hero - 부드럽고 친근한 톤 */}
       <section className="py-16 sm:py-24 px-4 text-center relative overflow-hidden">
         {/* 배경 장식 */}
@@ -331,7 +360,7 @@ export default function PremiumPage() {
                         tier.current ? 'bg-gray-100 text-gray-400 cursor-default' : colors.button
                       )}
                       disabled={tier.current}
-                      onClick={() => handleSelectTier(tier.tier)}
+                      onClick={(e) => handleSelectTier(tier.tier, e)}
                     >
                       {tier.current ? '이용 중이에요' : `${tier.name} 되기`}
                     </button>
@@ -434,7 +463,7 @@ export default function PremiumPage() {
                 </p>
                 <button
                   className="inline-flex items-center gap-2 px-4 py-2 bg-amber-100 hover:bg-amber-200 rounded-xl text-sm font-medium text-amber-700 transition-colors"
-                  onClick={() => handleSelectTier('creator')}
+                  onClick={(e) => handleSelectTier('creator', e)}
                 >
                   <Crown className="w-4 h-4" />
                   크리에이터 알아보기
