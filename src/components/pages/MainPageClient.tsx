@@ -206,9 +206,18 @@ function BannerSlider() {
   const [isPaused, setIsPaused] = useState(false)
   const [isTransitioning, setIsTransitioning] = useState(false)
 
+  // 변경 이유: setTimeout ID 저장하여 cleanup 시 정리
+  const transitionTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
   const changeSlide = useCallback((newIndex: number) => {
     setIsTransitioning(true)
-    setTimeout(() => {
+
+    // 변경 이유: 이전 timeout 정리 후 새 timeout 설정
+    if (transitionTimeoutRef.current) {
+      clearTimeout(transitionTimeoutRef.current)
+    }
+
+    transitionTimeoutRef.current = setTimeout(() => {
       setCurrentSlide(newIndex)
       setIsTransitioning(false)
     }, 300)
@@ -223,6 +232,20 @@ function BannerSlider() {
     const interval = setInterval(nextSlide, 5000)
     return () => clearInterval(interval)
   }, [isPaused, nextSlide])
+
+  // 변경 이유: 컴포넌트 언마운트 시 transition timeout 정리
+  useEffect(() => {
+    return () => {
+      if (transitionTimeoutRef.current) {
+        clearTimeout(transitionTimeoutRef.current)
+      }
+    }
+  }, [])
+
+  // 변경 이유: 빈 배열 엣지 케이스 처리
+  if (banners.length === 0) {
+    return null
+  }
 
   const banner = banners[currentSlide]
   const Icon = banner.icon
@@ -764,14 +787,31 @@ function AnimatedCounter({ end, duration = 2000 }: { end: number; duration?: num
 
   useEffect(() => {
     if (!isVisible) return
+
     let startTime: number
+    let animationFrameId: number
+    // 변경 이유: 컴포넌트 언마운트 시 애니메이션 중단을 위한 플래그
+    let isCancelled = false
+
     const step = (timestamp: number) => {
+      if (isCancelled) return // 변경 이유: 언마운트 후 setState 호출 방지
+
       if (!startTime) startTime = timestamp
       const progress = Math.min((timestamp - startTime) / duration, 1)
       setCount(Math.floor(progress * end))
-      if (progress < 1) requestAnimationFrame(step)
+
+      if (progress < 1) {
+        animationFrameId = requestAnimationFrame(step)
+      }
     }
-    requestAnimationFrame(step)
+
+    animationFrameId = requestAnimationFrame(step)
+
+    // 변경 이유: cleanup 함수로 메모리 누수 방지
+    return () => {
+      isCancelled = true
+      cancelAnimationFrame(animationFrameId)
+    }
   }, [isVisible, end, duration])
 
   return <span ref={ref}>{count.toLocaleString()}+</span>
