@@ -3,6 +3,37 @@
 /* ===== Pairy 딸기크림 파스텔 테마 ===== */
 
 :root {
+  /* ============================================
+   * MAGIC EASING LIBRARY
+   * 마법적 UI 모션을 위한 커스텀 이징 함수
+   * ============================================ */
+
+  /* 부드러운 시작 - 자연스럽게 시작해서 우아하게 끝남 */
+  --ease-soft-out: cubic-bezier(0.23, 1, 0.32, 1);
+
+  /* 바운스 느낌 - 목표를 살짝 넘었다 돌아옴 */
+  --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* 마법적 출현 - 갑자기 나타나서 부드럽게 정착 */
+  --ease-magic: cubic-bezier(0.165, 0.84, 0.44, 1);
+
+  /* 우아한 퇴장 - 매우 부드러운 감속 */
+  --ease-elegant-out: cubic-bezier(0.19, 1, 0.22, 1);
+
+  /* 탄성 효과 - 스프링처럼 튕김 */
+  --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+  /* 극적인 출현 - 빠르게 시작해서 천천히 끝남 */
+  --ease-dramatic: cubic-bezier(0.7, 0, 0.3, 1);
+
+  /* 애니메이션 지속 시간 프리셋 */
+  --duration-instant: 100ms;
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --duration-slow: 400ms;
+  --duration-slower: 600ms;
+  --duration-slowest: 1000ms;
+
   /* Primary - 딸기 파스텔 핑크 */
   --primary-50: #FFF5F5;
   --primary-100: #FFF0F0;
@@ -2128,6 +2159,256 @@ body {
 .stagger-grid.is-visible > *:nth-child(10) { transition-delay: 450ms; }
 .stagger-grid.is-visible > *:nth-child(11) { transition-delay: 500ms; }
 .stagger-grid.is-visible > *:nth-child(12) { transition-delay: 550ms; }
+
+/* ============================================
+ * TYPEWRITER ANIMATION
+ * "한 글자 한 글자, 이야기가 피어나는 순간"
+ * ============================================ */
+
+/* 타이프라이터 커서 */
+.typewriter-cursor {
+  display: inline-block;
+  margin-left: 2px;
+  animation: cursorBlink 1s step-end infinite;
+}
+
+.typewriter-cursor.typing {
+  animation: none;
+  opacity: 1;
+}
+
+@keyframes cursorBlink {
+  0%, 50% {
+    opacity: 1;
+  }
+  51%, 100% {
+    opacity: 0;
+  }
+}
+
+/* 타이프라이터 컨테이너 */
+.typewriter-container {
+  display: inline;
+  white-space: pre-wrap;
+}
+
+/* 타이프라이터 효과용 border-right 스타일 커서 */
+.typewriter-cursor-line {
+  border-right: 2px solid var(--primary-400);
+  animation: cursorBlink 1s step-end infinite;
+  padding-right: 2px;
+}
+
+.typewriter-cursor-line.typing {
+  animation: none;
+  border-color: var(--primary-500);
+}
+
+/* ============================================
+ * PARTICLE ANIMATION SYSTEM
+ * "마법 같은 순간에 반짝이는 축하의 빛"
+ * ============================================ */
+
+/* 파티클 이동 애니메이션 */
+@keyframes particle-move {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(var(--particle-rotate, 0deg)) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--particle-x, 50px), var(--particle-y, -100px)) rotate(var(--particle-rotate, 360deg)) scale(0);
+  }
+}
+
+/* 파티클 분수 효과 (위로 솟았다 내려옴) */
+@keyframes particle-fountain {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(var(--particle-x, 20px), calc(var(--particle-y, -100px) * 1.2)) scale(1.1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(var(--particle-x, 20px) * 1.5), 50px) scale(0.5);
+  }
+}
+
+/* 파티클 컨테이너 */
+.particle-container {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 50;
+}
+
+/* 개별 파티클 */
+.particle {
+  position: absolute;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
+/* 파티클 타입별 스타일 */
+.particle-confetti {
+  border-radius: 2px;
+}
+
+.particle-sparkle {
+  border-radius: 50%;
+  box-shadow: 0 0 4px currentColor;
+}
+
+.particle-heart,
+.particle-star,
+.particle-emoji {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+}
+
+/* 파티클 버스트 효과 (클릭 위치에서 퍼짐) */
+.particle-burst {
+  animation: particle-burst 0.6s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+}
+
+@keyframes particle-burst {
+  0% {
+    transform: scale(0);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(0);
+    opacity: 0;
+  }
+}
+
+/* ============================================
+ * MORPH TRANSITION UTILITIES
+ * "형태가 자연스럽게 변화하며 이야기가 전환되는 순간"
+ * ============================================ */
+
+/* 모프 트랜지션 대상 요소 */
+.morph-element {
+  will-change: transform, opacity;
+}
+
+/* 모프 클론 (애니메이션 중 표시되는 복제본) */
+.morph-clone {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9999;
+  will-change: transform;
+}
+
+/* 공유 요소 트랜지션 */
+.shared-element {
+  will-change: transform;
+}
+
+/* 레이아웃 모프 컨테이너 */
+.layout-morph-container > * {
+  will-change: transform;
+}
+
+/* 페이지 전환 효과 */
+.page-morph-enter {
+  opacity: 0;
+  transform: scale(0.98) translateY(10px);
+}
+
+.page-morph-enter-active {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+  transition: all var(--duration-slow) var(--ease-soft-out);
+}
+
+.page-morph-exit {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+}
+
+.page-morph-exit-active {
+  opacity: 0;
+  transform: scale(0.98) translateY(-10px);
+  transition: all var(--duration-normal) var(--ease-soft-out);
+}
+
+/* ============================================
+ * MAGIC EASING UTILITY CLASSES
+ * 커스텀 이징 함수 사용 유틸리티
+ * ============================================ */
+
+.ease-soft-out {
+  transition-timing-function: var(--ease-soft-out);
+}
+
+.ease-bounce {
+  transition-timing-function: var(--ease-bounce);
+}
+
+.ease-magic {
+  transition-timing-function: var(--ease-magic);
+}
+
+.ease-elegant-out {
+  transition-timing-function: var(--ease-elegant-out);
+}
+
+.ease-spring {
+  transition-timing-function: var(--ease-spring);
+}
+
+.ease-dramatic {
+  transition-timing-function: var(--ease-dramatic);
+}
+
+/* 지속 시간 유틸리티 */
+.duration-instant {
+  transition-duration: var(--duration-instant);
+}
+
+.duration-fast {
+  transition-duration: var(--duration-fast);
+}
+
+.duration-normal {
+  transition-duration: var(--duration-normal);
+}
+
+.duration-slow {
+  transition-duration: var(--duration-slow);
+}
+
+.duration-slower {
+  transition-duration: var(--duration-slower);
+}
+
+.duration-slowest {
+  transition-duration: var(--duration-slowest);
+}
+
+/* 복합 트랜지션 유틸리티 */
+.transition-magic {
+  transition: all var(--duration-normal) var(--ease-magic);
+}
+
+.transition-bounce {
+  transition: all var(--duration-slow) var(--ease-bounce);
+}
+
+.transition-elegant {
+  transition: all var(--duration-slower) var(--ease-elegant-out);
+}
 
 /* 모션 감소 설정 존중 */
 @media (prefers-reduced-motion: reduce) {
