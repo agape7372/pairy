@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
@@ -36,6 +36,7 @@ import {
   type Resource,
 } from '@/types/resources'
 import { useSubscriptionStore } from '@/stores/subscriptionStore'
+import styles from '@/components/interactions/interactions.module.css'
 
 // 라이선스를 가격 타입으로 변환
 function licenseToPricingType(license: LicenseType, price?: number): PricingType {
@@ -343,6 +344,67 @@ export default function TemplateDetailClient({ templateId }: TemplateDetailClien
   const [showShareToast, setShowShareToast] = useState(false)
   const [showAddToLibrary, setShowAddToLibrary] = useState(false)
   const [isDownloading, setIsDownloading] = useState(false)
+  const bookmarkContainerRef = useRef<HTMLDivElement>(null)
+
+  // Shooting Star 파티클 효과
+  const emitShootingStar = useCallback(() => {
+    if (!bookmarkContainerRef.current) return
+
+    const container = bookmarkContainerRef.current
+    const starCount = 3
+    const colors = ['#FFD700', '#FFA500', '#FFFFFF']
+
+    for (let i = 0; i < starCount; i++) {
+      const star = document.createElement('div')
+      star.className = styles.shootingStar
+
+      const startX = -30 - i * 15
+      const startY = -30 - i * 10
+      const delay = i * 100
+
+      star.style.setProperty('--startX', `${startX}px`)
+      star.style.setProperty('--startY', `${startY}px`)
+      star.style.setProperty('--delay', `${delay}ms`)
+      star.style.background = `linear-gradient(90deg, transparent, ${colors[i]}, #FFFFFF)`
+
+      container.appendChild(star)
+      setTimeout(() => star.remove(), 700 + delay)
+    }
+
+    // 추가로 작은 별 파티클
+    for (let i = 0; i < 6; i++) {
+      const sparkle = document.createElement('div')
+      sparkle.className = styles.starMark
+
+      const angle = (Math.PI * 2 * i) / 6 + Math.random() * 0.3
+      const distance = 20 + Math.random() * 25
+      const tx = Math.cos(angle) * distance
+      const ty = Math.sin(angle) * distance
+      const delay = 50 + i * 30
+      const scale = 0.6 + Math.random() * 0.4
+
+      sparkle.style.setProperty('--tx', `${tx}px`)
+      sparkle.style.setProperty('--ty', `${ty}px`)
+      sparkle.style.setProperty('--delay', `${delay}ms`)
+      sparkle.style.setProperty('--scale', `${scale}`)
+      sparkle.innerHTML = '✦'
+      sparkle.style.color = '#FFD700'
+      sparkle.style.fontSize = '12px'
+
+      container.appendChild(sparkle)
+      setTimeout(() => sparkle.remove(), 600 + delay)
+    }
+  }, [])
+
+  const handleBookmarkClick = () => {
+    const wasBookmarked = isBookmarked
+    setIsBookmarked(!isBookmarked)
+
+    // 북마크 활성화 시에만 Shooting Star 효과
+    if (!wasBookmarked) {
+      emitShootingStar()
+    }
+  }
 
   const resource = sampleResources[templateId]
 
@@ -697,14 +759,22 @@ export default function TemplateDetailClient({ templateId }: TemplateDetailClien
                   variant="outline"
                   className="flex-1"
                 />
-                <Button
-                  variant={isBookmarked ? 'accent' : 'outline'}
-                  className="flex-1"
-                  onClick={() => setIsBookmarked(!isBookmarked)}
-                >
-                  <Bookmark className={cn('w-5 h-5 mr-2', isBookmarked && 'fill-current')} />
-                  {isBookmarked ? '저장됨' : '저장하기'}
-                </Button>
+                <div className="relative flex-1">
+                  <Button
+                    variant={isBookmarked ? 'accent' : 'outline'}
+                    className="w-full"
+                    onClick={handleBookmarkClick}
+                  >
+                    <Bookmark className={cn('w-5 h-5 mr-2', isBookmarked && 'fill-current')} />
+                    {isBookmarked ? '저장됨' : '저장하기'}
+                  </Button>
+                  {/* Shooting Star 파티클 컨테이너 */}
+                  <div
+                    ref={bookmarkContainerRef}
+                    className="absolute inset-0 overflow-visible pointer-events-none"
+                    aria-hidden="true"
+                  />
+                </div>
                 <Button variant="ghost" onClick={handleShare}>
                   <Share2 className="w-5 h-5" />
                 </Button>

@@ -1,13 +1,13 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import { Check, Sparkles, Crown, ArrowRight, Users, Gift, Heart, Star, Palette, MessageCircle, Leaf, Cherry, TrendingUp } from 'lucide-react'
 import { Button, useToast } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
 import { useSubscriptionStore, PRICING, type SubscriptionTier } from '@/stores/subscriptionStore'
 import { UpgradeModal } from '@/components/premium/UpgradeModal'
-import { useParticle, ParticleContainer } from '@/hooks/useParticle'
+import styles from '@/components/interactions/interactions.module.css'
 
 /**
  * 프라이싱 페이지 - UX 심리학 적용
@@ -139,17 +139,45 @@ export default function PremiumPage() {
   const { subscription, subscribe, isDemoMode } = useSubscriptionStore()
   const toast = useToast()
   const containerRef = useRef<HTMLDivElement>(null)
+  const confettiContainerRef = useRef<HTMLDivElement>(null)
 
-  // 서포터 되기 화려한 축하 파티클
-  const { emit: emitCelebration, containerProps } = useParticle({
-    type: 'confetti',
-    count: 30,
-    direction: 'fountain',
-    colors: ['#FFD9D9', '#D7FAFA', '#FFCACA', '#B8F0F0', '#FFF5B8', '#E8A8A8', '#9FD9D9'],
-    sizeRange: [8, 16],
-    duration: 1200,
-    distanceRange: [80, 180],
-  })
+  // 새로운 CSS 기반 Confetti Shower 효과
+  const emitConfettiShower = useCallback((originX: number, originY: number) => {
+    if (!confettiContainerRef.current) return
+
+    const container = confettiContainerRef.current
+    const particleCount = 25
+    const colors = ['#FFD9D9', '#D7FAFA', '#FFCACA', '#B8F0F0', '#FFF5B8', '#E8A8A8', '#9FD9D9', '#FFB6C1']
+
+    for (let i = 0; i < particleCount; i++) {
+      const confetti = document.createElement('div')
+      confetti.className = styles.confettiPiece
+
+      const angle = -90 + (Math.random() - 0.5) * 120 // 위로 퍼지는 방향
+      const radians = (angle * Math.PI) / 180
+      const distance = 60 + Math.random() * 100
+      const tx = Math.cos(radians) * distance
+      const ty = Math.sin(radians) * distance
+      const rotate = Math.random() * 720 - 360
+      const delay = i * 30
+      const color = colors[i % colors.length]
+
+      confetti.style.left = `${originX}px`
+      confetti.style.top = `${originY}px`
+      confetti.style.setProperty('--tx', `${tx}px`)
+      confetti.style.setProperty('--ty', `${ty}px`)
+      confetti.style.setProperty('--rotate', `${rotate}deg`)
+      confetti.style.setProperty('--delay', `${delay}ms`)
+      confetti.style.setProperty('--color', color)
+      confetti.style.background = color
+      confetti.style.width = `${6 + Math.random() * 6}px`
+      confetti.style.height = `${4 + Math.random() * 4}px`
+      confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px'
+
+      container.appendChild(confetti)
+      setTimeout(() => confetti.remove(), 1000 + delay)
+    }
+  }, [])
 
   const tiers = getSupporterTiers(subscription.tier)
 
@@ -161,17 +189,17 @@ export default function PremiumPage() {
       const tierName = tier === 'premium' ? '서포터' : tier === 'duo' ? '페어 서포터' : '크리에이터'
       toast.success(`${tierName}가 되었어요!`)
 
-      // 화려한 축하 파티클
-      if (event && containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect()
+      // 화려한 Confetti Shower 효과
+      if (event && confettiContainerRef.current) {
+        const containerRect = confettiContainerRef.current.getBoundingClientRect()
         const buttonRect = (event.target as HTMLElement).getBoundingClientRect()
-        const x = buttonRect.left - rect.left + buttonRect.width / 2
-        const y = buttonRect.top - rect.top + buttonRect.height / 2
-        emitCelebration(x, y)
+        const x = buttonRect.left - containerRect.left + buttonRect.width / 2
+        const y = buttonRect.top - containerRect.top + buttonRect.height / 2
+        emitConfettiShower(x, y)
 
         // 더 화려하게! 여러 번 emit
-        setTimeout(() => emitCelebration(x - 50, y), 100)
-        setTimeout(() => emitCelebration(x + 50, y), 200)
+        setTimeout(() => emitConfettiShower(x - 40, y), 100)
+        setTimeout(() => emitConfettiShower(x + 40, y), 200)
       }
     } else {
       setSelectedTier(tier as 'premium' | 'creator' | 'duo')
@@ -212,8 +240,12 @@ export default function PremiumPage() {
 
   return (
     <div ref={containerRef} className="animate-fade-in relative">
-      {/* 축하 파티클 컨테이너 */}
-      <ParticleContainer {...containerProps} />
+      {/* Confetti Shower 파티클 컨테이너 */}
+      <div
+        ref={confettiContainerRef}
+        className="fixed inset-0 overflow-hidden pointer-events-none z-50"
+        aria-hidden="true"
+      />
 
       {/* Hero - 부드럽고 친근한 톤 */}
       <section className="py-16 sm:py-24 px-4 text-center relative overflow-hidden">
