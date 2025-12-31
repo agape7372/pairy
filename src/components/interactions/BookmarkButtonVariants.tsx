@@ -851,6 +851,1624 @@ export function BookmarkMagicLink({ className }: BookmarkButtonProps) {
 }
 
 // ============================================
+// 16. 폴드팝 - 종이가 톡 펴짐
+// ============================================
+
+export function BookmarkFoldPop({ className }: BookmarkButtonProps) {
+  const [isBookmarked, setIsBookmarked] = useState(false)
+  const [isAnimating, setIsAnimating] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  const handleClick = useCallback(() => {
+    if (isAnimating) return
+    setIsAnimating(true)
+    const newBookmarked = !isBookmarked
+    setIsBookmarked(newBookmarked)
+
+    if (newBookmarked && containerRef.current) {
+      const particles = createParticles(containerRef.current, 8, (i) => {
+        const particle = document.createElement('div')
+        particle.className = styles.goldSparkle
+        const angle = (i * 45) * (Math.PI / 180)
+        const distance = 30 + Math.random() * 20
+        particle.style.setProperty('--tx', `${Math.cos(angle) * distance}px`)
+        particle.style.setProperty('--ty', `${Math.sin(angle) * distance}px`)
+        particle.style.setProperty('--delay', `${i * 25}ms`)
+        particle.style.setProperty('--size', `${8 + Math.random() * 6}px`)
+        return particle
+      })
+      removeParticles(particles, 700)
+    }
+
+    setTimeout(() => setIsAnimating(false), 500)
+  }, [isBookmarked, isAnimating])
+
+  return (
+    <div ref={containerRef} className={cn('relative inline-flex items-center justify-center', className)}>
+      <button
+        onClick={handleClick}
+        className={cn(
+          'relative p-3 rounded-full transition-all duration-200',
+          'hover:bg-amber-50 active:scale-90',
+          isAnimating && styles.foldPop
+        )}
+      >
+        <Bookmark
+          className={cn(
+            'w-6 h-6 transition-all duration-200',
+            isBookmarked ? 'fill-amber-400 text-amber-400' : 'text-gray-400'
+          )}
+        />
+      </button>
+    </div>
+  )
+}
+
+// ============================================
+// 17. 탭플립 - 탭이 뒤집힘
+// ============================================
+
+export function BookmarkTabFlip({ className }: BookmarkButtonProps) {
+  const [isBookmarked, setIsBookmarked] = useState(false)
+  const [isAnimating, setIsAnimating] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  const handleClick = useCallback(() => {
+    if (isAnimating) return
+    setIsAnimating(true)
+    const newBookmarked = !isBookmarked
+    setIsBookmarked(newBookmarked)
+
+    if (newBookmarked && containerRef.current) {
+      const particles = createParticles(containerRef.current, 6, (i) => {
+        const particle = document.createElement('div')
+        particle.className = styles.paperFlake
+        const angle = (i * 60) * (Math.PI / 180)
+        const distance = 30 + Math.random() * 15
+        particle.style.setProperty('--tx', `${Math.cos(angle) * distance}px`)
+        particle.style.setProperty('--ty', `${Math.sin(angle) * distance}px`)
+        particle.style.setProperty('--delay', `${i * 30}ms`)
+        return particle
+      })
+      removeParticles(particles, 900)
+    }
+
+    setTimeout(() => setIsAnimating(false), 500)
+  }, [isBookmarked, isAnimating])
+
+  return (
+    <div ref={containerRef} className={cn('relative inline-flex items-center justify-center', className)}>
+      <button
+        onClick={handleClick}
+        className={cn(
+          'relative p-3 rounded-full transition-all duration-200',
+          'hover:bg-amber-50 active:scale-90',
+          isAnimating && styles.tabFlip
+        )}
+      >
+        <Bookmark
+          className={cn(
+            'w-6 h-6 transition-all duration-200',
+            isBookmarked ? 'fill-amber-400 text-amber-400' : 'text-gray-400'
+          )}
+        />
+      </button>
+    </div>
+  )
+}
+
+// ============================================
+// 18. 마커드롭 - 마커가 떨어짐
+// ============================================
+
+export function BookmarkMarkerDrop({ className }: BookmarkButtonProps) {
+  const [isBookmarked, setIsBookmarked] = useState(false)
+  const [isAnimating, setIsAnimating] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  const handleClick = useCallback(() => {
+    if (isAnimating) return
+    setIsAnimating(true)
+    const newBookmarked = !isBookmarked
+    setIsBookmarked(newBookmarked)
+
+    if (newBookmarked && containerRef.current) {
+      const colors = ['#FFD700', '#FFA500', '#DAA520']
+      const particles = createParticles(containerRef.current, 6, (i) => {
+        const particle = document.createElement('div')
+        particle.className = styles.bookmarkMini
+        const angle = (i * 60) * (Math.PI / 180)
+        const distance = 30 + Math.random() * 15
+        particle.style.setProperty('--tx', `${Math.cos(angle) * distance}px`)
+        particle.style.setProperty('--ty', `${Math.sin(angle) * distance}px`)
+        particle.style.setProperty('--delay', `${i * 30}ms`)
+        particle.style.setProperty('--color', colors[i % colors.length])
+        return particle
+      })
+      removeParticles(particles, 800)
+    }
+
+    setTimeout(() => setIsAnimating(false), 400)
+  }, [isBookmarked, isAnimating])
+
+  return (
+    <div ref={containerRef} className={cn('relative inline-flex items-center justify-center', className)}>
+      <button
+        onClick={handleClick}
+        className={cn(
+          'relative p-3 rounded-full transition-all duration-200',
+          'hover:bg-amber-50 active:scale-90',
+          isAnimating && styles.markerDrop
+        )}
+      >
+        <Bookmark
+          className={cn(
+            'w-6 h-6 transition-all duration-200',
+            isBookmarked ? 'fill-amber-400 text-amber-400' : 'text-gray-400'
+          )}
+        />
+      </button>
+    </div>
+  )
+}
+
+// ============================================
+// 19. 라벨스윙 - 라벨이 흔들림
+// ============================================
+
+export function BookmarkLabelSwing({ className }: BookmarkButtonProps) {
+  const [isBookmarked, setIsBookmarked] = useState(false)
+  const [isAnimating, setIsAnimating] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  const handleClick = useCallback(() => {
+    if (isAnimating) return
+    setIsAnimating(true)
+    const newBookmarked = !isBookmarked
+    setIsBookmarked(newBookmarked)
+
+    if (newBookmarked && containerRef.current) {
+      const particles = createParticles(containerRef.current, 8, (i) => {
+        const particle = document.createElement('div')
+        particle.className = styles.ribbonFly
+        const angle = (i * 45) * (Math.PI / 180)
+        const distance = 30 + Math.random() * 20
+        particle.style.setProperty('--tx', `${Math.cos(angle) * distance}px`)
+        particle.style.setProperty('--ty', `${Math.sin(angle) * distance}px`)
+        particle.style.setProperty('--delay', `${i * 25}ms`)
+        particle.style.setProperty('--angle', `${i * 45}deg`)
+        return particle
+      })
+      removeParticles(particles, 800)
+    }
+
+    setTimeout(() => setIsAnimating(false), 600)
+  }, [isBookmarked, isAnimating])
+
+  return (
+    <div ref={containerRef} className={cn('relative inline-flex items-center justify-center', className)}>
+      <button
+        onClick={handleClick}
+        className={cn(
+          'relative p-3 rounded-full transition-all duration-200',
+          'hover:bg-amber-50 active:scale-90',
+          isAnimating && styles.labelSwing
+        )}
+      >
+        <Bookmark
+          className={cn(
+            'w-6 h-6 transition-all duration-200',
+            isBookmarked ? 'fill-amber-400 text-amber-400' : 'text-gray-400'
+          )}
+        />
+      </button>
+    </div>
+  )
+}
+
+// ============================================
+// 20. 북오픈 - 책이 펼쳐짐
+// ============================================
+
+export function BookmarkBookOpen({ className }: BookmarkButtonProps) {
+  const [isBookmarked, setIsBookmarked] = useState(false)
+  const [isAnimating, setIsAnimating] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  const handleClick = useCallback(() => {
+    if (isAnimating) return
+    setIsAnimating(true)
+    const newBookmarked = !isBookmarked
+    setIsBookmarked(newBookmarked)
+
+    if (newBookmarked && containerRef.current) {
+      const particles = createParticles(containerRef.current, 8, (i) => {
+        const particle = document.createElement('div')
+        particle.className = styles.tagFlip
+        const angle = (i * 45) * (Math.PI / 180)
+        const distance = 28 + Math.random() * 18
+        particle.style.setProperty('--tx', `${Math.cos(angle) * distance}px`)
+        particle.style.setProperty('--ty', `${Math.sin(angle) * distance}px`)
+        particle.style.setProperty('--delay', `${i * 25}ms`)
+        return particle
+      })
+      removeParticles(particles, 700)
+    }
+
+    setTimeout(() => setIsAnimating(false), 500)
+  }, [isBookmarked, isAnimating])
+
+  return (
+    <div ref={containerRef} className={cn('relative inline-flex items-center justify-center', className)}>
+      <button
+        onClick={handleClick}
+        className={cn(
+          'relative p-3 rounded-full transition-all duration-200',
+          'hover:bg-amber-50 active:scale-90',
+          isAnimating && styles.bookOpen
+        )}
+      >
+        <Bookmark
+          className={cn(
+            'w-6 h-6 transition-all duration-200',
+            isBookmarked ? 'fill-amber-400 text-amber-400' : 'text-gray-400'
+          )}
+        />
+      </button>
+    </div>
+  )
+}
+
+// ============================================
+// 21. 노트플립 - 노트가 뒤집힘
+// ============================================
+
+export function BookmarkNoteFlip({ className }: BookmarkButtonProps) {
+  const [isBookmarked, setIsBookmarked] = useState(false)
+  const [isAnimating, setIsAnimating] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  const handleClick = useCallback(() => {
+    if (isAnimating) return
+    setIsAnimating(true)
+    const newBookmarked = !isBookmarked
+    setIsBookmarked(newBookmarked)
+
+    if (newBookmarked && containerRef.current) {
+      const particles = createParticles(containerRef.current, 10, (i) => {
+        const particle = document.createElement('div')
+        particle.className = styles.sunburstRay
+        const angle = (i * 36) * (Math.PI / 180)
+        particle.style.setProperty('--angle', `${i * 36}deg`)
+        particle.style.setProperty('--delay', `${i * 20}ms`)
+        return particle
+      })
+      removeParticles(particles, 700)
+    }
+
+    setTimeout(() => setIsAnimating(false), 600)
+  }, [isBookmarked, isAnimating])
+
+  return (
+    <div ref={containerRef} className={cn('relative inline-flex items-center justify-center', className)}>
+      <button
+        onClick={handleClick}
+        className={cn(
+          'relative p-3 rounded-full transition-all duration-200',
+          'hover:bg-amber-50 active:scale-90',
+          isAnimating && styles.noteFlip
+        )}
+      >
+        <Bookmark
+          className={cn(
+            'w-6 h-6 transition-all duration-200',
+            isBookmarked ? 'fill-amber-400 text-amber-400' : 'text-gray-400'
+          )}
+        />
+      </button>
+    </div>
+  )
+}
+
+// ============================================
+// 22. 태그위글 - 태그가 흔들림
+// ============================================
+
+export function BookmarkTagWiggle({ className }: BookmarkButtonProps) {
+  const [isBookmarked, setIsBookmarked] = useState(false)
+  const [isAnimating, setIsAnimating] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  const handleClick = useCallback(() => {
+    if (isAnimating) return
+    setIsAnimating(true)
+    const newBookmarked = !isBookmarked
+    setIsBookmarked(newBookmarked)
+
+    if (newBookmarked && containerRef.current) {
+      const colors = ['#FFE4B5', '#FFF8DC', '#F5DEB3', '#FFD700']
+      const particles = createParticles(containerRef.current, 10, (i) => {
+        const particle = document.createElement('div')
+        particle.className = styles.noteDot
+        const angle = (i * 36) * (Math.PI / 180)
+        const distance = 28 + Math.random() * 22
+        particle.style.setProperty('--tx', `${Math.cos(angle) * distance}px`)
+        particle.style.setProperty('--ty', `${Math.sin(angle) * distance}px`)
+        particle.style.setProperty('--delay', `${i * 20}ms`)
+        particle.style.setProperty('--size', `${5 + Math.random() * 5}px`)
+        particle.style.setProperty('--color', colors[i % colors.length])
+        return particle
+      })
+      removeParticles(particles, 700)
+    }
+
+    setTimeout(() => setIsAnimating(false), 500)
+  }, [isBookmarked, isAnimating])
+
+  return (
+    <div ref={containerRef} className={cn('relative inline-flex items-center justify-center', className)}>
+      <button
+        onClick={handleClick}
+        className={cn(
+          'relative p-3 rounded-full transition-all duration-200',
+          'hover:bg-amber-50 active:scale-90',
+          isAnimating && styles.tagWiggle
+        )}
+      >
+        <Bookmark
+          className={cn(
+            'w-6 h-6 transition-all duration-200',
+            isBookmarked ? 'fill-amber-400 text-amber-400' : 'text-gray-400'
+          )}
+        />
+      </button>
+    </div>
+  )
+}
+
+// ============================================
+// 23. 카드팝 - 카드가 튀어오름
+// ============================================
+
+export function BookmarkCardPop({ className }: BookmarkButtonProps) {
+  const [isBookmarked, setIsBookmarked] = useState(false)
+  const [isAnimating, setIsAnimating] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  const handleClick = useCallback(() => {
+    if (isAnimating) return
+    setIsAnimating(true)
+    const newBookmarked = !isBookmarked
+    setIsBookmarked(newBookmarked)
+
+    if (newBookmarked && containerRef.current) {
+      const particles = createParticles(containerRef.current, 6, (i) => {
+        const particle = document.createElement('div')
+        particle.className = styles.folderTab
+        const angle = (i * 60) * (Math.PI / 180)
+        const distance = 30 + Math.random() * 15
+        particle.style.setProperty('--tx', `${Math.cos(angle) * distance}px`)
+        particle.style.setProperty('--ty', `${Math.sin(angle) * distance}px`)
+        particle.style.setProperty('--delay', `${i * 30}ms`)
+        return particle
+      })
+      removeParticles(particles, 700)
+    }
+
+    setTimeout(() => setIsAnimating(false), 400)
+  }, [isBookmarked, isAnimating])
+
+  return (
+    <div ref={containerRef} className={cn('relative inline-flex items-center justify-center', className)}>
+      <button
+        onClick={handleClick}
+        className={cn(
+          'relative p-3 rounded-full transition-all duration-200',
+          'hover:bg-amber-50 active:scale-90',
+          isAnimating && styles.cardPop
+        )}
+      >
+        <Bookmark
+          className={cn(
+            'w-6 h-6 transition-all duration-200',
+            isBookmarked ? 'fill-amber-400 text-amber-400' : 'text-gray-400'
+          )}
+        />
+      </button>
+    </div>
+  )
+}
+
+// ============================================
+// 24. 클립스윙 - 클립이 흔들림
+// ============================================
+
+export function BookmarkClipSwing({ className }: BookmarkButtonProps) {
+  const [isBookmarked, setIsBookmarked] = useState(false)
+  const [isAnimating, setIsAnimating] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  const handleClick = useCallback(() => {
+    if (isAnimating) return
+    setIsAnimating(true)
+    const newBookmarked = !isBookmarked
+    setIsBookmarked(newBookmarked)
+
+    if (newBookmarked && containerRef.current) {
+      const particles = createParticles(containerRef.current, 8, (i) => {
+        const particle = document.createElement('div')
+        particle.className = styles.archiveLine
+        const angle = (i * 45) * (Math.PI / 180)
+        const distance = 25 + Math.random() * 20
+        particle.style.setProperty('--tx', `${Math.cos(angle) * distance}px`)
+        particle.style.setProperty('--ty', `${Math.sin(angle) * distance}px`)
+        particle.style.setProperty('--delay', `${i * 25}ms`)
+        particle.style.setProperty('--angle', `${i * 45}deg`)
+        return particle
+      })
+      removeParticles(particles, 600)
+    }
+
+    setTimeout(() => setIsAnimating(false), 500)
+  }, [isBookmarked, isAnimating])
+
+  return (
+    <div ref={containerRef} className={cn('relative inline-flex items-center justify-center', className)}>
+      <button
+        onClick={handleClick}
+        className={cn(
+          'relative p-3 rounded-full transition-all duration-200',
+          'hover:bg-amber-50 active:scale-90',
+          isAnimating && styles.clipSwing
+        )}
+      >
+        <Bookmark
+          className={cn(
+            'w-6 h-6 transition-all duration-200',
+            isBookmarked ? 'fill-amber-400 text-amber-400' : 'text-gray-400'
+          )}
+        />
+      </button>
+    </div>
+  )
+}
+
+// ============================================
+// 25. 핀바운스 - 핀이 튕김
+// ============================================
+
+export function BookmarkPinBounce({ className }: BookmarkButtonProps) {
+  const [isBookmarked, setIsBookmarked] = useState(false)
+  const [isAnimating, setIsAnimating] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  const handleClick = useCallback(() => {
+    if (isAnimating) return
+    setIsAnimating(true)
+    const newBookmarked = !isBookmarked
+    setIsBookmarked(newBookmarked)
+
+    if (newBookmarked && containerRef.current) {
+      const colors = ['#FFF8DC', '#F5DEB3', '#FFE4B5', '#FFFACD']
+      const particles = createParticles(containerRef.current, 8, (i) => {
+        const particle = document.createElement('div')
+        particle.className = styles.labelFloat
+        const angle = (i * 45) * (Math.PI / 180)
+        const distance = 28 + Math.random() * 18
+        particle.style.setProperty('--tx', `${Math.cos(angle) * distance}px`)
+        particle.style.setProperty('--ty', `${Math.sin(angle) * distance}px`)
+        particle.style.setProperty('--delay', `${i * 25}ms`)
+        particle.style.setProperty('--color', colors[i % colors.length])
+        return particle
+      })
+      removeParticles(particles, 800)
+    }
+
+    setTimeout(() => setIsAnimating(false), 500)
+  }, [isBookmarked, isAnimating])
+
+  return (
+    <div ref={containerRef} className={cn('relative inline-flex items-center justify-center', className)}>
+      <button
+        onClick={handleClick}
+        className={cn(
+          'relative p-3 rounded-full transition-all duration-200',
+          'hover:bg-amber-50 active:scale-90',
+          isAnimating && styles.pinBounce
+        )}
+      >
+        <Bookmark
+          className={cn(
+            'w-6 h-6 transition-all duration-200',
+            isBookmarked ? 'fill-amber-400 text-amber-400' : 'text-gray-400'
+          )}
+        />
+      </button>
+    </div>
+  )
+}
+
+// ============================================
+// 26. 세이브슬라이드 - 저장 애니메이션
+// ============================================
+
+export function BookmarkSaveSlide({ className }: BookmarkButtonProps) {
+  const [isBookmarked, setIsBookmarked] = useState(false)
+  const [isAnimating, setIsAnimating] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  const handleClick = useCallback(() => {
+    if (isAnimating) return
+    setIsAnimating(true)
+    const newBookmarked = !isBookmarked
+    setIsBookmarked(newBookmarked)
+
+    if (newBookmarked && containerRef.current) {
+      const particles = createParticles(containerRef.current, 6, (i) => {
+        const particle = document.createElement('div')
+        particle.className = styles.saveCheck
+        const angle = (i * 60) * (Math.PI / 180)
+        const distance = 30 + Math.random() * 15
+        particle.style.setProperty('--tx', `${Math.cos(angle) * distance}px`)
+        particle.style.setProperty('--ty', `${Math.sin(angle) * distance}px`)
+        particle.style.setProperty('--delay', `${i * 35}ms`)
+        particle.style.setProperty('--size', `${10 + Math.random() * 6}px`)
+        return particle
+      })
+      removeParticles(particles, 600)
+    }
+
+    setTimeout(() => setIsAnimating(false), 400)
+  }, [isBookmarked, isAnimating])
+
+  return (
+    <div ref={containerRef} className={cn('relative inline-flex items-center justify-center', className)}>
+      <button
+        onClick={handleClick}
+        className={cn(
+          'relative p-3 rounded-full transition-all duration-200',
+          'hover:bg-amber-50 active:scale-90',
+          isAnimating && styles.saveSlide
+        )}
+      >
+        <Bookmark
+          className={cn(
+            'w-6 h-6 transition-all duration-200',
+            isBookmarked ? 'fill-amber-400 text-amber-400' : 'text-gray-400'
+          )}
+        />
+      </button>
+    </div>
+  )
+}
+
+// ============================================
+// 27. 마크푸시 - 마크가 눌림
+// ============================================
+
+export function BookmarkMarkPush({ className }: BookmarkButtonProps) {
+  const [isBookmarked, setIsBookmarked] = useState(false)
+  const [isAnimating, setIsAnimating] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  const handleClick = useCallback(() => {
+    if (isAnimating) return
+    setIsAnimating(true)
+    const newBookmarked = !isBookmarked
+    setIsBookmarked(newBookmarked)
+
+    if (newBookmarked && containerRef.current) {
+      const colors = ['#FFD700', '#DAA520', '#FFD700']
+      const particles = createParticles(containerRef.current, 8, (i) => {
+        const particle = document.createElement('div')
+        particle.className = styles.cornerMark
+        const angle = (i * 45) * (Math.PI / 180)
+        const distance = 28 + Math.random() * 18
+        particle.style.setProperty('--tx', `${Math.cos(angle) * distance}px`)
+        particle.style.setProperty('--ty', `${Math.sin(angle) * distance}px`)
+        particle.style.setProperty('--delay', `${i * 25}ms`)
+        particle.style.setProperty('--color', colors[i % colors.length])
+        return particle
+      })
+      removeParticles(particles, 700)
+    }
+
+    setTimeout(() => setIsAnimating(false), 400)
+  }, [isBookmarked, isAnimating])
+
+  return (
+    <div ref={containerRef} className={cn('relative inline-flex items-center justify-center', className)}>
+      <button
+        onClick={handleClick}
+        className={cn(
+          'relative p-3 rounded-full transition-all duration-200',
+          'hover:bg-amber-50 active:scale-90',
+          isAnimating && styles.markPush
+        )}
+      >
+        <Bookmark
+          className={cn(
+            'w-6 h-6 transition-all duration-200',
+            isBookmarked ? 'fill-amber-400 text-amber-400' : 'text-gray-400'
+          )}
+        />
+      </button>
+    </div>
+  )
+}
+
+// ============================================
+// 28. 플래그레이즈 - 깃발이 올라감
+// ============================================
+
+export function BookmarkFlagRaise({ className }: BookmarkButtonProps) {
+  const [isBookmarked, setIsBookmarked] = useState(false)
+  const [isAnimating, setIsAnimating] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  const handleClick = useCallback(() => {
+    if (isAnimating) return
+    setIsAnimating(true)
+    const newBookmarked = !isBookmarked
+    setIsBookmarked(newBookmarked)
+
+    if (newBookmarked && containerRef.current) {
+      const colors = ['#DAA520', '#FFD700', '#FFA500']
+      const particles = createParticles(containerRef.current, 10, (i) => {
+        const particle = document.createElement('div')
+        particle.className = styles.dotTrail
+        const angle = (i * 36) * (Math.PI / 180)
+        const distance = 30 + Math.random() * 20
+        particle.style.setProperty('--tx', `${Math.cos(angle) * distance}px`)
+        particle.style.setProperty('--ty', `${Math.sin(angle) * distance}px`)
+        particle.style.setProperty('--delay', `${i * 20}ms`)
+        particle.style.setProperty('--color', colors[i % colors.length])
+        return particle
+      })
+      removeParticles(particles, 800)
+    }
+
+    setTimeout(() => setIsAnimating(false), 500)
+  }, [isBookmarked, isAnimating])
+
+  return (
+    <div ref={containerRef} className={cn('relative inline-flex items-center justify-center', className)}>
+      <button
+        onClick={handleClick}
+        className={cn(
+          'relative p-3 rounded-full transition-all duration-200',
+          'hover:bg-amber-50 active:scale-90',
+          isAnimating && styles.flagRaise
+        )}
+      >
+        <Bookmark
+          className={cn(
+            'w-6 h-6 transition-all duration-200',
+            isBookmarked ? 'fill-amber-400 text-amber-400' : 'text-gray-400'
+          )}
+        />
+      </button>
+    </div>
+  )
+}
+
+// ============================================
+// 29. 리본트위스트 - 리본이 꼬임
+// ============================================
+
+export function BookmarkRibbonTwist({ className }: BookmarkButtonProps) {
+  const [isBookmarked, setIsBookmarked] = useState(false)
+  const [isAnimating, setIsAnimating] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  const handleClick = useCallback(() => {
+    if (isAnimating) return
+    setIsAnimating(true)
+    const newBookmarked = !isBookmarked
+    setIsBookmarked(newBookmarked)
+
+    if (newBookmarked && containerRef.current) {
+      const particles = createParticles(containerRef.current, 8, (i) => {
+        const particle = document.createElement('div')
+        particle.className = styles.ribbonFly
+        const angle = (i * 45) * (Math.PI / 180)
+        const distance = 30 + Math.random() * 18
+        particle.style.setProperty('--tx', `${Math.cos(angle) * distance}px`)
+        particle.style.setProperty('--ty', `${Math.sin(angle) * distance}px`)
+        particle.style.setProperty('--delay', `${i * 25}ms`)
+        particle.style.setProperty('--angle', `${i * 45}deg`)
+        return particle
+      })
+      removeParticles(particles, 800)
+    }
+
+    setTimeout(() => setIsAnimating(false), 500)
+  }, [isBookmarked, isAnimating])
+
+  return (
+    <div ref={containerRef} className={cn('relative inline-flex items-center justify-center', className)}>
+      <button
+        onClick={handleClick}
+        className={cn(
+          'relative p-3 rounded-full transition-all duration-200',
+          'hover:bg-amber-50 active:scale-90',
+          isAnimating && styles.ribbonTwist
+        )}
+      >
+        <Bookmark
+          className={cn(
+            'w-6 h-6 transition-all duration-200',
+            isBookmarked ? 'fill-amber-400 text-amber-400' : 'text-gray-400'
+          )}
+        />
+      </button>
+    </div>
+  )
+}
+
+// ============================================
+// 30. 북마크글로우 - 빛나는 효과
+// ============================================
+
+export function BookmarkGlow({ className }: BookmarkButtonProps) {
+  const [isBookmarked, setIsBookmarked] = useState(false)
+  const [isAnimating, setIsAnimating] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  const handleClick = useCallback(() => {
+    if (isAnimating) return
+    setIsAnimating(true)
+    const newBookmarked = !isBookmarked
+    setIsBookmarked(newBookmarked)
+
+    if (newBookmarked && containerRef.current) {
+      const particles = createParticles(containerRef.current, 10, (i) => {
+        const particle = document.createElement('div')
+        particle.className = styles.goldSparkle
+        const angle = (i * 36) * (Math.PI / 180)
+        const distance = 30 + Math.random() * 25
+        particle.style.setProperty('--tx', `${Math.cos(angle) * distance}px`)
+        particle.style.setProperty('--ty', `${Math.sin(angle) * distance}px`)
+        particle.style.setProperty('--delay', `${i * 20}ms`)
+        particle.style.setProperty('--size', `${8 + Math.random() * 6}px`)
+        return particle
+      })
+      removeParticles(particles, 700)
+    }
+
+    setTimeout(() => setIsAnimating(false), 600)
+  }, [isBookmarked, isAnimating])
+
+  return (
+    <div ref={containerRef} className={cn('relative inline-flex items-center justify-center', className)}>
+      <button
+        onClick={handleClick}
+        className={cn(
+          'relative p-3 rounded-full transition-all duration-200',
+          'hover:bg-amber-50 active:scale-90',
+          isAnimating && styles.bookmarkGlow
+        )}
+      >
+        <Bookmark
+          className={cn(
+            'w-6 h-6 transition-all duration-200',
+            isBookmarked ? 'fill-amber-400 text-amber-400' : 'text-gray-400'
+          )}
+        />
+      </button>
+    </div>
+  )
+}
+
+// ============================================
+// 31. 페이지턴 - 페이지가 넘어감
+// ============================================
+
+export function BookmarkPageTurn({ className }: BookmarkButtonProps) {
+  const [isBookmarked, setIsBookmarked] = useState(false)
+  const [isAnimating, setIsAnimating] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  const handleClick = useCallback(() => {
+    if (isAnimating) return
+    setIsAnimating(true)
+    const newBookmarked = !isBookmarked
+    setIsBookmarked(newBookmarked)
+
+    if (newBookmarked && containerRef.current) {
+      const particles = createParticles(containerRef.current, 6, (i) => {
+        const particle = document.createElement('div')
+        particle.className = styles.paperFlake
+        const angle = (i * 60) * (Math.PI / 180)
+        const distance = 28 + Math.random() * 18
+        particle.style.setProperty('--tx', `${Math.cos(angle) * distance}px`)
+        particle.style.setProperty('--ty', `${Math.sin(angle) * distance}px`)
+        particle.style.setProperty('--delay', `${i * 30}ms`)
+        return particle
+      })
+      removeParticles(particles, 900)
+    }
+
+    setTimeout(() => setIsAnimating(false), 500)
+  }, [isBookmarked, isAnimating])
+
+  return (
+    <div ref={containerRef} className={cn('relative inline-flex items-center justify-center', className)}>
+      <button
+        onClick={handleClick}
+        className={cn(
+          'relative p-3 rounded-full transition-all duration-200',
+          'hover:bg-amber-50 active:scale-90',
+          isAnimating && styles.pageTurn
+        )}
+      >
+        <Bookmark
+          className={cn(
+            'w-6 h-6 transition-all duration-200',
+            isBookmarked ? 'fill-amber-400 text-amber-400' : 'text-gray-400'
+          )}
+        />
+      </button>
+    </div>
+  )
+}
+
+// ============================================
+// 32. 탭슬라이드 - 탭이 미끄러짐
+// ============================================
+
+export function BookmarkTabSlide({ className }: BookmarkButtonProps) {
+  const [isBookmarked, setIsBookmarked] = useState(false)
+  const [isAnimating, setIsAnimating] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  const handleClick = useCallback(() => {
+    if (isAnimating) return
+    setIsAnimating(true)
+    const newBookmarked = !isBookmarked
+    setIsBookmarked(newBookmarked)
+
+    if (newBookmarked && containerRef.current) {
+      const colors = ['#FFD700', '#FFA500', '#DAA520', '#FFE4B5']
+      const particles = createParticles(containerRef.current, 8, (i) => {
+        const particle = document.createElement('div')
+        particle.className = styles.bookmarkMini
+        const angle = (i * 45) * (Math.PI / 180)
+        const distance = 30 + Math.random() * 18
+        particle.style.setProperty('--tx', `${Math.cos(angle) * distance}px`)
+        particle.style.setProperty('--ty', `${Math.sin(angle) * distance}px`)
+        particle.style.setProperty('--delay', `${i * 25}ms`)
+        particle.style.setProperty('--color', colors[i % colors.length])
+        return particle
+      })
+      removeParticles(particles, 800)
+    }
+
+    setTimeout(() => setIsAnimating(false), 400)
+  }, [isBookmarked, isAnimating])
+
+  return (
+    <div ref={containerRef} className={cn('relative inline-flex items-center justify-center', className)}>
+      <button
+        onClick={handleClick}
+        className={cn(
+          'relative p-3 rounded-full transition-all duration-200',
+          'hover:bg-amber-50 active:scale-90',
+          isAnimating && styles.tabSlide
+        )}
+      >
+        <Bookmark
+          className={cn(
+            'w-6 h-6 transition-all duration-200',
+            isBookmarked ? 'fill-amber-400 text-amber-400' : 'text-gray-400'
+          )}
+        />
+      </button>
+    </div>
+  )
+}
+
+// ============================================
+// 33. 코너폴드 - 모서리가 접힘
+// ============================================
+
+export function BookmarkCornerFold({ className }: BookmarkButtonProps) {
+  const [isBookmarked, setIsBookmarked] = useState(false)
+  const [isAnimating, setIsAnimating] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  const handleClick = useCallback(() => {
+    if (isAnimating) return
+    setIsAnimating(true)
+    const newBookmarked = !isBookmarked
+    setIsBookmarked(newBookmarked)
+
+    if (newBookmarked && containerRef.current) {
+      const particles = createParticles(containerRef.current, 8, (i) => {
+        const particle = document.createElement('div')
+        particle.className = styles.tagFlip
+        const angle = (i * 45) * (Math.PI / 180)
+        const distance = 28 + Math.random() * 18
+        particle.style.setProperty('--tx', `${Math.cos(angle) * distance}px`)
+        particle.style.setProperty('--ty', `${Math.sin(angle) * distance}px`)
+        particle.style.setProperty('--delay', `${i * 25}ms`)
+        return particle
+      })
+      removeParticles(particles, 700)
+    }
+
+    setTimeout(() => setIsAnimating(false), 500)
+  }, [isBookmarked, isAnimating])
+
+  return (
+    <div ref={containerRef} className={cn('relative inline-flex items-center justify-center', className)}>
+      <button
+        onClick={handleClick}
+        className={cn(
+          'relative p-3 rounded-full transition-all duration-200',
+          'hover:bg-amber-50 active:scale-90',
+          isAnimating && styles.cornerFold
+        )}
+      >
+        <Bookmark
+          className={cn(
+            'w-6 h-6 transition-all duration-200',
+            isBookmarked ? 'fill-amber-400 text-amber-400' : 'text-gray-400'
+          )}
+        />
+      </button>
+    </div>
+  )
+}
+
+// ============================================
+// 34. 스탬프프레스 - 스탬프 눌림
+// ============================================
+
+export function BookmarkStampPress({ className }: BookmarkButtonProps) {
+  const [isBookmarked, setIsBookmarked] = useState(false)
+  const [isAnimating, setIsAnimating] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  const handleClick = useCallback(() => {
+    if (isAnimating) return
+    setIsAnimating(true)
+    const newBookmarked = !isBookmarked
+    setIsBookmarked(newBookmarked)
+
+    if (newBookmarked && containerRef.current) {
+      const particles = createParticles(containerRef.current, 10, (i) => {
+        const particle = document.createElement('div')
+        particle.className = styles.goldSparkle
+        const angle = (i * 36) * (Math.PI / 180)
+        const distance = 28 + Math.random() * 20
+        particle.style.setProperty('--tx', `${Math.cos(angle) * distance}px`)
+        particle.style.setProperty('--ty', `${Math.sin(angle) * distance}px`)
+        particle.style.setProperty('--delay', `${i * 20}ms`)
+        particle.style.setProperty('--size', `${8 + Math.random() * 4}px`)
+        return particle
+      })
+      removeParticles(particles, 700)
+    }
+
+    setTimeout(() => setIsAnimating(false), 400)
+  }, [isBookmarked, isAnimating])
+
+  return (
+    <div ref={containerRef} className={cn('relative inline-flex items-center justify-center', className)}>
+      <button
+        onClick={handleClick}
+        className={cn(
+          'relative p-3 rounded-full transition-all duration-200',
+          'hover:bg-amber-50 active:scale-90',
+          isAnimating && styles.stampPress
+        )}
+      >
+        <Bookmark
+          className={cn(
+            'w-6 h-6 transition-all duration-200',
+            isBookmarked ? 'fill-amber-400 text-amber-400' : 'text-gray-400'
+          )}
+        />
+      </button>
+    </div>
+  )
+}
+
+// ============================================
+// 35. 씰마크 - 봉인 마크
+// ============================================
+
+export function BookmarkSealMark({ className }: BookmarkButtonProps) {
+  const [isBookmarked, setIsBookmarked] = useState(false)
+  const [isAnimating, setIsAnimating] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  const handleClick = useCallback(() => {
+    if (isAnimating) return
+    setIsAnimating(true)
+    const newBookmarked = !isBookmarked
+    setIsBookmarked(newBookmarked)
+
+    if (newBookmarked && containerRef.current) {
+      const colors = ['#FFD700', '#FFA500', '#DAA520']
+      const particles = createParticles(containerRef.current, 8, (i) => {
+        const particle = document.createElement('div')
+        particle.className = styles.plusMark
+        const angle = (i * 45) * (Math.PI / 180)
+        const distance = 28 + Math.random() * 18
+        particle.style.setProperty('--tx', `${Math.cos(angle) * distance}px`)
+        particle.style.setProperty('--ty', `${Math.sin(angle) * distance}px`)
+        particle.style.setProperty('--delay', `${i * 25}ms`)
+        particle.style.setProperty('--size', `${12 + Math.random() * 6}px`)
+        particle.style.setProperty('--color', colors[i % colors.length])
+        return particle
+      })
+      removeParticles(particles, 600)
+    }
+
+    setTimeout(() => setIsAnimating(false), 500)
+  }, [isBookmarked, isAnimating])
+
+  return (
+    <div ref={containerRef} className={cn('relative inline-flex items-center justify-center', className)}>
+      <button
+        onClick={handleClick}
+        className={cn(
+          'relative p-3 rounded-full transition-all duration-200',
+          'hover:bg-amber-50 active:scale-90',
+          isAnimating && styles.sealMark
+        )}
+      >
+        <Bookmark
+          className={cn(
+            'w-6 h-6 transition-all duration-200',
+            isBookmarked ? 'fill-amber-400 text-amber-400' : 'text-gray-400'
+          )}
+        />
+      </button>
+    </div>
+  )
+}
+
+// ============================================
+// 36. 클립어태치 - 클립 부착
+// ============================================
+
+export function BookmarkClipAttach({ className }: BookmarkButtonProps) {
+  const [isBookmarked, setIsBookmarked] = useState(false)
+  const [isAnimating, setIsAnimating] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  const handleClick = useCallback(() => {
+    if (isAnimating) return
+    setIsAnimating(true)
+    const newBookmarked = !isBookmarked
+    setIsBookmarked(newBookmarked)
+
+    if (newBookmarked && containerRef.current) {
+      const particles = createParticles(containerRef.current, 6, (i) => {
+        const particle = document.createElement('div')
+        particle.className = styles.folderTab
+        const angle = (i * 60) * (Math.PI / 180)
+        const distance = 30 + Math.random() * 15
+        particle.style.setProperty('--tx', `${Math.cos(angle) * distance}px`)
+        particle.style.setProperty('--ty', `${Math.sin(angle) * distance}px`)
+        particle.style.setProperty('--delay', `${i * 30}ms`)
+        return particle
+      })
+      removeParticles(particles, 700)
+    }
+
+    setTimeout(() => setIsAnimating(false), 400)
+  }, [isBookmarked, isAnimating])
+
+  return (
+    <div ref={containerRef} className={cn('relative inline-flex items-center justify-center', className)}>
+      <button
+        onClick={handleClick}
+        className={cn(
+          'relative p-3 rounded-full transition-all duration-200',
+          'hover:bg-amber-50 active:scale-90',
+          isAnimating && styles.clipAttach
+        )}
+      >
+        <Bookmark
+          className={cn(
+            'w-6 h-6 transition-all duration-200',
+            isBookmarked ? 'fill-amber-400 text-amber-400' : 'text-gray-400'
+          )}
+        />
+      </button>
+    </div>
+  )
+}
+
+// ============================================
+// 37. 페이퍼푸시 - 종이 밀기
+// ============================================
+
+export function BookmarkPaperPush({ className }: BookmarkButtonProps) {
+  const [isBookmarked, setIsBookmarked] = useState(false)
+  const [isAnimating, setIsAnimating] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  const handleClick = useCallback(() => {
+    if (isAnimating) return
+    setIsAnimating(true)
+    const newBookmarked = !isBookmarked
+    setIsBookmarked(newBookmarked)
+
+    if (newBookmarked && containerRef.current) {
+      const particles = createParticles(containerRef.current, 8, (i) => {
+        const particle = document.createElement('div')
+        particle.className = styles.paperFlake
+        const angle = (i * 45) * (Math.PI / 180)
+        const distance = 30 + Math.random() * 18
+        particle.style.setProperty('--tx', `${Math.cos(angle) * distance}px`)
+        particle.style.setProperty('--ty', `${Math.sin(angle) * distance}px`)
+        particle.style.setProperty('--delay', `${i * 25}ms`)
+        return particle
+      })
+      removeParticles(particles, 900)
+    }
+
+    setTimeout(() => setIsAnimating(false), 400)
+  }, [isBookmarked, isAnimating])
+
+  return (
+    <div ref={containerRef} className={cn('relative inline-flex items-center justify-center', className)}>
+      <button
+        onClick={handleClick}
+        className={cn(
+          'relative p-3 rounded-full transition-all duration-200',
+          'hover:bg-amber-50 active:scale-90',
+          isAnimating && styles.paperPush
+        )}
+      >
+        <Bookmark
+          className={cn(
+            'w-6 h-6 transition-all duration-200',
+            isBookmarked ? 'fill-amber-400 text-amber-400' : 'text-gray-400'
+          )}
+        />
+      </button>
+    </div>
+  )
+}
+
+// ============================================
+// 38. 폴드리빌 - 접기 펼치기
+// ============================================
+
+export function BookmarkFoldReveal({ className }: BookmarkButtonProps) {
+  const [isBookmarked, setIsBookmarked] = useState(false)
+  const [isAnimating, setIsAnimating] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  const handleClick = useCallback(() => {
+    if (isAnimating) return
+    setIsAnimating(true)
+    const newBookmarked = !isBookmarked
+    setIsBookmarked(newBookmarked)
+
+    if (newBookmarked && containerRef.current) {
+      const particles = createParticles(containerRef.current, 10, (i) => {
+        const particle = document.createElement('div')
+        particle.className = styles.sunburstRay
+        const angle = (i * 36)
+        particle.style.setProperty('--angle', `${angle}deg`)
+        particle.style.setProperty('--delay', `${i * 20}ms`)
+        return particle
+      })
+      removeParticles(particles, 700)
+    }
+
+    setTimeout(() => setIsAnimating(false), 500)
+  }, [isBookmarked, isAnimating])
+
+  return (
+    <div ref={containerRef} className={cn('relative inline-flex items-center justify-center', className)}>
+      <button
+        onClick={handleClick}
+        className={cn(
+          'relative p-3 rounded-full transition-all duration-200',
+          'hover:bg-amber-50 active:scale-90',
+          isAnimating && styles.foldReveal
+        )}
+      >
+        <Bookmark
+          className={cn(
+            'w-6 h-6 transition-all duration-200',
+            isBookmarked ? 'fill-amber-400 text-amber-400' : 'text-gray-400'
+          )}
+        />
+      </button>
+    </div>
+  )
+}
+
+// ============================================
+// 39. 태그댕글 - 태그 매달림
+// ============================================
+
+export function BookmarkTagDangle({ className }: BookmarkButtonProps) {
+  const [isBookmarked, setIsBookmarked] = useState(false)
+  const [isAnimating, setIsAnimating] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  const handleClick = useCallback(() => {
+    if (isAnimating) return
+    setIsAnimating(true)
+    const newBookmarked = !isBookmarked
+    setIsBookmarked(newBookmarked)
+
+    if (newBookmarked && containerRef.current) {
+      const colors = ['#FFF8DC', '#F5DEB3', '#FFE4B5']
+      const particles = createParticles(containerRef.current, 8, (i) => {
+        const particle = document.createElement('div')
+        particle.className = styles.labelFloat
+        const angle = (i * 45) * (Math.PI / 180)
+        const distance = 28 + Math.random() * 18
+        particle.style.setProperty('--tx', `${Math.cos(angle) * distance}px`)
+        particle.style.setProperty('--ty', `${Math.sin(angle) * distance}px`)
+        particle.style.setProperty('--delay', `${i * 25}ms`)
+        particle.style.setProperty('--color', colors[i % colors.length])
+        return particle
+      })
+      removeParticles(particles, 800)
+    }
+
+    setTimeout(() => setIsAnimating(false), 600)
+  }, [isBookmarked, isAnimating])
+
+  return (
+    <div ref={containerRef} className={cn('relative inline-flex items-center justify-center', className)}>
+      <button
+        onClick={handleClick}
+        className={cn(
+          'relative p-3 rounded-full transition-all duration-200',
+          'hover:bg-amber-50 active:scale-90',
+          isAnimating && styles.tagDangle
+        )}
+      >
+        <Bookmark
+          className={cn(
+            'w-6 h-6 transition-all duration-200',
+            isBookmarked ? 'fill-amber-400 text-amber-400' : 'text-gray-400'
+          )}
+        />
+      </button>
+    </div>
+  )
+}
+
+// ============================================
+// 40. 리본랩 - 리본 감기
+// ============================================
+
+export function BookmarkRibbonWrap({ className }: BookmarkButtonProps) {
+  const [isBookmarked, setIsBookmarked] = useState(false)
+  const [isAnimating, setIsAnimating] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  const handleClick = useCallback(() => {
+    if (isAnimating) return
+    setIsAnimating(true)
+    const newBookmarked = !isBookmarked
+    setIsBookmarked(newBookmarked)
+
+    if (newBookmarked && containerRef.current) {
+      const particles = createParticles(containerRef.current, 8, (i) => {
+        const particle = document.createElement('div')
+        particle.className = styles.ribbonFly
+        const angle = (i * 45) * (Math.PI / 180)
+        const distance = 30 + Math.random() * 18
+        particle.style.setProperty('--tx', `${Math.cos(angle) * distance}px`)
+        particle.style.setProperty('--ty', `${Math.sin(angle) * distance}px`)
+        particle.style.setProperty('--delay', `${i * 25}ms`)
+        particle.style.setProperty('--angle', `${i * 45}deg`)
+        return particle
+      })
+      removeParticles(particles, 800)
+    }
+
+    setTimeout(() => setIsAnimating(false), 500)
+  }, [isBookmarked, isAnimating])
+
+  return (
+    <div ref={containerRef} className={cn('relative inline-flex items-center justify-center', className)}>
+      <button
+        onClick={handleClick}
+        className={cn(
+          'relative p-3 rounded-full transition-all duration-200',
+          'hover:bg-amber-50 active:scale-90',
+          isAnimating && styles.ribbonWrap
+        )}
+      >
+        <Bookmark
+          className={cn(
+            'w-6 h-6 transition-all duration-200',
+            isBookmarked ? 'fill-amber-400 text-amber-400' : 'text-gray-400'
+          )}
+        />
+      </button>
+    </div>
+  )
+}
+
+// ============================================
+// 41. 아카이브드롭 - 아카이브 저장
+// ============================================
+
+export function BookmarkArchiveDrop({ className }: BookmarkButtonProps) {
+  const [isBookmarked, setIsBookmarked] = useState(false)
+  const [isAnimating, setIsAnimating] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  const handleClick = useCallback(() => {
+    if (isAnimating) return
+    setIsAnimating(true)
+    const newBookmarked = !isBookmarked
+    setIsBookmarked(newBookmarked)
+
+    if (newBookmarked && containerRef.current) {
+      const particles = createParticles(containerRef.current, 6, (i) => {
+        const particle = document.createElement('div')
+        particle.className = styles.folderTab
+        const angle = (i * 60) * (Math.PI / 180)
+        const distance = 28 + Math.random() * 18
+        particle.style.setProperty('--tx', `${Math.cos(angle) * distance}px`)
+        particle.style.setProperty('--ty', `${Math.sin(angle) * distance}px`)
+        particle.style.setProperty('--delay', `${i * 30}ms`)
+        return particle
+      })
+      removeParticles(particles, 700)
+    }
+
+    setTimeout(() => setIsAnimating(false), 400)
+  }, [isBookmarked, isAnimating])
+
+  return (
+    <div ref={containerRef} className={cn('relative inline-flex items-center justify-center', className)}>
+      <button
+        onClick={handleClick}
+        className={cn(
+          'relative p-3 rounded-full transition-all duration-200',
+          'hover:bg-amber-50 active:scale-90',
+          isAnimating && styles.archiveDrop
+        )}
+      >
+        <Bookmark
+          className={cn(
+            'w-6 h-6 transition-all duration-200',
+            isBookmarked ? 'fill-amber-400 text-amber-400' : 'text-gray-400'
+          )}
+        />
+      </button>
+    </div>
+  )
+}
+
+// ============================================
+// 42. 인덱스슬라이드 - 인덱스 슬라이드
+// ============================================
+
+export function BookmarkIndexSlide({ className }: BookmarkButtonProps) {
+  const [isBookmarked, setIsBookmarked] = useState(false)
+  const [isAnimating, setIsAnimating] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  const handleClick = useCallback(() => {
+    if (isAnimating) return
+    setIsAnimating(true)
+    const newBookmarked = !isBookmarked
+    setIsBookmarked(newBookmarked)
+
+    if (newBookmarked && containerRef.current) {
+      const colors = ['#DAA520', '#FFD700', '#FFA500']
+      const particles = createParticles(containerRef.current, 10, (i) => {
+        const particle = document.createElement('div')
+        particle.className = styles.dotTrail
+        const angle = (i * 36) * (Math.PI / 180)
+        const distance = 28 + Math.random() * 22
+        particle.style.setProperty('--tx', `${Math.cos(angle) * distance}px`)
+        particle.style.setProperty('--ty', `${Math.sin(angle) * distance}px`)
+        particle.style.setProperty('--delay', `${i * 18}ms`)
+        particle.style.setProperty('--color', colors[i % colors.length])
+        return particle
+      })
+      removeParticles(particles, 800)
+    }
+
+    setTimeout(() => setIsAnimating(false), 500)
+  }, [isBookmarked, isAnimating])
+
+  return (
+    <div ref={containerRef} className={cn('relative inline-flex items-center justify-center', className)}>
+      <button
+        onClick={handleClick}
+        className={cn(
+          'relative p-3 rounded-full transition-all duration-200',
+          'hover:bg-amber-50 active:scale-90',
+          isAnimating && styles.indexSlide
+        )}
+      >
+        <Bookmark
+          className={cn(
+            'w-6 h-6 transition-all duration-200',
+            isBookmarked ? 'fill-amber-400 text-amber-400' : 'text-gray-400'
+          )}
+        />
+      </button>
+    </div>
+  )
+}
+
+// ============================================
+// 43. 노치클릭 - 딸각 클릭
+// ============================================
+
+export function BookmarkNotchClick({ className }: BookmarkButtonProps) {
+  const [isBookmarked, setIsBookmarked] = useState(false)
+  const [isAnimating, setIsAnimating] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  const handleClick = useCallback(() => {
+    if (isAnimating) return
+    setIsAnimating(true)
+    const newBookmarked = !isBookmarked
+    setIsBookmarked(newBookmarked)
+
+    if (newBookmarked && containerRef.current) {
+      const particles = createParticles(containerRef.current, 8, (i) => {
+        const particle = document.createElement('div')
+        particle.className = styles.archiveLine
+        const angle = (i * 45)
+        particle.style.setProperty('--angle', `${angle}deg`)
+        particle.style.setProperty('--tx', '0px')
+        particle.style.setProperty('--ty', '0px')
+        particle.style.setProperty('--delay', `${i * 25}ms`)
+        return particle
+      })
+      removeParticles(particles, 600)
+    }
+
+    setTimeout(() => setIsAnimating(false), 300)
+  }, [isBookmarked, isAnimating])
+
+  return (
+    <div ref={containerRef} className={cn('relative inline-flex items-center justify-center', className)}>
+      <button
+        onClick={handleClick}
+        className={cn(
+          'relative p-3 rounded-full transition-all duration-200',
+          'hover:bg-amber-50 active:scale-90',
+          isAnimating && styles.notchClick
+        )}
+      >
+        <Bookmark
+          className={cn(
+            'w-6 h-6 transition-all duration-200',
+            isBookmarked ? 'fill-amber-400 text-amber-400' : 'text-gray-400'
+          )}
+        />
+      </button>
+    </div>
+  )
+}
+
+// ============================================
+// 44. 코너필 - 모서리 벗기기
+// ============================================
+
+export function BookmarkCornerPeel({ className }: BookmarkButtonProps) {
+  const [isBookmarked, setIsBookmarked] = useState(false)
+  const [isAnimating, setIsAnimating] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  const handleClick = useCallback(() => {
+    if (isAnimating) return
+    setIsAnimating(true)
+    const newBookmarked = !isBookmarked
+    setIsBookmarked(newBookmarked)
+
+    if (newBookmarked && containerRef.current) {
+      const colors = ['#FFD700', '#DAA520', '#FFE4B5']
+      const particles = createParticles(containerRef.current, 8, (i) => {
+        const particle = document.createElement('div')
+        particle.className = styles.cornerMark
+        const angle = (i * 45) * (Math.PI / 180)
+        const distance = 28 + Math.random() * 18
+        particle.style.setProperty('--tx', `${Math.cos(angle) * distance}px`)
+        particle.style.setProperty('--ty', `${Math.sin(angle) * distance}px`)
+        particle.style.setProperty('--delay', `${i * 25}ms`)
+        particle.style.setProperty('--color', colors[i % colors.length])
+        return particle
+      })
+      removeParticles(particles, 700)
+    }
+
+    setTimeout(() => setIsAnimating(false), 500)
+  }, [isBookmarked, isAnimating])
+
+  return (
+    <div ref={containerRef} className={cn('relative inline-flex items-center justify-center', className)}>
+      <button
+        onClick={handleClick}
+        className={cn(
+          'relative p-3 rounded-full transition-all duration-200',
+          'hover:bg-amber-50 active:scale-90',
+          isAnimating && styles.cornerPeel
+        )}
+      >
+        <Bookmark
+          className={cn(
+            'w-6 h-6 transition-all duration-200',
+            isBookmarked ? 'fill-amber-400 text-amber-400' : 'text-gray-400'
+          )}
+        />
+      </button>
+    </div>
+  )
+}
+
+// ============================================
+// 45. 북마크플로트 - 떠다니는 효과
+// ============================================
+
+export function BookmarkFloat({ className }: BookmarkButtonProps) {
+  const [isBookmarked, setIsBookmarked] = useState(false)
+  const [isAnimating, setIsAnimating] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  const handleClick = useCallback(() => {
+    if (isAnimating) return
+    setIsAnimating(true)
+    const newBookmarked = !isBookmarked
+    setIsBookmarked(newBookmarked)
+
+    if (newBookmarked && containerRef.current) {
+      const colors = ['#FFD700', '#FFA500', '#DAA520', '#FFE4B5']
+      const particles = createParticles(containerRef.current, 10, (i) => {
+        const particle = document.createElement('div')
+        particle.className = styles.bookmarkMini
+        const angle = (i * 36 - 90) * (Math.PI / 180)
+        const distance = 28 + Math.random() * 22
+        particle.style.setProperty('--tx', `${Math.cos(angle) * distance}px`)
+        particle.style.setProperty('--ty', `${Math.sin(angle) * distance}px`)
+        particle.style.setProperty('--delay', `${i * 20}ms`)
+        particle.style.setProperty('--color', colors[i % colors.length])
+        return particle
+      })
+      removeParticles(particles, 800)
+    }
+
+    setTimeout(() => setIsAnimating(false), 600)
+  }, [isBookmarked, isAnimating])
+
+  return (
+    <div ref={containerRef} className={cn('relative inline-flex items-center justify-center', className)}>
+      <button
+        onClick={handleClick}
+        className={cn(
+          'relative p-3 rounded-full transition-all duration-200',
+          'hover:bg-amber-50 active:scale-90',
+          isAnimating && styles.bookmarkFloat
+        )}
+      >
+        <Bookmark
+          className={cn(
+            'w-6 h-6 transition-all duration-200',
+            isBookmarked ? 'fill-amber-400 text-amber-400' : 'text-gray-400'
+          )}
+        />
+      </button>
+    </div>
+  )
+}
+
+// ============================================
 // Export All
 // ============================================
 
@@ -870,4 +2488,35 @@ export const BookmarkButtonVariants = {
   ShootingStar: BookmarkShootingStar,
   InkDrop: BookmarkInkDrop,
   MagicLink: BookmarkMagicLink,
+  // 16-45 추가
+  FoldPop: BookmarkFoldPop,
+  TabFlip: BookmarkTabFlip,
+  MarkerDrop: BookmarkMarkerDrop,
+  LabelSwing: BookmarkLabelSwing,
+  BookOpen: BookmarkBookOpen,
+  NoteFlip: BookmarkNoteFlip,
+  TagWiggle: BookmarkTagWiggle,
+  CardPop: BookmarkCardPop,
+  ClipSwing: BookmarkClipSwing,
+  PinBounce: BookmarkPinBounce,
+  SaveSlide: BookmarkSaveSlide,
+  MarkPush: BookmarkMarkPush,
+  FlagRaise: BookmarkFlagRaise,
+  RibbonTwist: BookmarkRibbonTwist,
+  Glow: BookmarkGlow,
+  PageTurn: BookmarkPageTurn,
+  TabSlide: BookmarkTabSlide,
+  CornerFold: BookmarkCornerFold,
+  StampPress: BookmarkStampPress,
+  SealMark: BookmarkSealMark,
+  ClipAttach: BookmarkClipAttach,
+  PaperPush: BookmarkPaperPush,
+  FoldReveal: BookmarkFoldReveal,
+  TagDangle: BookmarkTagDangle,
+  RibbonWrap: BookmarkRibbonWrap,
+  ArchiveDrop: BookmarkArchiveDrop,
+  IndexSlide: BookmarkIndexSlide,
+  NotchClick: BookmarkNotchClick,
+  CornerPeel: BookmarkCornerPeel,
+  Float: BookmarkFloat,
 }
