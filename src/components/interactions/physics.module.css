@@ -1,7 +1,6 @@
 /* ============================================
  * Physics-Based Button Interactions
- * Skeuomorphism 2.0 - 물리 기반 인터랙션
- * 기존 아이콘 형태 유지 + 물리적 느낌의 애니메이션
+ * Skeuomorphism 2.0 - 다층 레이어 물리 기반 인터랙션
  * ============================================ */
 
 /* ============================================
@@ -43,6 +42,8 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  width: 52px;
+  height: 52px;
 }
 
 .physicsButton {
@@ -53,6 +54,7 @@
   border: none;
   cursor: pointer;
   transition: background-color 0.2s ease;
+  z-index: 10;
 }
 
 .physicsButton:hover {
@@ -60,227 +62,721 @@
 }
 
 /* ============================================
- * LIKE BUTTONS - 물리 애니메이션
+ * 1. HEART PUMP - 심장 펌핑
+ * 수축→팽창→맥박 파동
  * ============================================ */
 
-/* 1. Heart Pump - 심장 펌프 (수축/이완) */
-.pumpPress {
-  animation: pumpPressAnim 0.6s var(--spring-bounce);
+/* 맥박 파동 링 */
+.pulseRing {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid rgba(236, 72, 153, 0);
+  transform: scale(1);
+  pointer-events: none;
 }
 
-.pumpIcon {
-  animation: pumpIconAnim 0.6s var(--spring-bounce);
+.pulseRingActive {
+  animation: pulseRingExpand 0.6s var(--spring-soft) forwards;
 }
 
-@keyframes pumpPressAnim {
+.pulseRingDelay {
+  animation-delay: 0.1s;
+}
+
+@keyframes pulseRingExpand {
+  0% {
+    transform: scale(0.8);
+    border-color: rgba(236, 72, 153, 0.8);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.8);
+    border-color: rgba(236, 72, 153, 0);
+    opacity: 0;
+  }
+}
+
+/* 버튼 그림자 */
+.buttonShadow {
+  position: absolute;
+  bottom: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 30px;
+  height: 8px;
+  background: radial-gradient(ellipse, rgba(0, 0, 0, 0.15) 0%, transparent 70%);
+  border-radius: 50%;
+  transition: all 0.15s ease;
+  pointer-events: none;
+}
+
+.shadowSquish {
+  animation: shadowSquishAnim 0.8s var(--spring-bounce);
+}
+
+@keyframes shadowSquishAnim {
+  0% { transform: translateX(-50%) scaleX(1); opacity: 1; }
+  15% { transform: translateX(-50%) scaleX(1.4) scaleY(0.6); opacity: 0.8; }
+  30% { transform: translateX(-50%) scaleX(0.7) scaleY(1.2); opacity: 1; }
+  50% { transform: translateX(-50%) scaleX(1.2); opacity: 0.9; }
+  100% { transform: translateX(-50%) scaleX(1); opacity: 1; }
+}
+
+/* 심장 펌프 애니메이션 */
+.heartPumpAnim {
+  animation: heartPumpButton 0.8s var(--spring-bounce);
+}
+
+@keyframes heartPumpButton {
   0% { transform: scale(1); }
-  15% { transform: scale(0.85); }
-  30% { transform: scale(1.15); }
-  45% { transform: scale(0.95); }
-  60% { transform: scale(1.08); }
-  75% { transform: scale(0.98); }
+  10% { transform: scale(0.85) scaleX(1.15); }  /* 수축 - 옆으로 퍼짐 */
+  25% { transform: scale(1.2) scaleX(0.9); }    /* 팽창 - 위로 솟음 */
+  40% { transform: scale(0.95); }
+  55% { transform: scale(1.1); }
+  70% { transform: scale(0.98); }
   100% { transform: scale(1); }
 }
 
-@keyframes pumpIconAnim {
+.heartIconPump {
+  animation: heartIconPumpAnim 0.8s var(--spring-bounce);
+}
+
+@keyframes heartIconPumpAnim {
   0% { transform: scale(1); }
-  15% { transform: scale(0.7) scaleX(1.2); }
-  30% { transform: scale(1.3) scaleX(0.9); }
-  45% { transform: scale(0.9); }
-  60% { transform: scale(1.15); }
-  75% { transform: scale(0.95); }
-  100% { transform: scale(1); }
-}
-
-/* 2. Stamp Press - 도장 찍기 (위에서 아래로 쿵) */
-.stampDown {
-  animation: stampDownAnim 0.5s var(--gravity-bounce);
-}
-
-.stampIcon {
-  animation: stampIconAnim 0.5s var(--gravity-bounce);
-}
-
-@keyframes stampDownAnim {
-  0% { transform: translateY(-8px) scale(0.9); }
-  25% { transform: translateY(4px) scale(1.1); }
-  40% { transform: translateY(0) scale(1.05); }
-  55% { transform: translateY(2px) scale(1); }
-  70% { transform: translateY(-1px); }
-  100% { transform: translateY(0) scale(1); }
-}
-
-@keyframes stampIconAnim {
-  0% { transform: translateY(-10px); opacity: 0.7; }
-  25% { transform: translateY(3px) scaleY(0.85); }
-  40% { transform: translateY(0) scaleY(1.1); }
-  60% { transform: translateY(1px) scaleY(0.95); }
-  100% { transform: translateY(0) scaleY(1); opacity: 1; }
-}
-
-/* 3. Toggle Switch - 토글 스위치 (딸깍) */
-.toggleClick {
-  animation: toggleClickAnim 0.35s var(--mechanical-click);
-}
-
-.toggleIcon {
-  animation: toggleIconAnim 0.35s var(--spring-tight);
-}
-
-@keyframes toggleClickAnim {
-  0% { transform: scale(1); }
-  30% { transform: scale(0.92); }
-  60% { transform: scale(1.05); }
-  100% { transform: scale(1); }
-}
-
-@keyframes toggleIconAnim {
-  0% { transform: rotateY(0deg); }
-  50% { transform: rotateY(90deg) scale(0.8); }
-  100% { transform: rotateY(0deg) scale(1); }
-}
-
-/* 4. Lock Click - 자물쇠 잠금 (철컥) */
-.lockSnap {
-  animation: lockSnapAnim 0.4s var(--mechanical-return);
-}
-
-.lockIcon {
-  animation: lockIconAnim 0.4s var(--spring-tight);
-}
-
-@keyframes lockSnapAnim {
-  0% { transform: scale(1) rotate(0deg); }
-  25% { transform: scale(0.9) rotate(-5deg); }
-  50% { transform: scale(1.1) rotate(3deg); }
-  75% { transform: scale(0.98) rotate(-1deg); }
-  100% { transform: scale(1) rotate(0deg); }
-}
-
-@keyframes lockIconAnim {
-  0% { transform: translateY(0) rotate(0deg); }
-  30% { transform: translateY(-3px) rotate(-8deg); }
-  60% { transform: translateY(2px) rotate(4deg); }
-  100% { transform: translateY(0) rotate(0deg); }
-}
-
-/* 5. Dial Turn - 다이얼 회전 */
-.dialSpin {
-  animation: dialSpinAnim 0.6s var(--spring-wobbly);
-}
-
-.dialIcon {
-  animation: dialIconAnim 0.6s var(--spring-wobbly);
-}
-
-@keyframes dialSpinAnim {
-  0% { transform: rotate(0deg); }
-  40% { transform: rotate(25deg); }
-  70% { transform: rotate(-10deg); }
-  100% { transform: rotate(0deg); }
-}
-
-@keyframes dialIconAnim {
-  0% { transform: rotate(0deg) scale(1); }
-  30% { transform: rotate(180deg) scale(1.1); }
-  60% { transform: rotate(350deg) scale(0.95); }
-  100% { transform: rotate(360deg) scale(1); }
-}
-
-/* 6. Button Depress - 기계식 버튼 (눌림 + 스프링) */
-.mechanicalButton {
-  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.15);
-  transition: transform 0.1s, box-shadow 0.1s;
-}
-
-.buttonDepressAnim {
-  animation: buttonDepressAnimKF 0.45s var(--spring-bounce);
-}
-
-.depressIcon {
-  animation: depressIconAnim 0.45s var(--spring-bounce);
-}
-
-@keyframes buttonDepressAnimKF {
-  0% { transform: translateY(0); box-shadow: 0 4px 0 rgba(0, 0, 0, 0.15); }
-  30% { transform: translateY(4px); box-shadow: 0 0px 0 rgba(0, 0, 0, 0.15); }
-  50% { transform: translateY(2px); box-shadow: 0 2px 0 rgba(0, 0, 0, 0.15); }
-  70% { transform: translateY(-2px); box-shadow: 0 6px 0 rgba(0, 0, 0, 0.15); }
-  100% { transform: translateY(0); box-shadow: 0 4px 0 rgba(0, 0, 0, 0.15); }
-}
-
-@keyframes depressIconAnim {
-  0% { transform: scale(1); }
-  30% { transform: scale(0.85); }
-  50% { transform: scale(1.2); }
+  10% { transform: scale(0.7) scaleX(1.3); }    /* 심장 수축 */
+  25% { transform: scale(1.35) scaleX(0.85); }  /* 심장 팽창 */
+  40% { transform: scale(0.9); }
+  55% { transform: scale(1.15); }
   70% { transform: scale(0.95); }
   100% { transform: scale(1); }
 }
 
-/* 7. Valve Release - 밸브 해제 (압력 해제) */
-.valveTwist {
-  animation: valveTwistAnim 0.7s var(--spring-soft);
+/* 지속 맥박 글로우 */
+.heartbeatGlow {
+  position: absolute;
+  inset: 4px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(236, 72, 153, 0.3) 0%, transparent 70%);
+  animation: heartbeatPulse 1.2s ease-in-out infinite;
+  pointer-events: none;
 }
 
-.valveIcon {
-  animation: valveIconAnim 0.7s var(--inertia-slow);
+@keyframes heartbeatPulse {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.1); }
 }
 
-@keyframes valveTwistAnim {
+/* ============================================
+ * 2. STAMP PRESS - 도장 찍기
+ * 낙하 가속→충돌 찌그러짐→잉크 퍼짐
+ * ============================================ */
+
+/* 잉크 스플랫 */
+.inkSplat {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: rgba(236, 72, 153, 0.7);
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.inkSplat1 { top: 50%; left: 10%; }
+.inkSplat2 { top: 30%; left: 80%; }
+.inkSplat3 { top: 80%; left: 70%; }
+
+.inkSplatActive {
+  animation: inkSplatBurst 0.6s var(--spring-bounce) forwards;
+}
+
+.inkSplat1.inkSplatActive { animation-delay: 0s; }
+.inkSplat2.inkSplatActive { animation-delay: 0.05s; }
+.inkSplat3.inkSplatActive { animation-delay: 0.1s; }
+
+@keyframes inkSplatBurst {
+  0% {
+    transform: scale(0) translate(0, 0);
+    opacity: 0;
+  }
+  30% {
+    transform: scale(1.5) translate(var(--tx, 10px), var(--ty, -10px));
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.8) translate(calc(var(--tx, 10px) * 1.5), calc(var(--ty, -10px) * 1.5));
+    opacity: 0;
+  }
+}
+
+.inkSplat1 { --tx: -15px; --ty: -10px; }
+.inkSplat2 { --tx: 12px; --ty: -15px; }
+.inkSplat3 { --tx: 8px; --ty: 12px; }
+
+/* 충돌 파동 */
+.impactRipple {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  pointer-events: none;
+}
+
+.impactRippleActive {
+  animation: impactRippleExpand 0.4s ease-out forwards;
+}
+
+@keyframes impactRippleExpand {
+  0% {
+    transform: scale(0.5);
+    border-color: rgba(236, 72, 153, 0.8);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.5);
+    border-color: rgba(236, 72, 153, 0);
+    opacity: 0;
+  }
+}
+
+/* 도장 낙하 애니메이션 */
+.stampFallAnim {
+  animation: stampFall 0.7s var(--gravity-bounce);
+}
+
+@keyframes stampFall {
+  0% { transform: translateY(-20px) scale(0.9); opacity: 0.7; }
+  25% { transform: translateY(0) scale(1); opacity: 1; }
+  30% { transform: translateY(3px) scaleY(0.85) scaleX(1.15); } /* 충돌 찌그러짐 */
+  45% { transform: translateY(-5px) scaleY(1.1) scaleX(0.95); } /* 반동 */
+  60% { transform: translateY(2px) scale(1.02); }
+  100% { transform: translateY(0) scale(1); }
+}
+
+.stampIconSquish {
+  animation: stampIconSquishAnim 0.7s var(--gravity-bounce);
+}
+
+@keyframes stampIconSquishAnim {
+  0% { transform: translateY(-15px); opacity: 0.7; }
+  25% { transform: translateY(0); opacity: 1; }
+  30% { transform: scaleY(0.7) scaleX(1.2); }  /* 찌그러짐 */
+  45% { transform: scaleY(1.2) scaleX(0.9); }  /* 반동 늘어남 */
+  60% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+/* ============================================
+ * 3. TOGGLE SWITCH - 토글 스위치
+ * 저항→스냅→오버슈트 정착
+ * ============================================ */
+
+.switchTrack {
+  position: absolute;
+  width: 36px;
+  height: 18px;
+  background: #e5e7eb;
+  border-radius: 10px;
+  transition: background-color 0.3s ease;
+  z-index: 1;
+}
+
+.switchTrackOn {
+  background: rgba(236, 72, 153, 0.3);
+}
+
+.switchKnob {
+  position: absolute;
+  left: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 14px;
+  height: 14px;
+  background: white;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: left 0.3s var(--spring-bounce);
+  z-index: 2;
+}
+
+.switchKnobOn {
+  left: 20px;
+  background: #ec4899;
+}
+
+.switchResistance {
+  animation: switchResistanceAnim 0.1s ease;
+}
+
+@keyframes switchResistanceAnim {
+  0% { transform: translateY(-50%) scale(1); }
+  100% { transform: translateY(-50%) scale(0.9); }
+}
+
+.switchSnap {
+  animation: switchSnapAnim 0.4s var(--spring-tight);
+}
+
+@keyframes switchSnapAnim {
+  0% { transform: translateY(-50%) scale(0.9); }
+  40% { transform: translateY(-50%) scale(1.15); }  /* 오버슈트 */
+  70% { transform: translateY(-50%) scale(0.95); }
+  100% { transform: translateY(-50%) scale(1); }
+}
+
+.switchButton {
+  position: absolute;
+  right: -8px;
+  z-index: 10;
+}
+
+.switchClickFeedback {
+  animation: switchClickFeedbackAnim 0.3s ease;
+}
+
+@keyframes switchClickFeedbackAnim {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(0.9); }
+}
+
+/* ============================================
+ * 4. LOCK CLICK - 자물쇠 잠금
+ * 걸쇠 회전→금속 충돌 진동→잠금 확정
+ * ============================================ */
+
+.metalFlash {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.8) 0%, transparent 60%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.metalFlashActive {
+  animation: metalFlashAnim 0.2s ease-out forwards;
+}
+
+@keyframes metalFlashAnim {
+  0% { opacity: 0.8; transform: scale(0.8); }
+  100% { opacity: 0; transform: scale(1.2); }
+}
+
+.lockRotateAnim {
+  animation: lockRotate 0.5s var(--mechanical-return);
+}
+
+@keyframes lockRotate {
   0% { transform: rotate(0deg) scale(1); }
-  25% { transform: rotate(45deg) scale(1.05); }
-  50% { transform: rotate(90deg) scale(1.15); }
-  75% { transform: rotate(80deg) scale(1.05); }
+  30% { transform: rotate(-15deg) scale(0.95); }  /* 잠금 회전 */
+  50% { transform: rotate(5deg) scale(1.05); }
+  70% { transform: rotate(-2deg) scale(1); }
   100% { transform: rotate(0deg) scale(1); }
 }
 
-@keyframes valveIconAnim {
+.metalVibrate {
+  animation: metalVibrateAnim 0.2s linear;
+}
+
+@keyframes metalVibrateAnim {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-2px); }
+  40% { transform: translateX(2px); }
+  60% { transform: translateX(-1px); }
+  80% { transform: translateX(1px); }
+}
+
+.lockIconClamp {
+  animation: lockIconClampAnim 0.5s var(--mechanical-return);
+}
+
+@keyframes lockIconClampAnim {
+  0% { transform: scale(1); }
+  30% { transform: scale(0.85) rotate(-10deg); }
+  50% { transform: scale(1.1) rotate(3deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+.lockIndicator {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 8px;
+  height: 8px;
+  background: #22c55e;
+  border-radius: 50%;
+  animation: lockIndicatorPulse 2s ease infinite;
+}
+
+@keyframes lockIndicatorPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(0.9); }
+}
+
+/* ============================================
+ * 5. DIAL TURN - 다이얼 회전
+ * 노치 클릭→관성 오버슈트→정착
+ * ============================================ */
+
+.dialTicks {
+  position: absolute;
+  inset: -2px;
+  opacity: 0.3;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.dialTicksActive {
+  opacity: 0.6;
+}
+
+.dialTick {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 2px;
+  height: 6px;
+  background: #9ca3af;
+  transform-origin: center 26px;
+  border-radius: 1px;
+}
+
+.dialSpinAnim {
+  animation: dialSpin 0.7s var(--spring-wobbly);
+}
+
+@keyframes dialSpin {
+  0% { transform: rotate(0deg); }
+  40% { transform: rotate(45deg); }    /* 회전 */
+  60% { transform: rotate(-15deg); }   /* 오버슈트 반대 */
+  80% { transform: rotate(5deg); }
+  100% { transform: rotate(0deg); }
+}
+
+.dialNotchClick {
+  animation: dialNotchClickAnim 0.1s var(--mechanical-click);
+}
+
+@keyframes dialNotchClickAnim {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(0.95); }
+}
+
+.dialIconSpin {
+  animation: dialIconSpinAnim 0.7s var(--spring-wobbly);
+}
+
+@keyframes dialIconSpinAnim {
+  0% { transform: rotate(0deg) scale(1); }
+  40% { transform: rotate(180deg) scale(1.1); }
+  60% { transform: rotate(350deg) scale(0.95); }
+  100% { transform: rotate(360deg) scale(1); }
+}
+
+/* ============================================
+ * 6. BUTTON DEPRESS - 기계식 버튼
+ * 눌림 저항→바닥 찍힘→스프링 반동
+ * ============================================ */
+
+.mechanicalBase {
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 6px;
+  background: linear-gradient(to bottom, #d1d5db, #9ca3af);
+  border-radius: 2px;
+  z-index: 1;
+}
+
+.mechanicalBody {
+  position: relative;
+  padding: 12px;
+  border-radius: 50%;
+  background: linear-gradient(to bottom, #f3f4f6, #e5e7eb);
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 0 #9ca3af, 0 6px 8px rgba(0, 0, 0, 0.15);
+  transition: transform 0.1s, box-shadow 0.1s;
+  z-index: 10;
+}
+
+.mechanicalBody:hover {
+  background: linear-gradient(to bottom, #f9fafb, #f3f4f6);
+}
+
+.mechanicalPressed {
+  transform: translateY(4px);
+  box-shadow: 0 0 0 #9ca3af, 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.mechanicalSpringBack {
+  animation: mechanicalSpringBackAnim 0.4s var(--spring-bounce);
+}
+
+@keyframes mechanicalSpringBackAnim {
+  0% { transform: translateY(4px); box-shadow: 0 0 0 #9ca3af; }
+  40% { transform: translateY(-3px); box-shadow: 0 7px 0 #9ca3af; }  /* 오버슈트 */
+  70% { transform: translateY(1px); box-shadow: 0 3px 0 #9ca3af; }
+  100% { transform: translateY(0); box-shadow: 0 4px 0 #9ca3af; }
+}
+
+.mechanicalIconBounce {
+  animation: mechanicalIconBounceAnim 0.4s var(--spring-bounce);
+}
+
+@keyframes mechanicalIconBounceAnim {
+  0% { transform: scale(0.9); }
+  40% { transform: scale(1.2); }
+  70% { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+
+.pressureShadow {
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 36px;
+  height: 10px;
+  background: radial-gradient(ellipse, rgba(0, 0, 0, 0.2) 0%, transparent 70%);
+  border-radius: 50%;
+  transition: all 0.1s ease;
+  z-index: 0;
+}
+
+.pressureShadowPressed {
+  width: 44px;
+  height: 6px;
+  opacity: 0.6;
+}
+
+/* ============================================
+ * 7. VALVE RELEASE - 밸브 해제
+ * 회전 저항→해제→압력 분출
+ * ============================================ */
+
+.steamParticle {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: rgba(200, 200, 200, 0.6);
+  border-radius: 50%;
+  filter: blur(2px);
+  pointer-events: none;
+}
+
+.steam1 { animation: steamRise 0.7s ease-out forwards; --angle: -30deg; --dist: 25px; }
+.steam2 { animation: steamRise 0.7s ease-out forwards 0.05s; --angle: -60deg; --dist: 30px; }
+.steam3 { animation: steamRise 0.7s ease-out forwards 0.1s; --angle: -90deg; --dist: 35px; }
+.steam4 { animation: steamRise 0.7s ease-out forwards 0.05s; --angle: -120deg; --dist: 30px; }
+.steam5 { animation: steamRise 0.7s ease-out forwards; --angle: -150deg; --dist: 25px; }
+
+@keyframes steamRise {
+  0% {
+    transform: translate(0, 0) scale(0.5);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translate(
+      calc(cos(var(--angle)) * var(--dist)),
+      calc(sin(var(--angle)) * var(--dist) - 20px)
+    ) scale(1.5);
+    opacity: 0;
+  }
+}
+
+.pressureGauge {
+  position: absolute;
+  inset: 4px;
+  border-radius: 50%;
+  border: 2px solid #d1d5db;
+  background: linear-gradient(135deg, #fef9c3 0%, #fde68a 100%);
+  opacity: 0.5;
+  transition: all 0.3s ease;
+}
+
+.pressureReleased {
+  border-color: #22c55e;
+  background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+}
+
+.valveTurnAnim {
+  animation: valveTurn 0.9s var(--spring-soft);
+}
+
+@keyframes valveTurn {
+  0% { transform: rotate(0deg) scale(1); }
+  20% { transform: rotate(-10deg) scale(0.98); }  /* 저항 */
+  40% { transform: rotate(90deg) scale(1.05); }   /* 해제 */
+  60% { transform: rotate(85deg) scale(1.1); }    /* 압력 분출 */
+  80% { transform: rotate(88deg) scale(1.02); }
+  100% { transform: rotate(0deg) scale(1); }
+}
+
+.valveIconRelease {
+  animation: valveIconReleaseAnim 0.7s var(--spring-bounce);
+}
+
+@keyframes valveIconReleaseAnim {
   0% { transform: scale(1); filter: brightness(1); }
-  30% { transform: scale(1.1); filter: brightness(1.2); }
+  30% { transform: scale(1.15); filter: brightness(1.2); }
   60% { transform: scale(1.25); filter: brightness(1.3); }
   100% { transform: scale(1); filter: brightness(1); }
 }
 
-/* 8. Magnet Snap - 자석 끌림 (찰싹) */
-.magnetPull {
-  animation: magnetPullAnim 0.5s var(--spring-tight);
+/* ============================================
+ * 8. MAGNET SNAP - 자석 끌림
+ * 느린 시작→가속 끌림→충돌 진동→붙음
+ * ============================================ */
+
+.magnetField {
+  position: absolute;
+  inset: -5px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
 }
 
-.magnetIcon {
-  animation: magnetIconAnim 0.5s var(--spring-tight);
+.magnetFieldActive {
+  opacity: 1;
 }
 
-@keyframes magnetPullAnim {
-  0% { transform: translateY(-12px) scale(0.9); }
-  40% { transform: translateY(4px) scale(1.1); }
-  60% { transform: translateY(-2px) scale(1.05); }
-  80% { transform: translateY(1px) scale(0.98); }
+.fieldLine {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 40px;
+  height: 2px;
+  background: linear-gradient(to right, transparent, rgba(59, 130, 246, 0.5), transparent);
+  transform-origin: left center;
+  animation: fieldLineWave 0.4s ease infinite;
+}
+
+.fieldLine:nth-child(1) { transform: translate(-50%, -50%) rotate(0deg); }
+.fieldLine:nth-child(2) { transform: translate(-50%, -50%) rotate(120deg); animation-delay: 0.1s; }
+.fieldLine:nth-child(3) { transform: translate(-50%, -50%) rotate(240deg); animation-delay: 0.2s; }
+
+@keyframes fieldLineWave {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.8; }
+}
+
+.magnetSpark {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.6) 0%, transparent 50%);
+  animation: magnetSparkFlash 0.15s ease-out;
+}
+
+@keyframes magnetSparkFlash {
+  0% { transform: scale(0.5); opacity: 1; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+
+.magnetAttract {
+  animation: magnetAttractAnim 0.35s cubic-bezier(0.4, 0, 1, 1);
+}
+
+@keyframes magnetAttractAnim {
+  0% { transform: translateY(-15px) scale(0.9); }
+  60% { transform: translateY(-8px) scale(0.95); }  /* 느린 시작 */
+  100% { transform: translateY(0) scale(1); }        /* 가속 끌림 */
+}
+
+.magnetImpact {
+  animation: magnetImpactAnim 0.1s linear;
+}
+
+@keyframes magnetImpactAnim {
+  0% { transform: translateY(0) scale(1); }
+  30% { transform: translateY(2px) scale(1.1); }  /* 충돌 */
+  60% { transform: translateY(-1px) scale(0.98); }
   100% { transform: translateY(0) scale(1); }
 }
 
-@keyframes magnetIconAnim {
-  0% { transform: translateY(-15px) rotate(-10deg); opacity: 0.6; }
-  40% { transform: translateY(3px) rotate(5deg); opacity: 1; }
-  60% { transform: translateY(-2px) rotate(-2deg); }
-  100% { transform: translateY(0) rotate(0deg); }
+.magnetStuck {
+  animation: magnetStuckAnim 0.15s var(--spring-tight);
 }
 
-/* 9. Gauge Fill - 게이지 충전 */
-.gaugeFillAnim {
-  animation: gaugeFillAnimKF 0.6s var(--spring-bounce);
+@keyframes magnetStuckAnim {
+  0% { transform: translate(0); }
+  25% { transform: translate(-1px, 0); }
+  50% { transform: translate(1px, 0); }
+  75% { transform: translate(-0.5px, 0); }
+  100% { transform: translate(0); }
 }
 
-.gaugeIcon {
-  animation: gaugeIconAnim 0.6s var(--spring-soft);
+/* ============================================
+ * 9. GAUGE FILL - 게이지 충전
+ * 바늘 스윙→관성 오버슈트→오실레이션
+ * ============================================ */
+
+.gaugeBackground {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 6px;
+  background: #e5e7eb;
+  border-radius: 3px;
+  overflow: hidden;
+  z-index: 1;
 }
 
-@keyframes gaugeFillAnimKF {
+.gaugeFillBar {
+  height: 100%;
+  background: linear-gradient(to right, #fde68a, #f59e0b, #ec4899);
+  border-radius: 3px;
+  transition: width 0.05s linear;
+}
+
+.gaugeNeedle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 2px;
+  height: 20px;
+  background: linear-gradient(to bottom, #ef4444, #b91c1c);
+  transform-origin: center bottom;
+  border-radius: 1px;
+  transition: transform 0.8s var(--spring-wobbly);
+  z-index: 5;
+}
+
+.needleSwing {
+  animation: needleSwingAnim 0.8s var(--spring-wobbly);
+}
+
+@keyframes needleSwingAnim {
+  0% { transform: rotate(-90deg); }
+  30% { transform: rotate(100deg); }   /* 오버슈트 */
+  50% { transform: rotate(80deg); }
+  70% { transform: rotate(95deg); }    /* 역 오버슈트 */
+  100% { transform: rotate(90deg); }
+}
+
+.gaugePulse {
+  animation: gaugePulseAnim 0.8s var(--spring-bounce);
+}
+
+@keyframes gaugePulseAnim {
   0% { transform: scale(1); }
-  50% { transform: scale(1.15); }
+  25% { transform: scale(1.05); }
+  50% { transform: scale(0.98); }
+  75% { transform: scale(1.02); }
   100% { transform: scale(1); }
 }
 
-@keyframes gaugeIconAnim {
+.gaugeIconFill {
+  animation: gaugeIconFillAnim 0.8s var(--spring-soft);
+}
+
+@keyframes gaugeIconFillAnim {
   0% { transform: scale(0.8); opacity: 0.5; }
   40% { transform: scale(1.3); opacity: 1; }
   60% { transform: scale(0.95); }
@@ -288,30 +784,87 @@
   100% { transform: scale(1); }
 }
 
-/* 10. Capsule Pop - 캡슐 터짐 */
-.capsuleBurst {
-  animation: capsuleBurstAnim 0.55s var(--spring-bounce);
+/* ============================================
+ * 10. CAPSULE POP - 캡슐 폭발
+ * 압력 빌드업→팝 폭발→내용물 분출
+ * ============================================ */
+
+.popParticle {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: #ec4899;
+  border-radius: 50%;
+  pointer-events: none;
 }
 
-.capsuleIcon {
-  animation: capsuleIconAnim 0.55s var(--spring-bounce);
+.pop1 { animation: popBurst 0.5s var(--spring-bounce) forwards; --angle: 0deg; }
+.pop2 { animation: popBurst 0.5s var(--spring-bounce) forwards 0.02s; --angle: 60deg; }
+.pop3 { animation: popBurst 0.5s var(--spring-bounce) forwards 0.04s; --angle: 120deg; }
+.pop4 { animation: popBurst 0.5s var(--spring-bounce) forwards 0.02s; --angle: 180deg; }
+.pop5 { animation: popBurst 0.5s var(--spring-bounce) forwards 0.04s; --angle: 240deg; }
+.pop6 { animation: popBurst 0.5s var(--spring-bounce) forwards; --angle: 300deg; }
+
+@keyframes popBurst {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: translate(
+      calc(cos(var(--angle)) * 25px),
+      calc(sin(var(--angle)) * 25px)
+    ) scale(1.2);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translate(
+      calc(cos(var(--angle)) * 35px),
+      calc(sin(var(--angle)) * 35px)
+    ) scale(0.3);
+    opacity: 0;
+  }
 }
 
-@keyframes capsuleBurstAnim {
+.pressureRing {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid rgba(236, 72, 153, 0.5);
+  transition: transform 0.05s linear, opacity 0.05s linear;
+  pointer-events: none;
+}
+
+.capsulePressure {
+  animation: capsulePressureAnim 0.3s var(--pressure-in);
+}
+
+@keyframes capsulePressureAnim {
   0% { transform: scale(1); }
-  20% { transform: scale(0.85); }
-  40% { transform: scale(1.25); }
-  60% { transform: scale(0.9); }
-  80% { transform: scale(1.1); }
+  50% { transform: scale(0.92); }  /* 압축 */
+  100% { transform: scale(0.95); }
+}
+
+.capsuleExplode {
+  animation: capsuleExplodeAnim 0.4s var(--spring-bounce);
+}
+
+@keyframes capsuleExplodeAnim {
+  0% { transform: scale(0.95); }
+  30% { transform: scale(1.3); }   /* 폭발 */
+  50% { transform: scale(0.9); }
+  70% { transform: scale(1.1); }
   100% { transform: scale(1); }
 }
 
-@keyframes capsuleIconAnim {
-  0% { transform: scale(1) rotate(0deg); }
-  20% { transform: scale(0.7) rotate(-10deg); }
-  40% { transform: scale(1.4) rotate(15deg); }
-  60% { transform: scale(0.95) rotate(-5deg); }
-  80% { transform: scale(1.1) rotate(3deg); }
+.capsuleIconPop {
+  animation: capsuleIconPopAnim 0.4s var(--spring-bounce);
+}
+
+@keyframes capsuleIconPopAnim {
+  0% { transform: scale(0.8); }
+  30% { transform: scale(1.4) rotate(10deg); }
+  50% { transform: scale(0.9) rotate(-5deg); }
   100% { transform: scale(1) rotate(0deg); }
 }
 
@@ -555,4 +1108,402 @@
   50% { transform: scale(1.2) rotate(8deg); }
   75% { transform: scale(0.95) rotate(-2deg); }
   100% { transform: scale(1) rotate(0deg); }
+}
+
+/* ============================================
+ * BOOKMARK BUTTONS - 추가 레이어 효과
+ * ============================================ */
+
+/* Binder Clip 추가 효과 */
+.clipHandle {
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  transform: translateX(-50%) rotate(0deg);
+  width: 16px;
+  height: 8px;
+  border: 2px solid #9ca3af;
+  border-bottom: none;
+  border-radius: 4px 4px 0 0;
+  transition: transform 0.2s var(--spring-bounce);
+  pointer-events: none;
+  z-index: 5;
+}
+
+.clipHandleOpen {
+  transform: translateX(-50%) rotate(-30deg);
+}
+
+.clampShock {
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid rgba(245, 158, 11, 0.6);
+  animation: clampShockWave 0.3s ease-out forwards;
+}
+
+@keyframes clampShockWave {
+  0% { transform: scale(0.8); opacity: 1; }
+  100% { transform: scale(1.3); opacity: 0; }
+}
+
+.clipIndicator {
+  position: absolute;
+  bottom: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 12px;
+  height: 3px;
+  background: #f59e0b;
+  border-radius: 2px;
+}
+
+/* Corner Fold 추가 효과 */
+.paperShadow {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 20px;
+  height: 20px;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 0 0 4px 0;
+  transition: all 0.3s ease;
+  pointer-events: none;
+}
+
+.paperShadowLift {
+  transform: translate(-2px, -2px);
+  opacity: 0.3;
+}
+
+.paperShadowFold {
+  transform: translate(-4px, -4px) rotate(-10deg);
+  opacity: 0.5;
+}
+
+.foldedCorner {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 12px;
+  height: 12px;
+  background: linear-gradient(135deg, transparent 50%, #fbbf24 50%);
+  pointer-events: none;
+}
+
+/* Ribbon Insert 추가 효과 */
+.ribbonTail {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 8px;
+  height: 15px;
+  background: linear-gradient(to bottom, #f59e0b, #d97706);
+  clip-path: polygon(0 0, 100% 0, 100% 70%, 50% 100%, 0 70%);
+  pointer-events: none;
+}
+
+.ribbonTailDrop {
+  animation: ribbonTailDropAnim 0.65s var(--spring-soft);
+}
+
+@keyframes ribbonTailDropAnim {
+  0% { transform: translateX(-50%) translateY(-20px); opacity: 0; }
+  50% { transform: translateX(-50%) translateY(5px); opacity: 1; }
+  100% { transform: translateX(-50%) translateY(0); }
+}
+
+.pageLines {
+  position: absolute;
+  left: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  pointer-events: none;
+}
+
+.pageLine {
+  width: 3px;
+  height: 12px;
+  background: #e5e7eb;
+  border-radius: 1px;
+}
+
+/* Sticky Note 추가 효과 */
+.stickImpact {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle, rgba(251, 191, 36, 0.3) 0%, transparent 70%);
+  animation: stickImpactFlash 0.2s ease-out;
+}
+
+@keyframes stickImpactFlash {
+  0% { opacity: 1; transform: scale(0.8); }
+  100% { opacity: 0; transform: scale(1.2); }
+}
+
+.stickyCorner {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 10px;
+  height: 10px;
+  background: linear-gradient(135deg, transparent 50%, #fde68a 50%);
+  box-shadow: -1px -1px 2px rgba(0, 0, 0, 0.1);
+  pointer-events: none;
+}
+
+.stickyShadow {
+  position: absolute;
+  bottom: -3px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 30px;
+  height: 6px;
+  background: radial-gradient(ellipse, rgba(0, 0, 0, 0.15) 0%, transparent 70%);
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  pointer-events: none;
+}
+
+.stickyShadowWobble {
+  animation: stickyShadowWobbleAnim 0.55s var(--spring-wobbly);
+}
+
+@keyframes stickyShadowWobbleAnim {
+  0% { transform: translateX(-50%) scaleX(0.8); }
+  35% { transform: translateX(-50%) scaleX(1.3); }
+  55% { transform: translateX(-50%) scaleX(0.9); }
+  100% { transform: translateX(-50%) scaleX(1); }
+}
+
+/* Page Turn 추가 효과 */
+.pageTurnShadow {
+  position: absolute;
+  inset: 0;
+  background: transparent;
+  transition: all 0.3s ease;
+  pointer-events: none;
+}
+
+.pageTurnShadowFlip {
+  box-shadow: -5px 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.pageFlutter {
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 4px;
+  animation: pageFlutterAnim 0.25s ease-out;
+}
+
+@keyframes pageFlutterAnim {
+  0%, 100% { transform: skewX(0deg); }
+  25% { transform: skewX(3deg); }
+  75% { transform: skewX(-2deg); }
+}
+
+/* Flag Raise 추가 효과 */
+.flagPole {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  width: 2px;
+  height: 0;
+  background: #6b7280;
+  transition: height 0.4s var(--spring-bounce);
+  pointer-events: none;
+}
+
+.flagPoleUp {
+  height: 30px;
+}
+
+.flagWave {
+  position: absolute;
+  top: -5px;
+  left: 10px;
+  width: 20px;
+  height: 12px;
+  background: linear-gradient(90deg, #fbbf24, #f59e0b);
+  animation: flagWaveAnim 0.4s ease infinite;
+  clip-path: polygon(0 0, 100% 10%, 100% 90%, 0 100%);
+}
+
+@keyframes flagWaveAnim {
+  0%, 100% { transform: scaleX(1) skewY(0deg); }
+  50% { transform: scaleX(1.05) skewY(3deg); }
+}
+
+/* Pin Drop 추가 효과 */
+.pinImpactRipple {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid rgba(245, 158, 11, 0.6);
+  animation: pinImpactRippleExpand 0.2s ease-out forwards;
+}
+
+@keyframes pinImpactRippleExpand {
+  0% { transform: scale(0.5); opacity: 1; }
+  100% { transform: scale(1.4); opacity: 0; }
+}
+
+.pinHole {
+  position: absolute;
+  bottom: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  background: #4b5563;
+  border-radius: 50%;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.pinVibrate {
+  animation: pinVibrateAnim 0.25s linear;
+}
+
+@keyframes pinVibrateAnim {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-1.5px); }
+  40% { transform: translateX(1.5px); }
+  60% { transform: translateX(-1px); }
+  80% { transform: translateX(1px); }
+}
+
+/* Drawer Slide 추가 효과 */
+.drawerFrame {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 8px;
+  background: linear-gradient(to bottom, #e5e7eb, #d1d5db);
+  border-radius: 2px;
+  transition: transform 0.3s var(--spring-soft);
+  z-index: 1;
+}
+
+.drawerFrameOpen {
+  transform: translateX(-50%) translateY(6px);
+}
+
+.drawerHandle {
+  position: absolute;
+  top: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 10px;
+  height: 4px;
+  background: #9ca3af;
+  border-radius: 2px;
+}
+
+.drawerShadow {
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 35px;
+  height: 4px;
+  background: radial-gradient(ellipse, rgba(0, 0, 0, 0.15) 0%, transparent 70%);
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+.drawerShadowOpen {
+  width: 40px;
+  height: 6px;
+  opacity: 0.8;
+}
+
+/* Wax Seal 추가 효과 */
+.waxSpread {
+  position: absolute;
+  inset: 8px;
+  border-radius: 50%;
+  background: transparent;
+  transition: all 0.3s ease;
+  pointer-events: none;
+}
+
+.waxSpreadActive {
+  background: radial-gradient(circle, rgba(180, 83, 9, 0.4) 0%, transparent 70%);
+  transform: scale(1.3);
+}
+
+.waxCooling {
+  background: radial-gradient(circle, rgba(180, 83, 9, 0.2) 0%, transparent 60%);
+  transform: scale(1.1);
+}
+
+.waxShine {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 8px;
+  height: 8px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.6) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+/* Tab Punch 추가 효과 */
+.punchImpact {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle, rgba(245, 158, 11, 0.4) 0%, transparent 50%);
+  animation: punchImpactFlash 0.15s ease-out;
+}
+
+@keyframes punchImpactFlash {
+  0% { opacity: 1; transform: scale(0.8); }
+  100% { opacity: 0; transform: scale(1.2); }
+}
+
+.paperChip {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: #fef3c7;
+  border-radius: 1px;
+  pointer-events: none;
+}
+
+.chip1 {
+  animation: chipFly1 0.3s var(--spring-bounce) forwards;
+}
+
+.chip2 {
+  animation: chipFly2 0.3s var(--spring-bounce) forwards;
+}
+
+@keyframes chipFly1 {
+  0% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+  100% { transform: translate(-15px, -10px) rotate(45deg); opacity: 0; }
+}
+
+@keyframes chipFly2 {
+  0% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+  100% { transform: translate(12px, -12px) rotate(-30deg); opacity: 0; }
+}
+
+.punchedHole {
+  position: absolute;
+  top: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 6px;
+  height: 6px;
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 50%;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
 }
