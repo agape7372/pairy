@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Heart, Bookmark, Sparkles } from 'lucide-react'
 
-// 좋아요 버튼 variants
+// 좋아요 버튼 variants (1-15)
 import {
   LikeStarBurst,
   LikeHeartFountain,
@@ -20,9 +20,40 @@ import {
   LikeConfettiShower,
   LikeSpringBounce,
   LikeMagicDust,
+  // 16-45
+  LikeHeartJiggle,
+  LikeFloatUp,
+  LikeFunkyPulse,
+  LikeTwist,
+  LikeDrumBeat,
+  LikeSwing,
+  LikeRubberBand,
+  LikeTumble,
+  LikeBubblePop2,
+  LikeSlideIn,
+  LikePartyPop,
+  LikeWave2,
+  LikeSpiral,
+  LikeFlip,
+  LikeSquish,
+  LikeHeartFloat,
+  LikePulsate,
+  LikeShake,
+  LikeTada,
+  LikeHeartbeat,
+  LikeBounce2,
+  LikeFlash,
+  LikeZoomIn,
+  LikeRotateIn,
+  LikeSlideUp,
+  LikeExpandContract,
+  LikeGlowPulse,
+  LikeSpinPop,
+  LikeJellyWobble,
+  LikeBreathe,
 } from '@/components/interactions/LikeButtonVariants'
 
-// 북마크 버튼 variants
+// 북마크 버튼 variants (1-15)
 import {
   BookmarkPageFold,
   BookmarkStamp,
@@ -39,6 +70,37 @@ import {
   BookmarkShootingStar,
   BookmarkInkDrop,
   BookmarkMagicLink,
+  // 16-45
+  BookmarkFoldPop,
+  BookmarkTabFlip,
+  BookmarkMarkerDrop,
+  BookmarkLabelSwing,
+  BookmarkBookOpen,
+  BookmarkNoteFlip,
+  BookmarkTagWiggle,
+  BookmarkCardPop,
+  BookmarkClipSwing,
+  BookmarkPinBounce,
+  BookmarkSaveSlide,
+  BookmarkMarkPush,
+  BookmarkFlagRaise,
+  BookmarkRibbonTwist,
+  BookmarkGlow,
+  BookmarkPageTurn,
+  BookmarkTabSlide,
+  BookmarkCornerFold,
+  BookmarkStampPress,
+  BookmarkSealMark,
+  BookmarkClipAttach,
+  BookmarkPaperPush,
+  BookmarkFoldReveal,
+  BookmarkTagDangle,
+  BookmarkRibbonWrap,
+  BookmarkArchiveDrop,
+  BookmarkIndexSlide,
+  BookmarkNotchClick,
+  BookmarkCornerPeel,
+  BookmarkFloat,
 } from '@/components/interactions/BookmarkButtonVariants'
 
 interface ButtonCardProps {
@@ -60,6 +122,7 @@ function ButtonCard({ name, description, children }: ButtonCardProps) {
 }
 
 const likeButtons = [
+  // 1-15
   { name: 'Star Burst', description: '4점 별 방사형 폭발', Component: LikeStarBurst },
   { name: 'Heart Fountain', description: '하트 분수 효과', Component: LikeHeartFountain },
   { name: 'Sparkle Trail', description: '반짝이 회전 잔상', Component: LikeSparkleTrail },
@@ -75,9 +138,41 @@ const likeButtons = [
   { name: 'Confetti Shower', description: '색종이 샤워', Component: LikeConfettiShower },
   { name: 'Spring Bounce', description: '스프링 바운스', Component: LikeSpringBounce },
   { name: 'Magic Dust', description: '마법 가루', Component: LikeMagicDust },
+  // 16-45
+  { name: 'Heart Jiggle', description: '하트 흔들흔들', Component: LikeHeartJiggle },
+  { name: 'Float Up', description: '둥실 떠오름', Component: LikeFloatUp },
+  { name: 'Funky Pulse', description: '펑키 펄스', Component: LikeFunkyPulse },
+  { name: 'Twist', description: '비틀기 회전', Component: LikeTwist },
+  { name: 'Drum Beat', description: '드럼 비트', Component: LikeDrumBeat },
+  { name: 'Swing', description: '스윙 흔들림', Component: LikeSwing },
+  { name: 'Rubber Band', description: '고무줄 탄성', Component: LikeRubberBand },
+  { name: 'Tumble', description: '뒹굴뒹굴', Component: LikeTumble },
+  { name: 'Bubble Pop 2', description: '버블팝 변형', Component: LikeBubblePop2 },
+  { name: 'Slide In', description: '슬라이드 인', Component: LikeSlideIn },
+  { name: 'Party Pop', description: '파티 팝', Component: LikePartyPop },
+  { name: 'Wave 2', description: '웨이브 변형', Component: LikeWave2 },
+  { name: 'Spiral', description: '나선 회전', Component: LikeSpiral },
+  { name: 'Flip', description: '뒤집기', Component: LikeFlip },
+  { name: 'Squish', description: '찌그러짐', Component: LikeSquish },
+  { name: 'Heart Float', description: '하트 부유', Component: LikeHeartFloat },
+  { name: 'Pulsate', description: '맥동 효과', Component: LikePulsate },
+  { name: 'Shake', description: '흔들흔들', Component: LikeShake },
+  { name: 'Tada', description: '짜잔 효과', Component: LikeTada },
+  { name: 'Heartbeat', description: '심장박동', Component: LikeHeartbeat },
+  { name: 'Bounce 2', description: '바운스 변형', Component: LikeBounce2 },
+  { name: 'Flash', description: '번쩍 플래시', Component: LikeFlash },
+  { name: 'Zoom In', description: '줌인 효과', Component: LikeZoomIn },
+  { name: 'Rotate In', description: '회전 등장', Component: LikeRotateIn },
+  { name: 'Slide Up', description: '슬라이드 업', Component: LikeSlideUp },
+  { name: 'Expand Contract', description: '확장 수축', Component: LikeExpandContract },
+  { name: 'Glow Pulse', description: '발광 펄스', Component: LikeGlowPulse },
+  { name: 'Spin Pop', description: '스핀 팝', Component: LikeSpinPop },
+  { name: 'Jelly Wobble', description: '젤리 흔들림', Component: LikeJellyWobble },
+  { name: 'Breathe', description: '숨쉬기 효과', Component: LikeBreathe },
 ]
 
 const bookmarkButtons = [
+  // 1-15
   { name: 'Page Fold', description: '종이 접힘 효과', Component: BookmarkPageFold },
   { name: 'Stamp', description: '쿵 스탬프', Component: BookmarkStamp },
   { name: 'Ribbon Tie', description: '리본 묶기', Component: BookmarkRibbonTie },
@@ -93,6 +188,37 @@ const bookmarkButtons = [
   { name: 'Shooting Star', description: '별똥별 효과', Component: BookmarkShootingStar },
   { name: 'Ink Drop', description: '잉크 번짐', Component: BookmarkInkDrop },
   { name: 'Magic Link', description: '체인 연결', Component: BookmarkMagicLink },
+  // 16-45
+  { name: 'Fold Pop', description: '접기 팝', Component: BookmarkFoldPop },
+  { name: 'Tab Flip', description: '탭 뒤집기', Component: BookmarkTabFlip },
+  { name: 'Marker Drop', description: '마커 드롭', Component: BookmarkMarkerDrop },
+  { name: 'Label Swing', description: '라벨 스윙', Component: BookmarkLabelSwing },
+  { name: 'Book Open', description: '책 펼치기', Component: BookmarkBookOpen },
+  { name: 'Note Flip', description: '노트 뒤집기', Component: BookmarkNoteFlip },
+  { name: 'Tag Wiggle', description: '태그 흔들림', Component: BookmarkTagWiggle },
+  { name: 'Card Pop', description: '카드 팝', Component: BookmarkCardPop },
+  { name: 'Clip Swing', description: '클립 스윙', Component: BookmarkClipSwing },
+  { name: 'Pin Bounce', description: '핀 바운스', Component: BookmarkPinBounce },
+  { name: 'Save Slide', description: '저장 슬라이드', Component: BookmarkSaveSlide },
+  { name: 'Mark Push', description: '마크 푸시', Component: BookmarkMarkPush },
+  { name: 'Flag Raise', description: '깃발 올리기', Component: BookmarkFlagRaise },
+  { name: 'Ribbon Twist', description: '리본 비틀기', Component: BookmarkRibbonTwist },
+  { name: 'Glow', description: '발광 효과', Component: BookmarkGlow },
+  { name: 'Page Turn', description: '페이지 넘김', Component: BookmarkPageTurn },
+  { name: 'Tab Slide', description: '탭 슬라이드', Component: BookmarkTabSlide },
+  { name: 'Corner Fold', description: '모서리 접기', Component: BookmarkCornerFold },
+  { name: 'Stamp Press', description: '스탬프 누르기', Component: BookmarkStampPress },
+  { name: 'Seal Mark', description: '도장 찍기', Component: BookmarkSealMark },
+  { name: 'Clip Attach', description: '클립 붙이기', Component: BookmarkClipAttach },
+  { name: 'Paper Push', description: '종이 밀기', Component: BookmarkPaperPush },
+  { name: 'Fold Reveal', description: '펼쳐 보이기', Component: BookmarkFoldReveal },
+  { name: 'Tag Dangle', description: '태그 달랑', Component: BookmarkTagDangle },
+  { name: 'Ribbon Wrap', description: '리본 감기', Component: BookmarkRibbonWrap },
+  { name: 'Archive Drop', description: '아카이브 드롭', Component: BookmarkArchiveDrop },
+  { name: 'Index Slide', description: '인덱스 슬라이드', Component: BookmarkIndexSlide },
+  { name: 'Notch Click', description: '노치 클릭', Component: BookmarkNotchClick },
+  { name: 'Corner Peel', description: '모서리 벗기기', Component: BookmarkCornerPeel },
+  { name: 'Float', description: '떠다니기', Component: BookmarkFloat },
 ]
 
 export default function ButtonInteractionsClient() {
@@ -127,7 +253,7 @@ export default function ButtonInteractionsClient() {
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
-              전체 (30)
+              전체 (90)
             </button>
             <button
               onClick={() => setActiveTab('like')}
@@ -138,7 +264,7 @@ export default function ButtonInteractionsClient() {
               }`}
             >
               <Heart className="w-4 h-4" />
-              좋아요 (15)
+              좋아요 (45)
             </button>
             <button
               onClick={() => setActiveTab('bookmark')}
@@ -149,7 +275,7 @@ export default function ButtonInteractionsClient() {
               }`}
             >
               <Bookmark className="w-4 h-4" />
-              북마크 (15)
+              북마크 (45)
             </button>
           </div>
         </div>
@@ -164,7 +290,7 @@ export default function ButtonInteractionsClient() {
               <Heart className="w-5 h-5 text-pink-500" />
               <h2 className="text-xl font-bold text-gray-900">좋아요 버튼</h2>
               <span className="px-2 py-0.5 bg-pink-100 text-pink-600 text-xs font-medium rounded-full">
-                15개
+                45개
               </span>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
@@ -184,7 +310,7 @@ export default function ButtonInteractionsClient() {
               <Bookmark className="w-5 h-5 text-amber-500" />
               <h2 className="text-xl font-bold text-gray-900">북마크 버튼</h2>
               <span className="px-2 py-0.5 bg-amber-100 text-amber-600 text-xs font-medium rounded-full">
-                15개
+                45개
               </span>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
