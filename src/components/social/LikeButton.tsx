@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { Heart, Loader2 } from 'lucide-react'
 import { useLikes } from '@/hooks/useLikes'
-import { useParticle, ParticleContainer } from '@/hooks/useParticle'
 import { cn } from '@/lib/utils/cn'
+import styles from '@/components/interactions/interactions.module.css'
 
 interface LikeButtonProps {
   templateId: string
@@ -29,17 +29,40 @@ export function LikeButton({
   const [isAnimating, setIsAnimating] = useState(false)
   const [isToggling, setIsToggling] = useState(false)
   const buttonRef = useRef<HTMLButtonElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
 
-  // 좋아요 시 하트 파티클
-  const { emit, containerProps } = useParticle({
-    type: 'heart',
-    count: 8,
-    direction: 'fountain',
-    colors: ['#FFD9D9', '#FFCACA', '#E8A8A8', '#FF9E9E'],
-    sizeRange: [10, 18],
-    duration: 900,
-    distanceRange: [40, 80],
-  })
+  // Magic Dust 파티클 효과
+  const emitMagicDust = useCallback(() => {
+    if (!containerRef.current) return
+
+    const container = containerRef.current
+    const particleCount = 20
+    const colors = ['#FFD9D9', '#FFB6C1', '#FFCACA', '#FFC0CB', '#FFE4E1']
+
+    for (let i = 0; i < particleCount; i++) {
+      const particle = document.createElement('div')
+      particle.className = styles.magicDust
+
+      const angle = (Math.PI * 2 * i) / particleCount + (Math.random() - 0.5) * 0.5
+      const distance = 30 + Math.random() * 40
+      const tx = Math.cos(angle) * distance
+      const ty = Math.sin(angle) * distance
+      const size = 3 + Math.random() * 4
+      const delay = i * 20
+      const opacity = 0.6 + Math.random() * 0.4
+
+      particle.style.setProperty('--tx', `${tx}px`)
+      particle.style.setProperty('--ty', `${ty}px`)
+      particle.style.setProperty('--size', `${size}px`)
+      particle.style.setProperty('--delay', `${delay}ms`)
+      particle.style.setProperty('--opacity', `${opacity}`)
+      particle.style.background = `radial-gradient(circle, ${colors[i % colors.length]}, #FFB6C1)`
+      particle.style.boxShadow = `0 0 ${size}px rgba(255, 182, 193, 0.6)`
+
+      container.appendChild(particle)
+      setTimeout(() => particle.remove(), 800 + delay)
+    }
+  }, [])
 
   const handleClick = async () => {
     if (isToggling) return
@@ -49,10 +72,9 @@ export function LikeButton({
 
     const success = await toggle()
 
-    // 좋아요할 때만 파티클 효과
-    if (success && !isLiked && buttonRef.current) {
-      const rect = buttonRef.current.getBoundingClientRect()
-      emit(rect.width / 2, rect.height / 2)
+    // 좋아요할 때만 Magic Dust 파티클 효과
+    if (success && !isLiked) {
+      emitMagicDust()
     }
 
     // 애니메이션 지속 시간
@@ -148,7 +170,12 @@ export function LikeButton({
           </span>
         )}
       </button>
-      <ParticleContainer {...containerProps} />
+      {/* Magic Dust 파티클 컨테이너 */}
+      <div
+        ref={containerRef}
+        className="absolute inset-0 overflow-visible pointer-events-none"
+        aria-hidden="true"
+      />
     </div>
   )
 }
@@ -170,17 +197,40 @@ export function LikeIconButton({
   const { isLiked, toggle } = useLikes(templateId)
   const [isAnimating, setIsAnimating] = useState(false)
   const buttonRef = useRef<HTMLButtonElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
 
-  // 좋아요 시 하트 파티클
-  const { emit, containerProps } = useParticle({
-    type: 'heart',
-    count: 6,
-    direction: 'fountain',
-    colors: ['#FFD9D9', '#FFCACA', '#E8A8A8'],
-    sizeRange: [8, 14],
-    duration: 700,
-    distanceRange: [30, 60],
-  })
+  // Magic Dust 파티클 효과
+  const emitMagicDust = useCallback(() => {
+    if (!containerRef.current) return
+
+    const container = containerRef.current
+    const particleCount = 15
+    const colors = ['#FFD9D9', '#FFB6C1', '#FFCACA', '#FFC0CB', '#FFE4E1']
+
+    for (let i = 0; i < particleCount; i++) {
+      const particle = document.createElement('div')
+      particle.className = styles.magicDust
+
+      const angle = (Math.PI * 2 * i) / particleCount + (Math.random() - 0.5) * 0.5
+      const distance = 25 + Math.random() * 35
+      const tx = Math.cos(angle) * distance
+      const ty = Math.sin(angle) * distance
+      const size = 2 + Math.random() * 3
+      const delay = i * 15
+      const opacity = 0.6 + Math.random() * 0.4
+
+      particle.style.setProperty('--tx', `${tx}px`)
+      particle.style.setProperty('--ty', `${ty}px`)
+      particle.style.setProperty('--size', `${size}px`)
+      particle.style.setProperty('--delay', `${delay}ms`)
+      particle.style.setProperty('--opacity', `${opacity}`)
+      particle.style.background = `radial-gradient(circle, ${colors[i % colors.length]}, #FFB6C1)`
+      particle.style.boxShadow = `0 0 ${size}px rgba(255, 182, 193, 0.6)`
+
+      container.appendChild(particle)
+      setTimeout(() => particle.remove(), 700 + delay)
+    }
+  }, [])
 
   const handleClick = async (e: React.MouseEvent) => {
     e.preventDefault()
@@ -191,10 +241,9 @@ export function LikeIconButton({
     setIsAnimating(true)
     await toggle()
 
-    // 좋아요할 때만 파티클 효과
-    if (!wasLiked && buttonRef.current) {
-      const rect = buttonRef.current.getBoundingClientRect()
-      emit(rect.width / 2, rect.height / 2)
+    // 좋아요할 때만 Magic Dust 파티클 효과
+    if (!wasLiked) {
+      emitMagicDust()
     }
 
     setTimeout(() => setIsAnimating(false), 300)
@@ -224,7 +273,12 @@ export function LikeIconButton({
           )}
         />
       </button>
-      <ParticleContainer {...containerProps} />
+      {/* Magic Dust 파티클 컨테이너 */}
+      <div
+        ref={containerRef}
+        className="absolute inset-0 overflow-visible pointer-events-none"
+        aria-hidden="true"
+      />
     </div>
   )
 }
