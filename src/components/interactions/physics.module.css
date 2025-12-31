@@ -1,0 +1,1656 @@
+/* ============================================
+ * Physics-Based Button Interactions
+ * Skeuomorphism 2.0 - 실제 기계처럼 작동하는 버튼
+ * ============================================ */
+
+/* ============================================
+ * 물리 엔진 변수 (Physics Engine Variables)
+ * ============================================ */
+
+:root {
+  /* Spring Physics - 탄성 튕김 */
+  --spring-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --spring-soft: cubic-bezier(0.25, 1.5, 0.5, 1);
+  --spring-tight: cubic-bezier(0.5, 1.8, 0.5, 1);
+  --spring-wobbly: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+  /* Gravity - 중력 가속 */
+  --gravity-fall: cubic-bezier(0.55, 0, 1, 0.45);
+  --gravity-bounce: cubic-bezier(0.34, 1.2, 0.64, 1);
+  --gravity-drop: cubic-bezier(0.6, 0, 0.7, 0.2);
+
+  /* Inertia - 관성 */
+  --inertia-slow: cubic-bezier(0.16, 1, 0.3, 1);
+  --inertia-stop: cubic-bezier(0.22, 0.61, 0.36, 1);
+
+  /* Pressure - 압력 반응 */
+  --pressure-in: cubic-bezier(0.4, 0, 0.2, 1);
+  --pressure-release: cubic-bezier(0, 0, 0.2, 1.5);
+
+  /* Mechanical - 기계적 움직임 */
+  --mechanical-click: cubic-bezier(0.4, 0, 0.6, 1);
+  --mechanical-return: cubic-bezier(0.34, 1.3, 0.64, 1);
+}
+
+/* ============================================
+ * 1. Heart Pump - 심장 펌프
+ * ============================================ */
+
+.heartPumpContainer {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  cursor: pointer;
+}
+
+.heartPumpSvg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* 심장 외곽 프레임 */
+.heartFrame {
+  fill: none;
+  stroke: #d1d5db;
+  stroke-width: 1.5;
+  transition: stroke 0.3s var(--inertia-slow);
+}
+
+.heartFrame.active {
+  stroke: #f472b6;
+}
+
+/* 좌심실 */
+.heartChamberLeft {
+  fill: #fce7f3;
+  transform-origin: 8px 12px;
+  transition: transform 0.15s var(--pressure-in), fill 0.3s ease;
+}
+
+.heartChamberLeft.squeeze {
+  animation: chamberSqueeze 0.5s var(--spring-bounce);
+}
+
+.heartChamberLeft.active {
+  fill: #fbcfe8;
+}
+
+/* 우심실 */
+.heartChamberRight {
+  fill: #fce7f3;
+  transform-origin: 16px 12px;
+  transition: transform 0.15s var(--pressure-in), fill 0.3s ease;
+}
+
+.heartChamberRight.squeeze {
+  animation: chamberSqueeze 0.5s var(--spring-bounce) 0.05s;
+}
+
+.heartChamberRight.active {
+  fill: #fbcfe8;
+}
+
+/* 혈액 충전 효과 */
+.bloodFill {
+  fill: #ec4899;
+  clip-path: inset(100% 0 0 0);
+  transition: clip-path 0.4s var(--spring-soft);
+}
+
+.bloodFill.filling {
+  animation: bloodFillUp 0.6s var(--spring-bounce) forwards;
+}
+
+.bloodFill.active {
+  clip-path: inset(0 0 0 0);
+}
+
+/* 중앙 밸브 */
+.heartValve {
+  fill: #f9a8d4;
+  transform-origin: center;
+  transition: transform 0.2s var(--mechanical-click);
+}
+
+.heartValve.open {
+  animation: valveOpen 0.4s var(--spring-bounce);
+}
+
+/* 맥박 효과 */
+.heartPulse {
+  animation: heartbeatPulse 1s var(--spring-soft) infinite;
+}
+
+@keyframes chamberSqueeze {
+  0% { transform: scale(1); }
+  30% { transform: scale(0.85, 0.9); }
+  50% { transform: scale(1.05, 0.95); }
+  70% { transform: scale(0.98, 1.02); }
+  100% { transform: scale(1); }
+}
+
+@keyframes bloodFillUp {
+  0% { clip-path: inset(100% 0 0 0); }
+  60% { clip-path: inset(20% 0 0 0); }
+  80% { clip-path: inset(5% 0 0 0); }
+  100% { clip-path: inset(0 0 0 0); }
+}
+
+@keyframes valveOpen {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.3); }
+  50% { transform: scale(0.9); }
+  100% { transform: scale(1); }
+}
+
+@keyframes heartbeatPulse {
+  0%, 100% { transform: scale(1); }
+  15% { transform: scale(1.05); }
+  30% { transform: scale(1); }
+  45% { transform: scale(1.03); }
+  60% { transform: scale(1); }
+}
+
+/* ============================================
+ * 2. Stamp Press - 도장 찍기
+ * ============================================ */
+
+.stampContainer {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  cursor: pointer;
+  perspective: 200px;
+}
+
+.stampSvg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* 도장 손잡이 */
+.stampHandle {
+  fill: #78716c;
+  transform-origin: center bottom;
+  transition: transform 0.1s var(--pressure-in);
+}
+
+.stampHandle.pressing {
+  animation: stampPress 0.5s var(--spring-bounce);
+}
+
+/* 도장 고무 부분 */
+.stampRubber {
+  fill: #dc2626;
+  transform-origin: center top;
+}
+
+.stampRubber.pressing {
+  animation: rubberSquish 0.5s var(--spring-bounce);
+}
+
+/* 잉크 자국 */
+.inkMark {
+  fill: #ef4444;
+  opacity: 0;
+  transform: scale(0.8);
+  transform-origin: center;
+}
+
+.inkMark.stamped {
+  animation: inkStamp 0.6s var(--spring-bounce) forwards;
+}
+
+.inkMark.active {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* 잉크 번짐 */
+.inkSpread {
+  fill: none;
+  stroke: #fca5a5;
+  stroke-width: 0;
+  opacity: 0;
+}
+
+.inkSpread.spreading {
+  animation: inkBleed 0.8s var(--inertia-slow) forwards;
+}
+
+@keyframes stampPress {
+  0% { transform: translateY(0) rotateX(0deg); }
+  30% { transform: translateY(8px) rotateX(-5deg); }
+  50% { transform: translateY(10px) rotateX(-3deg); }
+  70% { transform: translateY(2px) rotateX(2deg); }
+  100% { transform: translateY(0) rotateX(0deg); }
+}
+
+@keyframes rubberSquish {
+  0% { transform: scaleY(1); }
+  30% { transform: scaleY(0.7) scaleX(1.2); }
+  50% { transform: scaleY(0.8) scaleX(1.1); }
+  100% { transform: scaleY(1) scaleX(1); }
+}
+
+@keyframes inkStamp {
+  0% { opacity: 0; transform: scale(0.5); }
+  40% { opacity: 1; transform: scale(1.1); }
+  60% { transform: scale(0.95); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes inkBleed {
+  0% { stroke-width: 0; opacity: 0; }
+  30% { stroke-width: 2; opacity: 0.6; }
+  100% { stroke-width: 4; opacity: 0; }
+}
+
+/* ============================================
+ * 3. Toggle Switch - 토글 스위치
+ * ============================================ */
+
+.toggleContainer {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  cursor: pointer;
+}
+
+.toggleSvg {
+  width: 100%;
+  height: 100%;
+}
+
+/* 스위치 베이스 */
+.switchBase {
+  fill: #e5e7eb;
+  transition: fill 0.3s var(--inertia-slow);
+}
+
+.switchBase.active {
+  fill: #fecdd3;
+}
+
+/* 스위치 노브 */
+.switchKnob {
+  fill: #f4f4f5;
+  stroke: #d4d4d8;
+  stroke-width: 1;
+  filter: drop-shadow(0 2px 2px rgba(0,0,0,0.1));
+  transition: transform 0.25s var(--spring-bounce);
+}
+
+.switchKnob.on {
+  transform: translateX(12px);
+  fill: #fda4af;
+  stroke: #fb7185;
+}
+
+/* 스위치 틱 */
+.switchTick {
+  animation: switchClick 0.15s var(--mechanical-click);
+}
+
+@keyframes switchClick {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+
+/* ============================================
+ * 4. Lock Click - 자물쇠 잠금
+ * ============================================ */
+
+.lockContainer {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  cursor: pointer;
+}
+
+.lockSvg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* 자물쇠 본체 */
+.lockBody {
+  fill: #fbbf24;
+  stroke: #d97706;
+  stroke-width: 1;
+  transition: fill 0.3s ease;
+}
+
+.lockBody.locked {
+  fill: #f59e0b;
+}
+
+/* 걸쇠 (Shackle) */
+.lockShackle {
+  fill: none;
+  stroke: #9ca3af;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  transform-origin: 12px 10px;
+  transition: transform 0.3s var(--spring-bounce), stroke 0.3s ease;
+}
+
+.lockShackle.unlocked {
+  transform: translateY(-3px) rotate(-15deg);
+  stroke: #d1d5db;
+}
+
+.lockShackle.locking {
+  animation: shackleLock 0.4s var(--spring-tight);
+}
+
+.lockShackle.locked {
+  stroke: #6b7280;
+}
+
+/* 열쇠 구멍 */
+.keyhole {
+  fill: #78716c;
+  transition: fill 0.3s ease;
+}
+
+.keyhole.locked {
+  fill: #57534e;
+}
+
+/* 잠금 클릭 효과 */
+.lockClick {
+  animation: metalClick 0.2s var(--mechanical-click);
+}
+
+@keyframes shackleLock {
+  0% { transform: translateY(-3px) rotate(-15deg); }
+  40% { transform: translateY(1px) rotate(3deg); }
+  70% { transform: translateY(-1px) rotate(-2deg); }
+  100% { transform: translateY(0) rotate(0deg); }
+}
+
+@keyframes metalClick {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.2); }
+}
+
+/* ============================================
+ * 5. Dial Turn - 다이얼 회전
+ * ============================================ */
+
+.dialContainer {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  cursor: pointer;
+}
+
+.dialSvg {
+  width: 100%;
+  height: 100%;
+}
+
+/* 다이얼 외곽 */
+.dialOuter {
+  fill: #f3f4f6;
+  stroke: #d1d5db;
+  stroke-width: 1;
+}
+
+/* 다이얼 눈금 */
+.dialTicks {
+  stroke: #9ca3af;
+  stroke-width: 1;
+}
+
+/* 다이얼 포인터 */
+.dialPointer {
+  fill: #f43f5e;
+  transform-origin: center;
+  transition: transform 0.5s var(--spring-wobbly);
+}
+
+.dialPointer.turning {
+  animation: dialTurn 0.6s var(--spring-bounce);
+}
+
+.dialPointer.active {
+  transform: rotate(180deg);
+}
+
+/* 다이얼 중심 */
+.dialCenter {
+  fill: #e5e7eb;
+  stroke: #d1d5db;
+  stroke-width: 1;
+}
+
+@keyframes dialTurn {
+  0% { transform: rotate(0deg); }
+  30% { transform: rotate(200deg); }
+  50% { transform: rotate(170deg); }
+  70% { transform: rotate(185deg); }
+  100% { transform: rotate(180deg); }
+}
+
+/* ============================================
+ * 6. Button Depress - 기계식 버튼
+ * ============================================ */
+
+.mechanicalBtnContainer {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  cursor: pointer;
+  perspective: 100px;
+}
+
+.mechanicalBtnSvg {
+  width: 100%;
+  height: 100%;
+}
+
+/* 버튼 베이스 */
+.btnBase {
+  fill: #e5e7eb;
+}
+
+/* 버튼 탑 (눌리는 부분) */
+.btnTop {
+  fill: #f472b6;
+  stroke: #ec4899;
+  stroke-width: 1;
+  transform-origin: center;
+  transition: transform 0.1s var(--pressure-in), filter 0.1s;
+  filter: drop-shadow(0 3px 0 #db2777);
+}
+
+.btnTop:hover {
+  filter: drop-shadow(0 4px 0 #db2777);
+  transform: translateY(-1px);
+}
+
+.btnTop.pressing {
+  animation: buttonDepress 0.35s var(--spring-bounce);
+}
+
+.btnTop.pressed {
+  transform: translateY(3px);
+  filter: drop-shadow(0 0px 0 #db2777);
+}
+
+/* 하트 아이콘 */
+.btnIcon {
+  fill: white;
+  transform-origin: center;
+}
+
+.btnIcon.bounce {
+  animation: iconBounce 0.4s var(--spring-bounce) 0.1s;
+}
+
+@keyframes buttonDepress {
+  0% { transform: translateY(0); filter: drop-shadow(0 3px 0 #db2777); }
+  30% { transform: translateY(3px); filter: drop-shadow(0 0px 0 #db2777); }
+  50% { transform: translateY(1px); filter: drop-shadow(0 2px 0 #db2777); }
+  70% { transform: translateY(2px); filter: drop-shadow(0 1px 0 #db2777); }
+  100% { transform: translateY(0); filter: drop-shadow(0 3px 0 #db2777); }
+}
+
+@keyframes iconBounce {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.3); }
+  70% { transform: scale(0.9); }
+  100% { transform: scale(1); }
+}
+
+/* ============================================
+ * 7. Valve Release - 밸브 해제
+ * ============================================ */
+
+.valveContainer {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  cursor: pointer;
+  overflow: visible;
+}
+
+.valveSvg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* 밸브 파이프 */
+.valvePipe {
+  fill: #9ca3af;
+  stroke: #6b7280;
+  stroke-width: 1;
+}
+
+/* 밸브 휠 */
+.valveWheel {
+  fill: #ef4444;
+  stroke: #dc2626;
+  stroke-width: 1;
+  transform-origin: center;
+  transition: transform 0.4s var(--spring-bounce);
+}
+
+.valveWheel.turning {
+  animation: wheelTurn 0.6s var(--spring-soft);
+}
+
+.valveWheel.open {
+  transform: rotate(90deg);
+}
+
+/* 증기/연기 효과 */
+.steam {
+  fill: #fecdd3;
+  opacity: 0;
+  transform-origin: center bottom;
+}
+
+.steam.releasing {
+  animation: steamRelease 1s var(--inertia-slow) forwards;
+}
+
+.steam1 { animation-delay: 0s; }
+.steam2 { animation-delay: 0.15s; }
+.steam3 { animation-delay: 0.3s; }
+
+@keyframes wheelTurn {
+  0% { transform: rotate(0deg); }
+  40% { transform: rotate(100deg); }
+  60% { transform: rotate(85deg); }
+  80% { transform: rotate(92deg); }
+  100% { transform: rotate(90deg); }
+}
+
+@keyframes steamRelease {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(0.5);
+  }
+  20% {
+    opacity: 0.8;
+    transform: translateY(-5px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-20px) scale(1.5);
+  }
+}
+
+/* ============================================
+ * 8. Magnet Snap - 자석 끌림
+ * ============================================ */
+
+.magnetContainer {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  cursor: pointer;
+}
+
+.magnetSvg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* 자석 */
+.magnet {
+  transform-origin: center;
+  transition: transform 0.3s var(--spring-bounce);
+}
+
+.magnet.snapping {
+  animation: magnetSnap 0.5s var(--spring-tight);
+}
+
+.magnet.attached {
+  transform: translateY(4px);
+}
+
+/* 자석 몸체 */
+.magnetBody {
+  fill: #dc2626;
+}
+
+.magnetPoleN {
+  fill: #ef4444;
+}
+
+.magnetPoleS {
+  fill: #3b82f6;
+}
+
+/* 금속판 */
+.metalPlate {
+  fill: #9ca3af;
+  stroke: #6b7280;
+  stroke-width: 0.5;
+}
+
+/* 자기장 라인 */
+.fieldLine {
+  fill: none;
+  stroke: #fca5a5;
+  stroke-width: 1;
+  stroke-dasharray: 3 2;
+  opacity: 0;
+}
+
+.fieldLine.active {
+  animation: fieldPulse 0.8s var(--inertia-slow) forwards;
+}
+
+@keyframes magnetSnap {
+  0% { transform: translateY(-8px); }
+  50% { transform: translateY(6px); }
+  70% { transform: translateY(2px); }
+  100% { transform: translateY(4px); }
+}
+
+@keyframes fieldPulse {
+  0% { opacity: 0; stroke-dashoffset: 10; }
+  30% { opacity: 0.8; }
+  100% { opacity: 0; stroke-dashoffset: -10; }
+}
+
+/* ============================================
+ * 9. Gauge Fill - 게이지 충전
+ * ============================================ */
+
+.gaugeContainer {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  cursor: pointer;
+}
+
+.gaugeSvg {
+  width: 100%;
+  height: 100%;
+}
+
+/* 게이지 배경 */
+.gaugeBack {
+  fill: none;
+  stroke: #e5e7eb;
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+
+/* 게이지 채움 */
+.gaugeFill {
+  fill: none;
+  stroke: #f472b6;
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-dasharray: 75.4;
+  stroke-dashoffset: 75.4;
+  transform-origin: center;
+  transform: rotate(-90deg);
+  transition: stroke-dashoffset 0.6s var(--spring-soft);
+}
+
+.gaugeFill.filling {
+  animation: gaugeFillUp 0.8s var(--spring-bounce) forwards;
+}
+
+.gaugeFill.full {
+  stroke-dashoffset: 0;
+}
+
+/* 게이지 바늘 */
+.gaugeNeedle {
+  fill: #1f2937;
+  transform-origin: 24px 24px;
+  transition: transform 0.6s var(--spring-wobbly);
+}
+
+.gaugeNeedle.moving {
+  animation: needleMove 0.8s var(--spring-bounce);
+}
+
+.gaugeNeedle.full {
+  transform: rotate(180deg);
+}
+
+/* 게이지 중심 */
+.gaugeCenter {
+  fill: #374151;
+}
+
+@keyframes gaugeFillUp {
+  0% { stroke-dashoffset: 75.4; }
+  70% { stroke-dashoffset: -5; }
+  100% { stroke-dashoffset: 0; }
+}
+
+@keyframes needleMove {
+  0% { transform: rotate(0deg); }
+  60% { transform: rotate(190deg); }
+  80% { transform: rotate(175deg); }
+  100% { transform: rotate(180deg); }
+}
+
+/* ============================================
+ * 10. Capsule Pop - 캡슐 열림
+ * ============================================ */
+
+.capsuleContainer {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  cursor: pointer;
+  overflow: visible;
+}
+
+.capsuleSvg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* 캡슐 상단 */
+.capsuleTop {
+  fill: #f472b6;
+  stroke: #ec4899;
+  stroke-width: 1;
+  transform-origin: center bottom;
+  transition: transform 0.3s var(--spring-bounce);
+}
+
+.capsuleTop.opening {
+  animation: capsuleOpen 0.6s var(--spring-bounce) forwards;
+}
+
+.capsuleTop.open {
+  transform: translateY(-8px) rotate(-30deg);
+}
+
+/* 캡슐 하단 */
+.capsuleBottom {
+  fill: #a855f7;
+  stroke: #9333ea;
+  stroke-width: 1;
+}
+
+/* 내용물 (하트) */
+.capsuleContent {
+  fill: #ec4899;
+  opacity: 0;
+  transform: scale(0) translateY(0);
+  transform-origin: center;
+}
+
+.capsuleContent.popping {
+  animation: contentPop 0.7s var(--spring-bounce) 0.2s forwards;
+}
+
+.capsuleContent.visible {
+  opacity: 1;
+  transform: scale(1) translateY(-12px);
+}
+
+/* 반짝이 효과 */
+.capsuleSparkle {
+  fill: #fcd34d;
+  opacity: 0;
+  transform-origin: center;
+}
+
+.capsuleSparkle.sparkling {
+  animation: sparkleOut 0.8s var(--inertia-slow) forwards;
+}
+
+.sparkle1 { animation-delay: 0.2s; }
+.sparkle2 { animation-delay: 0.3s; }
+.sparkle3 { animation-delay: 0.4s; }
+.sparkle4 { animation-delay: 0.35s; }
+
+@keyframes capsuleOpen {
+  0% { transform: translateY(0) rotate(0deg); }
+  40% { transform: translateY(-10px) rotate(-35deg); }
+  70% { transform: translateY(-7px) rotate(-28deg); }
+  100% { transform: translateY(-8px) rotate(-30deg); }
+}
+
+@keyframes contentPop {
+  0% { opacity: 0; transform: scale(0) translateY(0); }
+  50% { opacity: 1; transform: scale(1.3) translateY(-15px); }
+  70% { transform: scale(0.9) translateY(-10px); }
+  100% { opacity: 1; transform: scale(1) translateY(-12px); }
+}
+
+@keyframes sparkleOut {
+  0% { opacity: 0; transform: scale(0) translate(0, 0); }
+  30% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(0.5) translate(var(--tx), var(--ty)); }
+}
+
+/* ============================================
+ * BOOKMARK BUTTONS
+ * ============================================ */
+
+/* ============================================
+ * 1. Binder Clip - 바인더 클립
+ * ============================================ */
+
+.binderClipContainer {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  cursor: pointer;
+}
+
+.binderClipSvg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* 종이 */
+.clipPaper {
+  fill: #fef3c7;
+  stroke: #fcd34d;
+  stroke-width: 0.5;
+  transform-origin: center;
+}
+
+.clipPaper.clamped {
+  animation: paperClamp 0.3s var(--pressure-in);
+}
+
+/* 클립 본체 */
+.clipBody {
+  fill: #1f2937;
+  stroke: #111827;
+  stroke-width: 0.5;
+}
+
+/* 클립 손잡이 (좌) */
+.clipHandleLeft {
+  fill: #374151;
+  stroke: #1f2937;
+  stroke-width: 0.5;
+  transform-origin: 14px 12px;
+  transition: transform 0.2s var(--spring-bounce);
+}
+
+.clipHandleLeft.pressing {
+  animation: handlePressLeft 0.5s var(--spring-bounce);
+}
+
+.clipHandleLeft.clamped {
+  transform: rotate(30deg);
+}
+
+/* 클립 손잡이 (우) */
+.clipHandleRight {
+  fill: #374151;
+  stroke: #1f2937;
+  stroke-width: 0.5;
+  transform-origin: 34px 12px;
+  transition: transform 0.2s var(--spring-bounce);
+}
+
+.clipHandleRight.pressing {
+  animation: handlePressRight 0.5s var(--spring-bounce);
+}
+
+.clipHandleRight.clamped {
+  transform: rotate(-30deg);
+}
+
+/* 클립 입 */
+.clipMouth {
+  fill: #4b5563;
+  transform-origin: center top;
+  transition: transform 0.2s var(--spring-bounce);
+}
+
+.clipMouth.biting {
+  animation: mouthBite 0.4s var(--spring-tight);
+}
+
+@keyframes handlePressLeft {
+  0% { transform: rotate(0deg); }
+  30% { transform: rotate(40deg); }
+  60% { transform: rotate(25deg); }
+  100% { transform: rotate(30deg); }
+}
+
+@keyframes handlePressRight {
+  0% { transform: rotate(0deg); }
+  30% { transform: rotate(-40deg); }
+  60% { transform: rotate(-25deg); }
+  100% { transform: rotate(-30deg); }
+}
+
+@keyframes mouthBite {
+  0% { transform: scaleY(1); }
+  40% { transform: scaleY(1.3); }
+  70% { transform: scaleY(0.9); }
+  100% { transform: scaleY(1); }
+}
+
+@keyframes paperClamp {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.98, 0.95); }
+  100% { transform: scale(1); }
+}
+
+/* ============================================
+ * 2. Corner Fold - 모서리 접기
+ * ============================================ */
+
+.cornerFoldContainer {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  cursor: pointer;
+}
+
+.cornerFoldSvg {
+  width: 100%;
+  height: 100%;
+}
+
+/* 종이 본체 */
+.foldPaper {
+  fill: #fef3c7;
+  stroke: #fcd34d;
+  stroke-width: 1;
+}
+
+/* 접힌 모서리 */
+.foldedCorner {
+  fill: #fde68a;
+  stroke: #fbbf24;
+  stroke-width: 0.5;
+  transform-origin: 38px 10px;
+  transition: transform 0.4s var(--spring-soft);
+}
+
+.foldedCorner.folding {
+  animation: cornerFold 0.6s var(--spring-bounce) forwards;
+}
+
+.foldedCorner.folded {
+  transform: rotate(-135deg) translate(-2px, -2px);
+}
+
+/* 접힌 그림자 */
+.foldShadow {
+  fill: rgba(0,0,0,0.1);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.foldShadow.visible {
+  opacity: 1;
+}
+
+/* 북마크 아이콘 */
+.foldIcon {
+  fill: #f59e0b;
+  opacity: 0;
+  transform: scale(0);
+  transform-origin: center;
+}
+
+.foldIcon.appearing {
+  animation: iconAppear 0.4s var(--spring-bounce) 0.3s forwards;
+}
+
+.foldIcon.visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+@keyframes cornerFold {
+  0% { transform: rotate(0deg); }
+  50% { transform: rotate(-145deg) translate(-3px, -3px); }
+  100% { transform: rotate(-135deg) translate(-2px, -2px); }
+}
+
+@keyframes iconAppear {
+  0% { opacity: 0; transform: scale(0); }
+  60% { opacity: 1; transform: scale(1.2); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+/* ============================================
+ * 3. Ribbon Insert - 리본 삽입
+ * ============================================ */
+
+.ribbonContainer {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  cursor: pointer;
+  overflow: visible;
+}
+
+.ribbonSvg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* 책 */
+.ribbonBook {
+  fill: #92400e;
+  stroke: #78350f;
+  stroke-width: 1;
+}
+
+.ribbonBookPages {
+  fill: #fef3c7;
+  stroke: #fcd34d;
+  stroke-width: 0.5;
+}
+
+/* 리본 */
+.ribbon {
+  fill: #ef4444;
+  stroke: #dc2626;
+  stroke-width: 0.5;
+  transform-origin: center top;
+  transition: transform 0.4s var(--spring-soft);
+}
+
+.ribbon.inserting {
+  animation: ribbonInsert 0.7s var(--spring-bounce) forwards;
+}
+
+.ribbon.inserted {
+  transform: translateY(10px);
+}
+
+/* 리본 끝 */
+.ribbonTail {
+  fill: #ef4444;
+  opacity: 0;
+  transform-origin: center top;
+}
+
+.ribbonTail.showing {
+  animation: tailShow 0.5s var(--spring-soft) 0.4s forwards;
+}
+
+.ribbonTail.visible {
+  opacity: 1;
+}
+
+@keyframes ribbonInsert {
+  0% { transform: translateY(-15px); }
+  60% { transform: translateY(12px); }
+  80% { transform: translateY(8px); }
+  100% { transform: translateY(10px); }
+}
+
+@keyframes tailShow {
+  0% { opacity: 0; transform: scaleY(0); }
+  100% { opacity: 1; transform: scaleY(1); }
+}
+
+/* ============================================
+ * 4. Sticky Note - 포스트잇
+ * ============================================ */
+
+.stickyContainer {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  cursor: pointer;
+}
+
+.stickySvg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* 포스트잇 본체 */
+.stickyNote {
+  fill: #fef08a;
+  stroke: #facc15;
+  stroke-width: 0.5;
+  transform-origin: left top;
+  filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.1));
+}
+
+.stickyNote.sticking {
+  animation: noteStick 0.6s var(--spring-bounce);
+}
+
+/* 포스트잇 말린 모서리 */
+.stickyCurl {
+  fill: #fde047;
+  transform-origin: right bottom;
+  transition: transform 0.3s var(--spring-soft);
+}
+
+.stickyCurl.curled {
+  transform: rotate(-15deg) translate(-2px, 2px);
+}
+
+/* 북마크 심볼 */
+.stickySymbol {
+  fill: #f59e0b;
+  opacity: 0;
+  transform: scale(0.8);
+  transform-origin: center;
+}
+
+.stickySymbol.drawn {
+  animation: symbolDraw 0.5s var(--spring-bounce) 0.2s forwards;
+}
+
+.stickySymbol.visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+@keyframes noteStick {
+  0% { transform: translateY(-10px) rotate(-5deg); }
+  30% { transform: translateY(2px) rotate(2deg); }
+  60% { transform: translateY(-1px) rotate(-1deg); }
+  100% { transform: translateY(0) rotate(0deg); }
+}
+
+@keyframes symbolDraw {
+  0% { opacity: 0; transform: scale(0.5); }
+  70% { opacity: 1; transform: scale(1.1); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+/* ============================================
+ * 5. Page Turn - 페이지 넘김
+ * ============================================ */
+
+.pageTurnContainer {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  cursor: pointer;
+  perspective: 150px;
+}
+
+.pageTurnSvg {
+  width: 100%;
+  height: 100%;
+}
+
+/* 책 베이스 */
+.pageBook {
+  fill: #78350f;
+}
+
+/* 페이지들 */
+.pageStack {
+  fill: #fef3c7;
+  stroke: #fcd34d;
+  stroke-width: 0.5;
+}
+
+/* 넘어가는 페이지 */
+.turningPage {
+  fill: #fffbeb;
+  stroke: #fcd34d;
+  stroke-width: 0.5;
+  transform-origin: left center;
+  transition: transform 0.5s var(--spring-soft);
+  backface-visibility: hidden;
+}
+
+.turningPage.turning {
+  animation: pageTurn 0.8s var(--spring-bounce) forwards;
+}
+
+.turningPage.turned {
+  transform: rotateY(-160deg);
+}
+
+/* 북마크 (페이지 뒤에 숨어있다가 나타남) */
+.hiddenBookmark {
+  fill: #ef4444;
+  opacity: 0;
+  transform: translateX(-5px);
+  transition: opacity 0.3s, transform 0.3s var(--spring-bounce);
+}
+
+.hiddenBookmark.revealed {
+  opacity: 1;
+  transform: translateX(0);
+  transition-delay: 0.4s;
+}
+
+@keyframes pageTurn {
+  0% { transform: rotateY(0deg); }
+  50% { transform: rotateY(-90deg); }
+  100% { transform: rotateY(-160deg); }
+}
+
+/* ============================================
+ * 6. Flag Raise - 깃발 올리기
+ * ============================================ */
+
+.flagContainer {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  cursor: pointer;
+  overflow: visible;
+}
+
+.flagSvg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* 깃대 */
+.flagPole {
+  fill: #78716c;
+  stroke: #57534e;
+  stroke-width: 0.5;
+}
+
+/* 깃발 */
+.flag {
+  fill: #f59e0b;
+  stroke: #d97706;
+  stroke-width: 0.5;
+  transform-origin: left center;
+  transition: transform 0.5s var(--spring-bounce);
+}
+
+.flag.raising {
+  animation: flagRaise 0.8s var(--spring-bounce) forwards;
+}
+
+.flag.raised {
+  transform: translateY(-15px);
+}
+
+/* 깃발 펄럭임 */
+.flag.waving {
+  animation: flagWave 2s ease-in-out infinite;
+}
+
+/* 밧줄 */
+.flagRope {
+  stroke: #a8a29e;
+  stroke-width: 1;
+  fill: none;
+  stroke-dasharray: 20;
+  transition: stroke-dashoffset 0.5s var(--spring-soft);
+}
+
+.flagRope.pulling {
+  animation: ropePull 0.6s var(--spring-bounce);
+}
+
+@keyframes flagRaise {
+  0% { transform: translateY(0); }
+  60% { transform: translateY(-17px); }
+  80% { transform: translateY(-14px); }
+  100% { transform: translateY(-15px); }
+}
+
+@keyframes flagWave {
+  0%, 100% { transform: translateY(-15px) skewX(0deg); }
+  25% { transform: translateY(-15px) skewX(3deg); }
+  75% { transform: translateY(-15px) skewX(-3deg); }
+}
+
+@keyframes ropePull {
+  0% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: 20; }
+}
+
+/* ============================================
+ * 7. Pin Drop - 핀 낙하
+ * ============================================ */
+
+.pinDropContainer {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  cursor: pointer;
+  overflow: visible;
+}
+
+.pinDropSvg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* 코르크 보드 */
+.corkBoard {
+  fill: #d2b48c;
+  stroke: #a0522d;
+  stroke-width: 1;
+}
+
+/* 핀 */
+.pin {
+  transform-origin: center bottom;
+  transition: transform 0.4s var(--gravity-bounce);
+}
+
+.pin.dropping {
+  animation: pinDrop 0.6s var(--gravity-bounce) forwards;
+}
+
+.pin.pinned {
+  transform: translateY(5px);
+}
+
+/* 핀 머리 */
+.pinHead {
+  fill: #ef4444;
+  stroke: #dc2626;
+  stroke-width: 0.5;
+}
+
+/* 핀 바늘 */
+.pinNeedle {
+  fill: #9ca3af;
+  stroke: #6b7280;
+  stroke-width: 0.3;
+}
+
+/* 박힌 효과 (그림자) */
+.pinShadow {
+  fill: rgba(0,0,0,0.2);
+  opacity: 0;
+  transform: scale(0);
+  transform-origin: center;
+}
+
+.pinShadow.visible {
+  animation: shadowAppear 0.3s var(--spring-soft) 0.4s forwards;
+}
+
+@keyframes pinDrop {
+  0% { transform: translateY(-20px); }
+  60% { transform: translateY(7px); }
+  80% { transform: translateY(3px); }
+  100% { transform: translateY(5px); }
+}
+
+@keyframes shadowAppear {
+  0% { opacity: 0; transform: scale(0); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+/* ============================================
+ * 8. Drawer Slide - 서랍 열기
+ * ============================================ */
+
+.drawerContainer {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  cursor: pointer;
+}
+
+.drawerSvg {
+  width: 100%;
+  height: 100%;
+}
+
+/* 캐비넷 */
+.cabinet {
+  fill: #78716c;
+  stroke: #57534e;
+  stroke-width: 1;
+}
+
+/* 서랍 */
+.drawer {
+  fill: #a8a29e;
+  stroke: #78716c;
+  stroke-width: 0.5;
+  transition: transform 0.4s var(--spring-bounce);
+}
+
+.drawer.opening {
+  animation: drawerOpen 0.6s var(--spring-bounce) forwards;
+}
+
+.drawer.open {
+  transform: translateY(8px);
+}
+
+/* 서랍 손잡이 */
+.drawerHandle {
+  fill: #fbbf24;
+  stroke: #d97706;
+  stroke-width: 0.5;
+}
+
+/* 파일 */
+.file {
+  fill: #fef3c7;
+  stroke: #fcd34d;
+  stroke-width: 0.5;
+  opacity: 0;
+  transform: translateY(5px);
+}
+
+.file.appearing {
+  animation: fileAppear 0.4s var(--spring-soft) 0.3s forwards;
+}
+
+.file.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* 파일 탭 */
+.fileTab {
+  fill: #f59e0b;
+}
+
+@keyframes drawerOpen {
+  0% { transform: translateY(0); }
+  60% { transform: translateY(10px); }
+  80% { transform: translateY(6px); }
+  100% { transform: translateY(8px); }
+}
+
+@keyframes fileAppear {
+  0% { opacity: 0; transform: translateY(5px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* ============================================
+ * 9. Wax Seal - 왁스 도장
+ * ============================================ */
+
+.waxSealContainer {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  cursor: pointer;
+  overflow: visible;
+}
+
+.waxSealSvg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* 봉투/편지 */
+.envelope {
+  fill: #fef3c7;
+  stroke: #fcd34d;
+  stroke-width: 1;
+}
+
+/* 왁스 물방울 */
+.waxDrop {
+  fill: #dc2626;
+  opacity: 0;
+  transform-origin: center top;
+  transform: translateY(-15px) scale(0.5);
+}
+
+.waxDrop.dropping {
+  animation: waxDrop 0.6s var(--gravity-fall) forwards;
+}
+
+/* 왁스 퍼짐 */
+.waxPool {
+  fill: #dc2626;
+  transform: scale(0);
+  transform-origin: center;
+}
+
+.waxPool.spreading {
+  animation: waxSpread 0.5s var(--spring-soft) 0.5s forwards;
+}
+
+.waxPool.set {
+  transform: scale(1);
+}
+
+/* 도장 마크 */
+.sealMark {
+  fill: #fef3c7;
+  opacity: 0;
+  transform: scale(0);
+  transform-origin: center;
+}
+
+.sealMark.stamping {
+  animation: sealStamp 0.4s var(--spring-bounce) 0.8s forwards;
+}
+
+.sealMark.visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+@keyframes waxDrop {
+  0% { opacity: 0; transform: translateY(-15px) scale(0.5); }
+  20% { opacity: 1; transform: translateY(-10px) scale(0.6); }
+  100% { opacity: 1; transform: translateY(0) scale(0.8); }
+}
+
+@keyframes waxSpread {
+  0% { transform: scale(0); }
+  60% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+@keyframes sealStamp {
+  0% { opacity: 0; transform: scale(0); }
+  60% { opacity: 1; transform: scale(1.1); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+/* ============================================
+ * 10. Tab Punch - 탭 펀칭
+ * ============================================ */
+
+.tabPunchContainer {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  cursor: pointer;
+}
+
+.tabPunchSvg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* 종이 */
+.punchPaper {
+  fill: #fef3c7;
+  stroke: #fcd34d;
+  stroke-width: 1;
+}
+
+/* 펀칭된 구멍 */
+.punchHole {
+  fill: #f3f4f6;
+  stroke: #d1d5db;
+  stroke-width: 0.5;
+  opacity: 0;
+  transform: scale(0);
+  transform-origin: center;
+}
+
+.punchHole.punching {
+  animation: holePunch 0.4s var(--spring-bounce) forwards;
+}
+
+.punchHole.visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* 인덱스 탭 */
+.indexTab {
+  fill: #f59e0b;
+  stroke: #d97706;
+  stroke-width: 0.5;
+  transform-origin: right center;
+  transition: transform 0.3s var(--spring-bounce);
+}
+
+.indexTab.attaching {
+  animation: tabAttach 0.5s var(--spring-bounce) 0.2s forwards;
+}
+
+.indexTab.attached {
+  transform: translateX(0);
+}
+
+/* 펀치 효과 (종이 조각) */
+.punchChad {
+  fill: #fef3c7;
+  opacity: 0;
+  transform-origin: center;
+}
+
+.punchChad.flying {
+  animation: chadFly 0.6s var(--gravity-fall) forwards;
+}
+
+@keyframes holePunch {
+  0% { opacity: 0; transform: scale(0); }
+  50% { transform: scale(1.2); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes tabAttach {
+  0% { transform: translateX(10px); }
+  60% { transform: translateX(-2px); }
+  100% { transform: translateX(0); }
+}
+
+@keyframes chadFly {
+  0% { opacity: 1; transform: translate(0, 0) rotate(0deg); }
+  100% { opacity: 0; transform: translate(var(--tx), var(--ty)) rotate(180deg); }
+}
