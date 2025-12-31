@@ -238,7 +238,7 @@ export default function ButtonInteractionsClient() {
                 버튼 인터랙션 데모
               </h1>
               <p className="text-sm text-gray-500">
-                yui540 스타일 - 키치하고 귀여운 클릭 반응
+                키치하고 귀여운 클릭 반응 인터랙션
               </p>
             </div>
           </div>
@@ -358,16 +358,7 @@ export default function ButtonInteractionsClient() {
         {/* 크레딧 */}
         <footer className="mt-12 text-center text-sm text-gray-400">
           <p>
-            Inspired by{' '}
-            <a
-              href="https://yui540.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-pink-500 hover:underline"
-            >
-              yui540
-            </a>
-            {' '}• CSS 애니메이션 전문가
+            CSS 애니메이션 기반 인터랙션 데모
           </p>
         </footer>
       </main>
