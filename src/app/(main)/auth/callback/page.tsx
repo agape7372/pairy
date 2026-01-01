@@ -14,42 +14,79 @@ function AuthCallbackContent() {
       const code = searchParams.get('code')
       const redirectTo = searchParams.get('redirectTo') || '/'
 
-      if (code) {
-        const supabase = createClient()
-        const { error } = await supabase.auth.exchangeCodeForSession(code)
+      console.log('[Auth Callback] Starting with code:', code ? 'exists' : 'missing')
+      console.log('[Auth Callback] Redirect to:', redirectTo)
 
-        if (!error) {
-          // Check if user profile exists, if not create one
-          const { data: { user } } = await supabase.auth.getUser()
-
-          if (user) {
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('id')
-              .eq('id', user.id)
-              .single()
-
-            if (!profile) {
-              // Create new profile with default role
-              await supabase.from('profiles').insert({
-                id: user.id,
-                username: user.email?.split('@')[0] || null,
-                display_name: user.user_metadata?.full_name || user.user_metadata?.name || '새로운 사용자',
-                avatar_url: user.user_metadata?.avatar_url || user.user_metadata?.picture,
-                role: 'user', // 기본 역할
-              })
-            }
-          }
-
-          router.push(redirectTo)
-          return
-        }
+      if (!code) {
+        console.error('[Auth Callback] No code found')
+        setError('인증 코드가 없습니다.')
+        setTimeout(() => router.push('/login?error=no_code'), 2000)
+        return
       }
 
-      setError('인증에 실패했습니다.')
-      setTimeout(() => {
-        router.push('/login?error=auth_failed')
-      }, 2000)
+      try {
+        const supabase = createClient()
+
+        // 1. Exchange code for session
+        console.log('[Auth Callback] Exchanging code for session...')
+        const { data: sessionData, error: sessionError } = await supabase.auth.exchangeCodeForSession(code)
+
+        if (sessionError) {
+          console.error('[Auth Callback] Session exchange error:', sessionError)
+          throw sessionError
+        }
+
+        console.log('[Auth Callback] Session obtained successfully')
+
+        // 2. Get user
+        const { data: { user }, error: userError } = await supabase.auth.getUser()
+
+        if (userError || !user) {
+          console.error('[Auth Callback] Get user error:', userError)
+          throw userError || new Error('User not found')
+        }
+
+        console.log('[Auth Callback] User:', user.email)
+
+        // 3. Check/create profile
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('id', user.id)
+          .single()
+
+        if (profileError && profileError.code !== 'PGRST116') {
+          // PGRST116 = no rows returned (profile doesn't exist)
+          console.error('[Auth Callback] Profile fetch error:', profileError)
+        }
+
+        if (!profile) {
+          console.log('[Auth Callback] Creating new profile...')
+          const { error: insertError } = await supabase.from('profiles').insert({
+            id: user.id,
+            username: user.email?.split('@')[0] || null,
+            display_name: user.user_metadata?.full_name || user.user_metadata?.name || '새로운 사용자',
+            avatar_url: user.user_metadata?.avatar_url || user.user_metadata?.picture,
+            role: 'user',
+          })
+
+          if (insertError) {
+            console.error('[Auth Callback] Profile insert error:', insertError)
+            // Don't throw - user can still proceed without profile
+          } else {
+            console.log('[Auth Callback] Profile created successfully')
+          }
+        }
+
+        // 4. Redirect
+        console.log('[Auth Callback] Redirecting to:', redirectTo)
+        router.push(redirectTo)
+
+      } catch (err) {
+        console.error('[Auth Callback] Error:', err)
+        setError('인증에 실패했습니다.')
+        setTimeout(() => router.push('/login?error=auth_failed'), 2000)
+      }
     }
 
     handleCallback()
