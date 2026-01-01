@@ -10,10 +10,10 @@
 // ============================================
 
 export const IMAGE_COMPRESSION_CONFIG = {
-  maxDimension: 2000, // 최대 너비/높이 (px)
-  maxFileSize: 5 * 1024 * 1024, // 5MB
-  initialQuality: 0.9,
-  minQuality: 0.5,
+  maxDimension: 4000, // 최대 너비/높이 (px) - 4K 지원
+  maxFileSize: 10 * 1024 * 1024, // 10MB
+  initialQuality: 0.92,
+  minQuality: 0.6,
   qualityStep: 0.1,
   supportedTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'] as const,
 }
