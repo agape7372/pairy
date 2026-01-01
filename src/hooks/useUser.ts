@@ -91,32 +91,41 @@ export function useUser(): UseUserReturn {
         console.log('[useUser] Auth state changed:', event, session?.user?.email)
 
         if (event === 'SIGNED_OUT') {
+          console.log('[useUser] Setting user to null (signed out)')
           setUser(null)
           setProfile(null)
           setIsLoading(false)
           return
         }
 
-        setUser(session?.user ?? null)
+        // 즉시 사용자 상태 업데이트 (UI가 먼저 반응하도록)
+        const newUser = session?.user ?? null
+        console.log('[useUser] Setting user:', newUser?.email)
+        setUser(newUser)
+        setIsLoading(false) // 먼저 로딩 끝내기
 
+        // 프로필은 별도로 비동기 로드 (UI 블로킹 방지)
         if (session?.user) {
-          const { data: profileData, error } = await supabase
-            .from('profiles')
-            .select('id, display_name, avatar_url, bio, role')
-            .eq('id', session.user.id)
-            .single()
+          try {
+            const { data: profileData, error } = await supabase
+              .from('profiles')
+              .select('id, display_name, avatar_url, bio, role')
+              .eq('id', session.user.id)
+              .single()
 
-          if (error) {
-            console.error('[useUser] Profile error on auth change:', error.message)
-            setProfile(null)
-          } else {
-            setProfile(profileData as Profile)
+            if (error) {
+              console.error('[useUser] Profile error on auth change:', error.message)
+              // 프로필이 없어도 user는 유지
+            } else {
+              console.log('[useUser] Profile loaded on auth change:', profileData?.display_name)
+              setProfile(profileData as Profile)
+            }
+          } catch (err) {
+            console.error('[useUser] Profile fetch error:', err)
           }
         } else {
           setProfile(null)
         }
-
-        setIsLoading(false)
       }
     )
 
