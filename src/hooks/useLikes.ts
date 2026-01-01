@@ -3,6 +3,7 @@
 /**
  * 좋아요 관련 훅
  * 변경 이유: 데모 모드 localStorage 로직을 demoStorage 유틸리티로 통합
+ * 추가: UUID 유효성 검사로 샘플 데이터 ID에 대한 400 에러 방지
  */
 
 import { useEffect, useState, useCallback } from 'react'
@@ -12,6 +13,12 @@ import {
   saveStorageSet,
   DEMO_STORAGE_KEYS,
 } from '@/lib/utils/demoStorage'
+
+// UUID 형식 검사 (샘플 데이터 ID '1', '2' 등을 필터링)
+const isValidUUID = (id: string): boolean => {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  return uuidRegex.test(id)
+}
 
 interface UseLikesReturn {
   isLiked: boolean
@@ -37,11 +44,12 @@ export function useLikes(templateId: string, initialLikeCount?: number): UseLike
     const loadLikeStatus = async () => {
       setIsLoading(true)
 
-      if (IS_DEMO_MODE) {
+      // 데모 모드이거나 유효한 UUID가 아닌 경우 (샘플 데이터) localStorage 사용
+      if (IS_DEMO_MODE || !isValidUUID(templateId)) {
         // 데모 모드: localStorage에서 좋아요 상태 로드
         const demoLikes = getDemoLikes()
         setIsLiked(demoLikes.has(templateId))
-        // 초기값이 없으면 랜덤 카운트
+        // 초기값이 없으면 그대로 사용 (샘플 데이터는 이미 값이 있음)
         if (initialLikeCount === undefined) {
           setLikeCount(Math.floor(Math.random() * 500) + 50)
         }
@@ -94,7 +102,8 @@ export function useLikes(templateId: string, initialLikeCount?: number): UseLike
 
   // 좋아요 (낙관적 업데이트 + 실패 시 롤백)
   const like = useCallback(async (): Promise<boolean> => {
-    if (IS_DEMO_MODE) {
+    // 데모 모드이거나 유효한 UUID가 아닌 경우 localStorage 사용
+    if (IS_DEMO_MODE || !isValidUUID(templateId)) {
       const demoLikes = getDemoLikes()
       demoLikes.add(templateId)
       saveDemoLikes(demoLikes)
@@ -140,7 +149,8 @@ export function useLikes(templateId: string, initialLikeCount?: number): UseLike
 
   // 좋아요 취소 (낙관적 업데이트 + 실패 시 롤백)
   const unlike = useCallback(async (): Promise<boolean> => {
-    if (IS_DEMO_MODE) {
+    // 데모 모드이거나 유효한 UUID가 아닌 경우 localStorage 사용
+    if (IS_DEMO_MODE || !isValidUUID(templateId)) {
       const demoLikes = getDemoLikes()
       demoLikes.delete(templateId)
       saveDemoLikes(demoLikes)
