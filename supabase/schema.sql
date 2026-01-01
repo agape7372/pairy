@@ -206,12 +206,12 @@ ALTER TABLE purchases ENABLE ROW LEVEL SECURITY;
 
 -- 프로필: 누구나 읽기 가능, 본인만 수정 가능
 CREATE POLICY "Profiles are viewable by everyone" ON profiles FOR SELECT USING (true);
-CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
-CREATE POLICY "Users can insert own profile" ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
+CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING ((select auth.uid()) = id);
+CREATE POLICY "Users can insert own profile" ON profiles FOR INSERT WITH CHECK ((select auth.uid()) = id);
 
 -- 템플릿: 공개 템플릿 누구나 읽기 가능
 CREATE POLICY "Public templates are viewable by everyone" ON templates FOR SELECT USING (is_public = true);
-CREATE POLICY "Creators can manage own templates" ON templates FOR ALL USING (auth.uid() = creator_id);
+CREATE POLICY "Creators can manage own templates" ON templates FOR ALL USING ((select auth.uid()) = creator_id);
 
 -- 태그: 누구나 읽기 가능
 CREATE POLICY "Tags are viewable by everyone" ON tags FOR SELECT USING (true);
@@ -220,41 +220,44 @@ CREATE POLICY "Tags are viewable by everyone" ON tags FOR SELECT USING (true);
 CREATE POLICY "Template tags are viewable by everyone" ON template_tags FOR SELECT USING (true);
 
 -- 좋아요: 본인 것만 관리 가능
-CREATE POLICY "Users can manage own likes" ON likes FOR ALL USING (auth.uid() = user_id);
 CREATE POLICY "Likes are viewable by everyone" ON likes FOR SELECT USING (true);
+CREATE POLICY "Users can manage own likes" ON likes FOR ALL USING ((select auth.uid()) = user_id);
 
 -- 북마크: 본인 것만 관리 가능
-CREATE POLICY "Users can manage own bookmarks" ON bookmarks FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users can manage own bookmarks" ON bookmarks FOR ALL USING ((select auth.uid()) = user_id);
 
--- 작품: 본인 것만 관리 가능, 공개 작품 읽기 가능
-CREATE POLICY "Users can manage own works" ON works FOR ALL USING (auth.uid() = user_id);
+-- 작품: 본인 것만 관리 가능
+CREATE POLICY "Users can manage own works" ON works FOR ALL USING ((select auth.uid()) = user_id);
 
--- 협업 세션: 참여자와 호스트만 접근 가능
-CREATE POLICY "Users can view own sessions" ON collab_sessions FOR SELECT USING (auth.uid() = host_id);
-CREATE POLICY "Users can manage own sessions" ON collab_sessions FOR ALL USING (auth.uid() = host_id);
+-- 협업 세션: 호스트만 접근 가능
+CREATE POLICY "Users can view own sessions" ON collab_sessions FOR SELECT USING ((select auth.uid()) = host_id);
+CREATE POLICY "Users can manage own sessions" ON collab_sessions FOR ALL USING ((select auth.uid()) = host_id);
 
 -- 팔로우: 본인 것만 관리 가능
-CREATE POLICY "Users can manage own follows" ON follows FOR ALL USING (auth.uid() = follower_id);
 CREATE POLICY "Follows are viewable by everyone" ON follows FOR SELECT USING (true);
+CREATE POLICY "Users can manage own follows" ON follows FOR ALL USING ((select auth.uid()) = follower_id);
 
 -- 댓글: 누구나 읽기 가능, 본인만 수정/삭제 가능
 CREATE POLICY "Comments are viewable by everyone" ON comments FOR SELECT USING (true);
-CREATE POLICY "Authenticated users can insert comments" ON comments FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users can update own comments" ON comments FOR UPDATE USING (auth.uid() = user_id);
-CREATE POLICY "Users can delete own comments" ON comments FOR DELETE USING (auth.uid() = user_id);
+CREATE POLICY "Authenticated users can insert comments" ON comments FOR INSERT WITH CHECK ((select auth.uid()) = user_id);
+CREATE POLICY "Users can update own comments" ON comments FOR UPDATE USING ((select auth.uid()) = user_id);
+CREATE POLICY "Users can delete own comments" ON comments FOR DELETE USING ((select auth.uid()) = user_id);
 
 -- 댓글 좋아요: 본인 것만 관리 가능
-CREATE POLICY "Users can manage own comment likes" ON comment_likes FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users can manage own comment likes" ON comment_likes FOR ALL USING ((select auth.uid()) = user_id);
 
 -- 구매: 본인 것만 조회 가능
-CREATE POLICY "Users can view own purchases" ON purchases FOR SELECT USING (auth.uid() = buyer_id);
-CREATE POLICY "Users can create purchases" ON purchases FOR INSERT WITH CHECK (auth.uid() = buyer_id);
+CREATE POLICY "Users can view own purchases" ON purchases FOR SELECT USING ((select auth.uid()) = buyer_id);
+CREATE POLICY "Users can create purchases" ON purchases FOR INSERT WITH CHECK ((select auth.uid()) = buyer_id);
 
 -- ============================================
 -- 트리거: 프로필 자동 생성
 -- ============================================
 CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER
+SECURITY DEFINER
+SET search_path = public
+AS $$
 BEGIN
   INSERT INTO public.profiles (id, display_name, avatar_url)
   VALUES (
@@ -264,7 +267,7 @@ BEGIN
   );
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql;
 
 -- 기존 트리거 제거 후 재생성
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
