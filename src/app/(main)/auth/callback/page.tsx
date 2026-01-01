@@ -29,7 +29,16 @@ function AuthCallbackContent() {
 
         // 1. Exchange code for session
         console.log('[Auth Callback] Exchanging code for session...')
-        const { data: sessionData, error: sessionError } = await supabase.auth.exchangeCodeForSession(code)
+        let sessionData, sessionError
+        try {
+          const result = await supabase.auth.exchangeCodeForSession(code)
+          sessionData = result.data
+          sessionError = result.error
+          console.log('[Auth Callback] Exchange complete, error:', sessionError?.message || 'none')
+        } catch (e) {
+          console.error('[Auth Callback] Exchange threw:', e)
+          throw e
+        }
 
         if (sessionError) {
           console.error('[Auth Callback] Session exchange error:', sessionError)
@@ -78,14 +87,19 @@ function AuthCallbackContent() {
           }
         }
 
-        // 4. Redirect
-        console.log('[Auth Callback] Redirecting to:', redirectTo)
-        router.push(redirectTo)
+        // 4. Redirect - window.location 사용 (router.push가 정적 사이트에서 불안정)
+        const basePath = process.env.NEXT_PUBLIC_BASE_PATH || ''
+        const finalRedirect = redirectTo.startsWith('/') ? `${basePath}${redirectTo}` : redirectTo
+        console.log('[Auth Callback] Redirecting to:', finalRedirect)
+        window.location.href = finalRedirect
 
       } catch (err) {
         console.error('[Auth Callback] Error:', err)
         setError('인증에 실패했습니다.')
-        setTimeout(() => router.push('/login?error=auth_failed'), 2000)
+        const basePath = process.env.NEXT_PUBLIC_BASE_PATH || ''
+        setTimeout(() => {
+          window.location.href = `${basePath}/login?error=auth_failed`
+        }, 2000)
       }
     }
 
