@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
+import { BASE_PATH, getFullUrl } from '@/lib/constants'
 
 function AuthCallbackContent() {
   const searchParams = useSearchParams()
@@ -12,11 +13,16 @@ function AuthCallbackContent() {
   useEffect(() => {
     const handleAuth = async () => {
       const redirectTo = searchParams.get('redirectTo') || '/'
-      const basePath = process.env.NEXT_PUBLIC_BASE_PATH || ''
       const error = searchParams.get('error')
       const errorDescription = searchParams.get('error_description')
+      const code = searchParams.get('code')
 
-      console.log('[Auth Callback] Starting...', { redirectTo, basePath, error })
+      console.log('[Auth Callback] Starting...', {
+        hasCode: !!code,
+        redirectTo,
+        error,
+        BASE_PATH
+      })
 
       // URL에 에러가 있는 경우
       if (error) {
@@ -24,76 +30,92 @@ function AuthCallbackContent() {
         setStatus('error')
         setMessage(errorDescription || error || '인증 오류가 발생했습니다.')
         setTimeout(() => {
-          window.location.href = `${basePath}/login?error=${error}`
+          window.location.href = getFullUrl(`/login?error=${error}`)
         }, 2000)
         return
       }
 
       if (!isSupabaseConfigured()) {
-        console.log('[Auth Callback] Demo mode')
-        window.location.href = `${basePath}/`
+        console.log('[Auth Callback] Demo mode - redirecting to home')
+        window.location.href = getFullUrl('/')
+        return
+      }
+
+      if (!code) {
+        console.error('[Auth Callback] No code provided')
+        setStatus('error')
+        setMessage('인증 코드가 없습니다.')
+        setTimeout(() => {
+          window.location.href = getFullUrl('/login?error=no_code')
+        }, 2000)
         return
       }
 
       try {
         const supabase = createClient()
 
-        // Supabase가 detectSessionInUrl로 자동 처리하므로 세션만 확인
-        // 약간의 지연을 두고 세션 확인 (자동 처리 시간 확보)
-        await new Promise(resolve => setTimeout(resolve, 500))
+        // 코드를 세션으로 교환
+        console.log('[Auth Callback] Exchanging code for session...')
+        const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
 
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+        if (exchangeError) {
+          console.error('[Auth Callback] Exchange error:', exchangeError.message)
 
-        console.log('[Auth Callback] Session check:', session?.user?.email || 'no session', sessionError?.message)
-
-        if (session) {
-          // 프로필 확인/생성 (비동기, 기다리지 않음)
-          ensureProfile(supabase, session.user)
-
-          setStatus('success')
-          setMessage('로그인 완료!')
-
-          const finalUrl = redirectTo.startsWith('/') ? `${basePath}${redirectTo}` : redirectTo
-          console.log('[Auth Callback] Redirecting to:', finalUrl)
-
-          setTimeout(() => {
-            window.location.href = finalUrl
-          }, 300)
-        } else {
-          // 세션이 없으면 수동으로 코드 교환 시도
-          const code = searchParams.get('code')
-          if (code) {
-            console.log('[Auth Callback] No session, trying manual exchange...')
-            const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
-
-            if (exchangeError) {
-              throw exchangeError
-            }
-
-            if (data.session) {
-              ensureProfile(supabase, data.session.user)
-              setStatus('success')
-              setMessage('로그인 완료!')
-
-              const finalUrl = redirectTo.startsWith('/') ? `${basePath}${redirectTo}` : redirectTo
-              setTimeout(() => {
-                window.location.href = finalUrl
-              }, 300)
-              return
-            }
+          // 이미 교환된 코드일 수 있음 - 세션 확인
+          const { data: { session } } = await supabase.auth.getSession()
+          if (session) {
+            console.log('[Auth Callback] Found existing session:', session.user?.email)
+            redirectToDestination(redirectTo, session.user)
+            return
           }
 
+          throw exchangeError
+        }
+
+        if (!data.session) {
           throw new Error('세션을 가져올 수 없습니다.')
         }
+
+        console.log('[Auth Callback] Session obtained:', data.session.user?.email)
+
+        // 프로필 확인/생성 (비동기, 기다리지 않음)
+        ensureProfile(supabase, data.session.user)
+
+        // 리다이렉트
+        redirectToDestination(redirectTo, data.session.user)
+
       } catch (err: any) {
         console.error('[Auth Callback] Error:', err)
         setStatus('error')
         setMessage(err.message || '인증에 실패했습니다.')
 
         setTimeout(() => {
-          window.location.href = `${basePath}/login?error=auth_failed`
+          window.location.href = getFullUrl('/login?error=auth_failed')
         }, 2000)
       }
+    }
+
+    // 리다이렉트 실행
+    const redirectToDestination = (redirectTo: string, user: any) => {
+      setStatus('success')
+      setMessage(`환영합니다, ${user?.user_metadata?.name || user?.email?.split('@')[0] || '사용자'}님!`)
+
+      // redirectTo가 상대경로면 basePath 추가
+      let finalUrl: string
+      if (redirectTo.startsWith('http')) {
+        finalUrl = redirectTo
+      } else if (redirectTo.startsWith('/')) {
+        // /로 시작하는 상대경로 → 전체 URL로 변환
+        finalUrl = getFullUrl(redirectTo)
+      } else {
+        finalUrl = getFullUrl('/')
+      }
+
+      console.log('[Auth Callback] Redirecting to:', finalUrl)
+
+      setTimeout(() => {
+        window.location.href = finalUrl
+      }, 500)
     }
 
     handleAuth()

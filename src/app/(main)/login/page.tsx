@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react'
 import { Button } from '@/components/ui'
 import { createClient } from '@/lib/supabase/client'
+import { BASE_PATH, getFullUrl } from '@/lib/constants'
 
 type Provider = 'google' | 'twitter'
 type AuthMode = 'login' | 'signup'
@@ -31,11 +32,15 @@ function LoginContent() {
 
     try {
       const supabase = createClient()
-      const basePath = process.env.NEXT_PUBLIC_BASE_PATH || ''
+      // 명시적으로 전체 콜백 URL 생성 (GitHub Pages basePath 포함)
+      const callbackUrl = getFullUrl(`/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`)
+
+      console.log('[Login] OAuth redirect to:', callbackUrl)
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: `${window.location.origin}${basePath}/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`,
+          redirectTo: callbackUrl,
         },
       })
 
@@ -60,12 +65,12 @@ function LoginContent() {
 
       if (mode === 'signup') {
         // 회원가입
-        const basePath = process.env.NEXT_PUBLIC_BASE_PATH || ''
+        const callbackUrl = getFullUrl(`/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`)
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}${basePath}/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`,
+            emailRedirectTo: callbackUrl,
           },
         })
 

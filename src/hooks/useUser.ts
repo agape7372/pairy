@@ -41,35 +41,44 @@ export function useUser(): UseUserReturn {
 
     const supabase = createClient()
 
-    // Get initial session
-    const getUser = async () => {
+    // Get initial session from localStorage (no network call - faster!)
+    const initSession = async () => {
       try {
-        console.log('[useUser] Fetching user...')
-        const { data: { user }, error: userError } = await supabase.auth.getUser()
+        console.log('[useUser] Checking session from storage...')
 
-        if (userError) {
-          console.error('[useUser] Auth error:', userError.message)
+        // getSession()은 localStorage에서 바로 읽음 (네트워크 호출 없음)
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+
+        if (sessionError) {
+          console.error('[useUser] Session error:', sessionError.message)
           setUser(null)
           setProfile(null)
           setIsLoading(false)
           return
         }
 
-        console.log('[useUser] User:', user?.email || 'none')
-        setUser(user)
+        if (!session) {
+          console.log('[useUser] No session found')
+          setUser(null)
+          setProfile(null)
+          setIsLoading(false)
+          return
+        }
 
-        if (user) {
-          console.log('[useUser] Fetching profile for:', user.id)
+        console.log('[useUser] Session found:', session.user?.email)
+        setUser(session.user)
+        setIsLoading(false) // UI 먼저 업데이트
+
+        // 프로필은 별도로 로드
+        if (session.user) {
           const { data: profileData, error: profileError } = await supabase
             .from('profiles')
             .select('id, display_name, avatar_url, bio, role')
-            .eq('id', user.id)
+            .eq('id', session.user.id)
             .single()
 
           if (profileError) {
-            console.error('[useUser] Profile error:', profileError.message, profileError.code)
-            // 프로필이 없어도 계속 진행
-            setProfile(null)
+            console.error('[useUser] Profile error:', profileError.message)
           } else {
             console.log('[useUser] Profile loaded:', profileData?.display_name)
             setProfile(profileData as Profile)
@@ -77,13 +86,13 @@ export function useUser(): UseUserReturn {
         }
       } catch (error) {
         console.error('[useUser] Unexpected error:', error)
-      } finally {
-        console.log('[useUser] Loading complete')
+        setUser(null)
+        setProfile(null)
         setIsLoading(false)
       }
     }
 
-    getUser()
+    initSession()
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
