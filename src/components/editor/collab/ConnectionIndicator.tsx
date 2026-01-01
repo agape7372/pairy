@@ -5,10 +5,14 @@
  * useReconnect 훅을 사용한 재연결 상태 관리
  */
 
+import { useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Wifi, WifiOff, Loader2, CloudOff, Users, RefreshCw } from 'lucide-react'
 import { useReconnect, getStatusMessage, type ConnectionStatus } from '@/hooks/useReconnect'
 import type { CollabUser } from '@/lib/collab/types'
+
+// 변경 이유: 기본 재연결 함수를 모듈 레벨에서 정의하여 참조 안정성 확보
+const defaultReconnect = async () => false
 
 interface ConnectionIndicatorProps {
   sessionId: string | null
@@ -31,12 +35,15 @@ export function ConnectionIndicator({
   showLabel = true,
   size = 'md',
 }: ConnectionIndicatorProps) {
-  // useReconnect 훅 사용 (재연결 로직 위임 시)
-  const reconnect = useReconnect({
-    onReconnect: onReconnect || (async () => false),
+  // 변경 이유: useMemo로 옵션 객체 안정화하여 불필요한 훅 재실행 방지
+  const reconnectOptions = useMemo(() => ({
+    onReconnect: onReconnect || defaultReconnect,
     onDisconnect,
     autoReconnect: !!sessionId,
-  })
+  }), [onReconnect, onDisconnect, sessionId])
+
+  // useReconnect 훅 사용 (재연결 로직 위임 시)
+  const reconnect = useReconnect(reconnectOptions)
 
   // 외부 상태와 재연결 상태 통합
   const getStatus = (): ConnectionStatus => {

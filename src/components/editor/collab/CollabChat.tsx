@@ -15,6 +15,22 @@ import type { CollabUser } from '@/lib/collab/types'
 // 빠른 이모지 반응 목록
 const QUICK_REACTIONS = ['👍', '❤️', '😊', '🎉', '👀', '✨', '🔥', '💯']
 
+// 변경 이유: XSS 방지를 위한 텍스트 이스케이프 함수
+function escapeHtml(text: string): string {
+  const div = document.createElement('div')
+  div.textContent = text
+  return div.innerHTML
+}
+
+// 변경 이유: 안전한 텍스트 렌더링 (HTML 태그 무력화)
+function SafeText({ children }: { children: string }) {
+  // React는 기본적으로 XSS를 방지하지만, 추가 검증
+  const sanitized = children.replace(/[<>]/g, (char) =>
+    char === '<' ? '&lt;' : '&gt;'
+  )
+  return <>{sanitized}</>
+}
+
 interface CollabChatProps {
   sessionId: string | null
   user: CollabUser | null
@@ -252,7 +268,8 @@ function ChatMessageBubble({ message, isOwn }: ChatMessageBubbleProps) {
     return (
       <div className="flex justify-center">
         <span className="text-xs text-gray-400 bg-gray-100 px-3 py-1 rounded-full">
-          {message.content}
+          {/* 변경 이유: 시스템 메시지도 XSS 방지 적용 */}
+          <SafeText>{message.content}</SafeText>
         </span>
       </div>
     )
@@ -260,6 +277,10 @@ function ChatMessageBubble({ message, isOwn }: ChatMessageBubbleProps) {
 
   // 이모지 반응인 경우 큰 이모지로 표시
   if (message.type === 'reaction') {
+    // 변경 이유: 이모지만 허용 (악성 코드 방지)
+    const isValidEmoji = /^[\p{Emoji}]+$/u.test(message.content)
+    if (!isValidEmoji) return null
+
     return (
       <motion.div
         initial={{ scale: 0 }}
@@ -283,7 +304,8 @@ function ChatMessageBubble({ message, isOwn }: ChatMessageBubbleProps) {
             className="text-xs font-medium mb-0.5 block"
             style={{ color: message.userColor }}
           >
-            {message.userName}
+            {/* 변경 이유: 사용자 이름도 XSS 방지 */}
+            <SafeText>{message.userName}</SafeText>
           </span>
         )}
         <div
@@ -293,7 +315,8 @@ function ChatMessageBubble({ message, isOwn }: ChatMessageBubbleProps) {
               : 'bg-white text-gray-800 rounded-bl-sm shadow-sm'
           }`}
         >
-          {message.content}
+          {/* 변경 이유: 메시지 내용 XSS 방지 */}
+          <SafeText>{message.content}</SafeText>
         </div>
       </div>
     </motion.div>
@@ -311,13 +334,24 @@ interface FloatingReactionsProps {
 
 function FloatingReactions({ messages, position }: FloatingReactionsProps) {
   const [floatingEmojis, setFloatingEmojis] = useState<Array<{ id: string; emoji: string }>>([])
+  // 변경 이유: 타이머 ID를 ref로 관리하여 메모리 누수 방지
+  const timeoutIdsRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
+  // 변경 이유: 마지막 처리된 메시지 ID 추적으로 중복 처리 방지
+  const lastProcessedIdRef = useRef<string | null>(null)
 
   // 새 이모지 반응이 오면 플로팅 표시
   useEffect(() => {
     const reactionMessages = messages.filter((m) => m.type === 'reaction')
     const lastReaction = reactionMessages[reactionMessages.length - 1]
 
-    if (lastReaction && Date.now() - lastReaction.timestamp < 1000) {
+    // 변경 이유: 이미 처리된 메시지는 건너뛰어 중복 애니메이션 방지
+    if (!lastReaction || lastReaction.id === lastProcessedIdRef.current) {
+      return
+    }
+
+    // 변경 이유: 3초로 늘려 네트워크 지연 고려
+    if (Date.now() - lastReaction.timestamp < 3000) {
+      lastProcessedIdRef.current = lastReaction.id
       const newFloating = {
         id: lastReaction.id,
         emoji: lastReaction.content,
@@ -327,11 +361,20 @@ function FloatingReactions({ messages, position }: FloatingReactionsProps) {
       // 2초 후 제거
       const timeoutId = setTimeout(() => {
         setFloatingEmojis((prev) => prev.filter((f) => f.id !== newFloating.id))
+        timeoutIdsRef.current.delete(newFloating.id)
       }, 2000)
 
-      return () => clearTimeout(timeoutId)
+      timeoutIdsRef.current.set(newFloating.id, timeoutId)
     }
   }, [messages])
+
+  // 변경 이유: 컴포넌트 언마운트 시 모든 타이머 정리
+  useEffect(() => {
+    return () => {
+      timeoutIdsRef.current.forEach((timeoutId) => clearTimeout(timeoutId))
+      timeoutIdsRef.current.clear()
+    }
+  }, [])
 
   const positionClasses = position === 'bottom-left' ? 'left-20' : 'right-20'
 

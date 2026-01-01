@@ -85,15 +85,7 @@ export function useReconnect(options: UseReconnectOptions): UseReconnectReturn {
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const isMountedRef = useRef(true)
 
-  // 클린업
-  useEffect(() => {
-    isMountedRef.current = true
-    return () => {
-      isMountedRef.current = false
-      clearTimers()
-    }
-  }, [])
-
+  // 변경 이유: 타이머 정리 함수를 먼저 정의
   const clearTimers = useCallback(() => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current)
@@ -104,6 +96,20 @@ export function useReconnect(options: UseReconnectOptions): UseReconnectReturn {
       countdownRef.current = null
     }
     setRetryIn(null)
+  }, [])
+
+  // 변경 이유: clearTimers를 ref로 관리하여 클린업에서 stale closure 방지
+  const clearTimersRef = useRef(clearTimers)
+  clearTimersRef.current = clearTimers
+
+  // 클린업
+  useEffect(() => {
+    isMountedRef.current = true
+    return () => {
+      isMountedRef.current = false
+      // 변경 이유: ref를 통해 최신 clearTimers 함수 호출
+      clearTimersRef.current()
+    }
   }, [])
 
   // 지수 백오프 딜레이 계산

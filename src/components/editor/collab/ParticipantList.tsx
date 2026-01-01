@@ -120,7 +120,6 @@ export function ParticipantList({
               {/* 나 (로컬 사용자) */}
               {isConnected && user && (
                 <ParticipantItem
-                  userId={user.id}
                   userName={user.name}
                   color={user.color || '#FF6B6B'}
                   zone={myZone ?? null}
@@ -134,7 +133,6 @@ export function ParticipantList({
               {participants.map(([participantId, participant]) => (
                 <ParticipantItem
                   key={participantId}
-                  userId={participantId}
                   userName={participant.name}
                   color={participant.color || getUserColor(participantId)}
                   zone={participant.zone}
@@ -155,7 +153,7 @@ export function ParticipantList({
 // ============================================
 
 interface ParticipantItemProps {
-  userId: string
+  // 변경 이유: userId는 key로만 사용되므로 컴포넌트 내부에서는 불필요
   userName: string
   color: string
   zone: EditingZone
@@ -166,7 +164,6 @@ interface ParticipantItemProps {
 }
 
 function ParticipantItem({
-  userId,
   userName,
   color,
   zone,

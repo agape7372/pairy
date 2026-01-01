@@ -79,6 +79,8 @@ export function useCollabChat(options: UseCollabChatOptions): UseCollabChatRetur
   const channelRef = useRef<RealtimeChannel | null>(null)
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isTypingRef = useRef(false)
+  // 변경 이유: 언마운트 후 상태 업데이트 방지
+  const isMountedRef = useRef(true)
 
   // 메시지 추가 (중복 방지)
   const addMessage = useCallback((msg: ChatMessage) => {
@@ -102,6 +104,14 @@ export function useCollabChat(options: UseCollabChatOptions): UseCollabChatRetur
     }
   }, [maxMessages])
 
+  // 변경 이유: 마운트 상태 관리를 위한 별도 useEffect
+  useEffect(() => {
+    isMountedRef.current = true
+    return () => {
+      isMountedRef.current = false
+    }
+  }, [])
+
   // 채널 연결
   useEffect(() => {
     if (!sessionId || !user || !isSupabaseConfigured()) {
@@ -120,6 +130,8 @@ export function useCollabChat(options: UseCollabChatOptions): UseCollabChatRetur
 
     // 메시지 수신
     channel.on('broadcast', { event: 'chat-message' }, ({ payload }) => {
+      // 변경 이유: 언마운트 상태에서 상태 업데이트 방지
+      if (!isMountedRef.current) return
       const msg = payload as ChatMessage
       addMessage({
         ...msg,
@@ -129,6 +141,7 @@ export function useCollabChat(options: UseCollabChatOptions): UseCollabChatRetur
 
     // 타이핑 상태 수신
     channel.on('broadcast', { event: 'typing-start' }, ({ payload }) => {
+      if (!isMountedRef.current) return
       const { userId, userName, userColor } = payload as TypingUser
       if (userId === user.id) return
 
@@ -145,12 +158,14 @@ export function useCollabChat(options: UseCollabChatOptions): UseCollabChatRetur
     })
 
     channel.on('broadcast', { event: 'typing-stop' }, ({ payload }) => {
+      if (!isMountedRef.current) return
       const { userId } = payload as { userId: string }
       setTypingUsers(prev => prev.filter(t => t.userId !== userId))
     })
 
     // 시스템 메시지 수신 (참가/퇴장)
     channel.on('broadcast', { event: 'system-message' }, ({ payload }) => {
+      if (!isMountedRef.current) return
       addMessage({
         id: `sys-${Date.now()}`,
         sessionId,
@@ -166,6 +181,7 @@ export function useCollabChat(options: UseCollabChatOptions): UseCollabChatRetur
 
     // 구독 시작
     channel.subscribe(status => {
+      if (!isMountedRef.current) return
       setIsConnected(status === 'SUBSCRIBED')
 
       // 참가 메시지 전송
@@ -184,6 +200,14 @@ export function useCollabChat(options: UseCollabChatOptions): UseCollabChatRetur
 
     // 클린업
     return () => {
+      // 변경 이유: 타이핑 중이었다면 typing-stop 전송
+      if (isTypingRef.current && channelRef.current) {
+        channelRef.current.send({
+          type: 'broadcast',
+          event: 'typing-stop',
+          payload: { userId: user.id },
+        })
+      }
       // 퇴장 메시지 전송
       if (channelRef.current) {
         channelRef.current.send({
@@ -196,7 +220,12 @@ export function useCollabChat(options: UseCollabChatOptions): UseCollabChatRetur
         supabase.removeChannel(channelRef.current)
       }
       channelRef.current = null
-      setIsConnected(false)
+      // 변경 이유: 타이핑 타이머도 정리
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current)
+        typingTimeoutRef.current = null
+      }
+      isTypingRef.current = false
     }
   }, [sessionId, user, addMessage])
 
