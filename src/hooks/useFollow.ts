@@ -3,9 +3,10 @@
 /**
  * 팔로우 관련 훅
  * 변경 이유: 데모 모드 localStorage 로직을 demoStorage 유틸리티로 통합
+ * [FIXED: useRef로 race condition 방지 - 빠른 더블클릭 시 중복 요청 방지]
  */
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { createClient, IS_DEMO_MODE } from '@/lib/supabase/client'
 import {
   getStorageSet,
@@ -59,6 +60,9 @@ export function useFollow(targetUserId: string): UseFollowReturn {
   const [followingCount, setFollowingCount] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+
+  // [FIXED: useRef로 동기적 체크 - 상태는 비동기라 race condition 발생 가능]
+  const isProcessingRef = useRef(false)
 
   // 초기 상태 로드
   useEffect(() => {
@@ -125,16 +129,24 @@ export function useFollow(targetUserId: string): UseFollowReturn {
 
   // 팔로우 (낙관적 업데이트 + 실패 시 롤백)
   const follow = useCallback(async (): Promise<boolean> => {
+    // [FIXED: ref 기반 동기적 체크로 race condition 완전 방지]
+    if (isProcessingRef.current) return false
+    isProcessingRef.current = true
+
     if (IS_DEMO_MODE) {
       const demoFollows = getDemoFollows()
       demoFollows.add(targetUserId)
       saveDemoFollows(demoFollows)
       setIsFollowing(true)
       setFollowerCount(prev => prev + 1)
+      isProcessingRef.current = false
       return true
     }
 
-    if (!currentUserId) return false
+    if (!currentUserId) {
+      isProcessingRef.current = false
+      return false
+    }
 
     // 낙관적 업데이트: UI 먼저 변경
     const previousIsFollowing = isFollowing
@@ -148,6 +160,7 @@ export function useFollow(targetUserId: string): UseFollowReturn {
         // 롤백
         setIsFollowing(previousIsFollowing)
         setFollowerCount(previousCount)
+        isProcessingRef.current = false
         return false
       }
 
@@ -166,21 +179,31 @@ export function useFollow(targetUserId: string): UseFollowReturn {
       setIsFollowing(previousIsFollowing)
       setFollowerCount(previousCount)
       return false
+    } finally {
+      isProcessingRef.current = false  // [FIXED: 반드시 해제]
     }
   }, [targetUserId, currentUserId, isFollowing, followerCount])
 
   // 언팔로우 (낙관적 업데이트 + 실패 시 롤백)
   const unfollow = useCallback(async (): Promise<boolean> => {
+    // [FIXED: ref 기반 동기적 체크로 race condition 완전 방지]
+    if (isProcessingRef.current) return false
+    isProcessingRef.current = true
+
     if (IS_DEMO_MODE) {
       const demoFollows = getDemoFollows()
       demoFollows.delete(targetUserId)
       saveDemoFollows(demoFollows)
       setIsFollowing(false)
       setFollowerCount(prev => Math.max(0, prev - 1))
+      isProcessingRef.current = false
       return true
     }
 
-    if (!currentUserId) return false
+    if (!currentUserId) {
+      isProcessingRef.current = false
+      return false
+    }
 
     // 낙관적 업데이트: UI 먼저 변경
     const previousIsFollowing = isFollowing
@@ -194,6 +217,7 @@ export function useFollow(targetUserId: string): UseFollowReturn {
         // 롤백
         setIsFollowing(previousIsFollowing)
         setFollowerCount(previousCount)
+        isProcessingRef.current = false
         return false
       }
 
@@ -211,6 +235,8 @@ export function useFollow(targetUserId: string): UseFollowReturn {
       setIsFollowing(previousIsFollowing)
       setFollowerCount(previousCount)
       return false
+    } finally {
+      isProcessingRef.current = false  // [FIXED: 반드시 해제]
     }
   }, [targetUserId, currentUserId, isFollowing, followerCount])
 
