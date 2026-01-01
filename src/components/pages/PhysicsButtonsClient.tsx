@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Heart, Bookmark, Sparkles } from 'lucide-react'
 
-// Magic & Fairy themed button variants
+// Magic & Fairy themed button variants (1-10)
 import {
   LikeFairyDust,
   LikeMagicWand,
@@ -15,6 +15,27 @@ import {
   LikeMoonPhase,
   LikePetalFloat,
   LikeRainbowShimmer,
+  // 11-30
+  LikeNebulaSwirl,
+  LikePixieTrail,
+  LikeEnchantedBubble,
+  LikeStardustCascade,
+  LikeFairyRing,
+  LikeCelestialBloom,
+  LikeMysticMist,
+  LikeDiamondSparkle,
+  LikeCometTail,
+  LikeMoonbeam,
+  LikeEnchantedForest,
+  LikeGlitterStorm,
+  LikeFairyWhisper,
+  LikeStarlightCascade,
+  LikeMagicMirror,
+  LikeDreamlight,
+  LikeSunburst,
+  LikeCrystalGarden,
+  LikeCosmicLove,
+  LikeEternalFlame,
 } from '@/components/interactions/PhysicsLikeButtons'
 
 import {
@@ -28,6 +49,27 @@ import {
   BookmarkMagicRune,
   BookmarkFireflyDance,
   BookmarkDreamCatcher,
+  // 11-30
+  BookmarkNebulaGlow,
+  BookmarkPixieDust,
+  BookmarkEnchantedScroll,
+  BookmarkStarfall,
+  BookmarkFairyCircle,
+  BookmarkCelestialMark,
+  BookmarkMysticVeil,
+  BookmarkDiamondHalo,
+  BookmarkCometMark,
+  BookmarkMoonlit,
+  BookmarkForestSpirit,
+  BookmarkShimmerWave,
+  BookmarkFairyTale,
+  BookmarkStardustCloud,
+  BookmarkMirrorRealm,
+  BookmarkDreamMist,
+  BookmarkSunrayMark,
+  BookmarkCrystalHeart,
+  BookmarkGalaxyMark,
+  BookmarkPhoenixFeather,
 } from '@/components/interactions/PhysicsBookmarkButtons'
 
 interface ButtonCardProps {
@@ -49,6 +91,7 @@ function ButtonCard({ name, mechanism, children }: ButtonCardProps) {
 }
 
 const likeButtons = [
+  // 1-10
   { name: 'Fairy Dust', mechanism: '요정 가루가 흩뿌려지는 반짝임', Component: LikeFairyDust },
   { name: 'Magic Wand', mechanism: '마법 지팡이로 터치하면 별 폭발', Component: LikeMagicWand },
   { name: 'Sparkle Burst', mechanism: '중심에서 빛이 방사형으로 퍼짐', Component: LikeSparkleBurst },
@@ -59,9 +102,32 @@ const likeButtons = [
   { name: 'Moon Phase', mechanism: '달빛이 차오르는 효과', Component: LikeMoonPhase },
   { name: 'Petal Float', mechanism: '꽃잎이 부드럽게 떠오름', Component: LikePetalFloat },
   { name: 'Rainbow Shimmer', mechanism: '무지개 색이 일렁이는 효과', Component: LikeRainbowShimmer },
+  // 11-20
+  { name: 'Nebula Swirl', mechanism: '성운 소용돌이처럼 빛이 퍼짐', Component: LikeNebulaSwirl },
+  { name: 'Pixie Trail', mechanism: '픽시 요정의 반짝이는 자취', Component: LikePixieTrail },
+  { name: 'Enchanted Bubble', mechanism: '마법 버블이 떠오름', Component: LikeEnchantedBubble },
+  { name: 'Stardust Cascade', mechanism: '별가루가 폭포처럼 쏟아짐', Component: LikeStardustCascade },
+  { name: 'Fairy Ring', mechanism: '요정의 원이 회전', Component: LikeFairyRing },
+  { name: 'Celestial Bloom', mechanism: '천상의 꽃이 피어남', Component: LikeCelestialBloom },
+  { name: 'Mystic Mist', mechanism: '신비로운 안개가 피어오름', Component: LikeMysticMist },
+  { name: 'Diamond Sparkle', mechanism: '다이아몬드처럼 빛 반사', Component: LikeDiamondSparkle },
+  { name: 'Comet Tail', mechanism: '혜성 꼬리가 휘돌아감', Component: LikeCometTail },
+  { name: 'Moonbeam', mechanism: '달빛 광선이 내려옴', Component: LikeMoonbeam },
+  // 21-30
+  { name: 'Enchanted Forest', mechanism: '숲의 정령 마법', Component: LikeEnchantedForest },
+  { name: 'Glitter Storm', mechanism: '글리터 폭풍이 휘몰아침', Component: LikeGlitterStorm },
+  { name: 'Fairy Whisper', mechanism: '요정의 속삭임과 날개', Component: LikeFairyWhisper },
+  { name: 'Starlight Cascade', mechanism: '별빛이 계단식으로 쏟아짐', Component: LikeStarlightCascade },
+  { name: 'Magic Mirror', mechanism: '거울에 반사되는 대칭 빛', Component: LikeMagicMirror },
+  { name: 'Dreamlight', mechanism: '몽환적인 빛이 물결침', Component: LikeDreamlight },
+  { name: 'Sunburst', mechanism: '태양처럼 따뜻한 빛 폭발', Component: LikeSunburst },
+  { name: 'Crystal Garden', mechanism: '크리스탈 꽃이 피어남', Component: LikeCrystalGarden },
+  { name: 'Cosmic Love', mechanism: '은하수처럼 빛이 휘감음', Component: LikeCosmicLove },
+  { name: 'Eternal Flame', mechanism: '따뜻한 마법 불꽃', Component: LikeEternalFlame },
 ]
 
 const bookmarkButtons = [
+  // 1-10
   { name: 'Magic Bookmark', mechanism: '마법의 빛이 감싸며 빛남', Component: BookmarkMagicBookmark },
   { name: 'Enchant Seal', mechanism: '마법진이 나타나며 회전', Component: BookmarkEnchantSeal },
   { name: 'Fairy Wing', mechanism: '요정 날개가 펄럭이는 효과', Component: BookmarkFairyWing },
@@ -72,6 +138,28 @@ const bookmarkButtons = [
   { name: 'Magic Rune', mechanism: '마법 룬 문자가 나타남', Component: BookmarkMagicRune },
   { name: 'Firefly Dance', mechanism: '반딧불이가 춤추는 효과', Component: BookmarkFireflyDance },
   { name: 'Dream Catcher', mechanism: '드림캐처처럼 빛이 엮임', Component: BookmarkDreamCatcher },
+  // 11-20
+  { name: 'Nebula Glow', mechanism: '성운처럼 여러 색이 섞인 글로우', Component: BookmarkNebulaGlow },
+  { name: 'Pixie Dust', mechanism: '픽시 가루가 흩날림', Component: BookmarkPixieDust },
+  { name: 'Enchanted Scroll', mechanism: '마법 두루마리가 펼쳐짐', Component: BookmarkEnchantedScroll },
+  { name: 'Starfall', mechanism: '별들이 위에서 떨어짐', Component: BookmarkStarfall },
+  { name: 'Fairy Circle', mechanism: '요정의 원이 회전', Component: BookmarkFairyCircle },
+  { name: 'Celestial Mark', mechanism: '천상의 마크가 새겨짐', Component: BookmarkCelestialMark },
+  { name: 'Mystic Veil', mechanism: '신비로운 베일이 감쌈', Component: BookmarkMysticVeil },
+  { name: 'Diamond Halo', mechanism: '다이아몬드 같은 후광', Component: BookmarkDiamondHalo },
+  { name: 'Comet Mark', mechanism: '혜성 꼬리가 있는 마크', Component: BookmarkCometMark },
+  { name: 'Moonlit', mechanism: '부드러운 달빛이 비침', Component: BookmarkMoonlit },
+  // 21-30
+  { name: 'Forest Spirit', mechanism: '숲 정령의 자연 빛', Component: BookmarkForestSpirit },
+  { name: 'Shimmer Wave', mechanism: '반짝이가 파도처럼 퍼짐', Component: BookmarkShimmerWave },
+  { name: 'Fairy Tale', mechanism: '동화책 마법 페이지', Component: BookmarkFairyTale },
+  { name: 'Stardust Cloud', mechanism: '별먼지 구름 효과', Component: BookmarkStardustCloud },
+  { name: 'Mirror Realm', mechanism: '거울에 반사되는 효과', Component: BookmarkMirrorRealm },
+  { name: 'Dream Mist', mechanism: '몽환적인 안개 효과', Component: BookmarkDreamMist },
+  { name: 'Sunray Mark', mechanism: '따뜻한 태양광 효과', Component: BookmarkSunrayMark },
+  { name: 'Crystal Heart', mechanism: '크리스탈 하트가 떠오름', Component: BookmarkCrystalHeart },
+  { name: 'Galaxy Mark', mechanism: '은하수처럼 휘감기는 효과', Component: BookmarkGalaxyMark },
+  { name: 'Phoenix Feather', mechanism: '불사조 깃털 따뜻한 빛', Component: BookmarkPhoenixFeather },
 ]
 
 export default function PhysicsButtonsClient() {
@@ -118,7 +206,7 @@ export default function PhysicsButtonsClient() {
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
-              전체 (20)
+              전체 (60)
             </button>
             <button
               onClick={() => setActiveTab('like')}
@@ -129,7 +217,7 @@ export default function PhysicsButtonsClient() {
               }`}
             >
               <Heart className="w-4 h-4" />
-              좋아요 (10)
+              좋아요 (30)
             </button>
             <button
               onClick={() => setActiveTab('bookmark')}
@@ -140,7 +228,7 @@ export default function PhysicsButtonsClient() {
               }`}
             >
               <Bookmark className="w-4 h-4" />
-              북마크 (10)
+              북마크 (30)
             </button>
           </div>
         </div>
@@ -157,7 +245,7 @@ export default function PhysicsButtonsClient() {
               </div>
               <h2 className="text-xl font-bold text-gray-900">좋아요 버튼</h2>
               <span className="px-2 py-0.5 bg-pink-100 text-pink-600 text-xs font-bold rounded-full">
-                10개
+                30개
               </span>
               <span className="text-xs text-gray-400 ml-2">
                 각 버튼을 클릭해서 마법 효과를 확인하세요
@@ -182,7 +270,7 @@ export default function PhysicsButtonsClient() {
               </div>
               <h2 className="text-xl font-bold text-gray-900">북마크 버튼</h2>
               <span className="px-2 py-0.5 bg-violet-100 text-violet-600 text-xs font-bold rounded-full">
-                10개
+                30개
               </span>
               <span className="text-xs text-gray-400 ml-2">
                 각 버튼을 클릭해서 마법 효과를 확인하세요
