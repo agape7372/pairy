@@ -29,7 +29,6 @@ import { CollabOverlay } from './CollabOverlay'
 import { ZoneSelector } from './ZoneSelector'
 import { OnboardingTour, useOnboarding, DEFAULT_TOUR_STEPS } from './OnboardingTour'
 import { ContextMenu, useContextMenu, createContextMenuItems } from './ContextMenu'
-import { useCollabOptional } from '@/lib/collab'
 // 협업 확장 컴포넌트
 import {
   ParticipantList,
@@ -38,6 +37,8 @@ import {
   CollabChat,
   InviteShareModal,
 } from '@/components/editor/collab'
+import { useCollabSession } from '@/hooks/useCollabSession'
+import type { CollabUser, EditingZone } from '@/lib/collab/types'
 import { useReducedMotion, useAnnounce } from '@/hooks/useAccessibility'
 import type { TemplateConfig, TemplateRendererRef } from '@/types/template'
 import {
@@ -103,8 +104,39 @@ export default function CanvasEditor({
   const rendererRef = useRef<TemplateRendererRef>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
-  // Sprint 32: 협업 컨텍스트 (선택적)
-  const collab = useCollabOptional()
+  // Sprint 35+: 협업 세션 훅 사용
+  const {
+    session: collabSession,
+    isHost,
+    participants,
+    createSession,
+    joinSession,
+    leaveSession,
+    getInviteLink,
+    copyInviteLink,
+  } = useCollabSession({
+    templateId,
+    workId: sessionId,
+  })
+
+  // 협업 상태 (데모용 - 실제로는 Supabase Realtime 사용)
+  const [collabUser, setCollabUser] = useState<CollabUser | null>(null)
+  const [isCollabConnected, setIsCollabConnected] = useState(false)
+  const [myZone, setMyZone] = useState<EditingZone>(null)
+  const [remoteUsers] = useState<Map<string, { id: string; name: string; color: string; zone: EditingZone; lastActivity: number; isOnline: boolean }>>(new Map())
+
+  // 세션 ID가 있으면 데모 사용자 설정
+  useEffect(() => {
+    if (sessionId && !collabUser) {
+      const demoUser: CollabUser = {
+        id: `user_${Math.random().toString(36).substr(2, 8)}`,
+        name: `사용자_${Math.floor(Math.random() * 1000)}`,
+        color: '#FF6B6B',
+      }
+      setCollabUser(demoUser)
+      setIsCollabConnected(true)
+    }
+  }, [sessionId, collabUser])
 
   // Store
   const {
@@ -919,7 +951,13 @@ export default function CanvasEditor({
           {/* Sprint 32+: 협업 상태 표시 (개선) */}
           {sessionId && (
             <div className="flex items-center gap-2">
-              <ConnectionIndicator size="sm" showLabel />
+              <ConnectionIndicator
+                sessionId={sessionId}
+                isConnected={isCollabConnected}
+                participantCount={remoteUsers.size + 1}
+                size="sm"
+                showLabel
+              />
               <button
                 onClick={() => setShowInviteModal(true)}
                 className="flex items-center gap-1 px-2 py-1 bg-accent-50 text-accent-700 rounded-lg hover:bg-accent-100 transition-colors"
@@ -927,7 +965,7 @@ export default function CanvasEditor({
               >
                 <Users className="w-4 h-4" />
                 <span className="text-xs font-medium hidden sm:inline">
-                  {collab?.isConnected ? `${collab.remoteUsers.size + 1}명` : '대기'}
+                  {isCollabConnected ? `${remoteUsers.size + 1}명` : '대기'}
                 </span>
               </button>
             </div>
@@ -1059,7 +1097,7 @@ export default function CanvasEditor({
                 />
 
                 {/* Sprint 32: 협업 오버레이 */}
-                {collab?.isConnected && (
+                {isCollabConnected && (
                   <CollabOverlay
                     canvasWidth={templateConfig.canvas.width}
                     canvasHeight={templateConfig.canvas.height}
@@ -1314,22 +1352,32 @@ export default function CanvasEditor({
       {/* 협업 확장: 참여자 목록 */}
       {sessionId && (
         <div className="fixed top-20 right-4 z-30">
-          <ParticipantList />
+          <ParticipantList
+            sessionId={sessionId}
+            user={collabUser}
+            remoteUsers={remoteUsers}
+            isHost={isHost}
+            myZone={myZone}
+          />
         </div>
       )}
 
       {/* 협업 확장: 채팅 */}
       {sessionId && (
-        <CollabChat position="bottom-right" />
+        <CollabChat
+          sessionId={sessionId}
+          user={collabUser}
+          position="bottom-right"
+        />
       )}
 
       {/* 협업 확장: 연결 끊김 배너 */}
       <ConnectionBanner
+        sessionId={sessionId || null}
+        isConnected={isCollabConnected}
         onReconnect={() => {
           // TODO: 재연결 로직
-          if (sessionId && collab?.localUser) {
-            collab.connect(sessionId, collab.localUser)
-          }
+          setIsCollabConnected(true)
         }}
       />
 
@@ -1337,10 +1385,10 @@ export default function CanvasEditor({
       <InviteShareModal
         isOpen={showInviteModal}
         onClose={() => setShowInviteModal(false)}
-        inviteCode={sessionId?.slice(-6).toUpperCase() || 'DEMO'}
+        inviteCode={collabSession?.inviteCode || sessionId?.slice(-6).toUpperCase() || 'DEMO'}
         sessionId={sessionId || ''}
-        maxParticipants={2}
-        currentParticipants={collab ? collab.remoteUsers.size + 1 : 1}
+        maxParticipants={collabSession?.maxParticipants || 2}
+        currentParticipants={remoteUsers.size + 1}
       />
     </div>
   )

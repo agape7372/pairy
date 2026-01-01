@@ -2,19 +2,33 @@
 
 /**
  * 협업 참여자 목록 컴포넌트
- * 현재 세션에 참여 중인 사용자들을 표시
+ * useUserActivity 훅을 사용한 활동 상태 추적
  */
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Users, Crown, Circle, ChevronDown, ChevronUp } from 'lucide-react'
-import { useCollabOptional } from '@/lib/collab'
-import type { EditingZone } from '@/lib/collab/types'
+import { useUserActivity, getActivityStatusColor, type ActivityStatus } from '@/hooks/useUserActivity'
+import type { EditingZone, CollabUser } from '@/lib/collab/types'
+
+// 원격 참여자 타입
+interface RemoteParticipant {
+  id: string
+  name: string
+  color: string
+  zone: EditingZone
+  lastActivity: number
+  isOnline: boolean
+}
 
 interface ParticipantListProps {
+  sessionId: string | null
+  user: CollabUser | null
+  remoteUsers?: Map<string, RemoteParticipant>
   isHost?: boolean
   hostName?: string
   className?: string
+  myZone?: EditingZone
 }
 
 // 사용자 색상 배열
@@ -32,13 +46,32 @@ function getUserColor(userId: string): string {
   return USER_COLORS[Math.abs(hash) % USER_COLORS.length]
 }
 
-export function ParticipantList({ isHost, hostName, className = '' }: ParticipantListProps) {
-  const collab = useCollabOptional()
+export function ParticipantList({
+  sessionId,
+  user,
+  remoteUsers,
+  isHost,
+  hostName,
+  className = '',
+  myZone,
+}: ParticipantListProps) {
   const [isExpanded, setIsExpanded] = useState(true)
 
-  const isConnected = collab?.isConnected ?? false
-  const participants = isConnected ? Array.from(collab!.remoteUsers.entries()) : []
+  // 로컬 사용자 활동 상태 추적
+  const { status: activityStatus } = useUserActivity({
+    enabled: !!sessionId,
+    onStatusChange: (newStatus) => {
+      // TODO: 활동 상태 변경 시 다른 사용자에게 브로드캐스트
+      console.log('[ParticipantList] Activity status changed:', newStatus)
+    },
+  })
+
+  const isConnected = !!sessionId && !!user
+  const participants = remoteUsers ? Array.from(remoteUsers.entries()) : []
   const totalCount = isConnected ? participants.length + 1 : 1 // +1 for local user
+
+  // 세션이 없으면 렌더링하지 않음
+  if (!sessionId) return null
 
   return (
     <motion.div
@@ -85,27 +118,28 @@ export function ParticipantList({ isHost, hostName, className = '' }: Participan
               )}
 
               {/* 나 (로컬 사용자) */}
-              {isConnected && (
+              {isConnected && user && (
                 <ParticipantItem
-                  userId={collab?.localUser?.id || 'me'}
-                  userName={collab?.localUser?.name || '나'}
-                  color={collab?.localUser?.color || '#FF6B6B'}
-                  zone={collab?.myZone ?? null}
+                  userId={user.id}
+                  userName={user.name}
+                  color={user.color || '#FF6B6B'}
+                  zone={myZone ?? null}
+                  activityStatus={activityStatus}
                   isLocal
                   isHost={isHost}
                 />
               )}
 
               {/* 원격 사용자들 */}
-              {participants.map(([userId, state]) => (
+              {participants.map(([participantId, participant]) => (
                 <ParticipantItem
-                  key={userId}
-                  userId={userId}
-                  userName={userId.slice(0, 8)}
-                  color={getUserColor(userId)}
-                  zone={state.zone}
-                  isActive={Date.now() - state.lastActivity < 5000}
-                  isHost={hostName === userId}
+                  key={participantId}
+                  userId={participantId}
+                  userName={participant.name}
+                  color={participant.color || getUserColor(participantId)}
+                  zone={participant.zone}
+                  isActive={participant.isOnline && Date.now() - participant.lastActivity < 5000}
+                  isHost={hostName === participant.name}
                 />
               ))}
             </div>
@@ -128,6 +162,7 @@ interface ParticipantItemProps {
   isLocal?: boolean
   isActive?: boolean
   isHost?: boolean
+  activityStatus?: ActivityStatus
 }
 
 function ParticipantItem({
@@ -138,7 +173,17 @@ function ParticipantItem({
   isLocal,
   isActive = true,
   isHost,
+  activityStatus,
 }: ParticipantItemProps) {
+  // 로컬 사용자는 activityStatus 사용, 원격 사용자는 isActive 사용
+  const statusColor = isLocal && activityStatus
+    ? getActivityStatusColor(activityStatus)
+    : isActive ? '#22C55E' : '#9CA3AF'
+
+  const statusTitle = isLocal && activityStatus
+    ? activityStatus === 'active' ? '활동 중' : activityStatus === 'idle' ? '대기 중' : '자리비움'
+    : isActive ? '온라인' : '오프라인'
+
   return (
     <motion.div
       initial={{ opacity: 0, x: -10 }}
@@ -151,10 +196,16 @@ function ParticipantItem({
     >
       {/* 아바타 */}
       <div
-        className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0"
+        className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0 relative"
         style={{ backgroundColor: color }}
       >
         {userName[0]?.toUpperCase() || '?'}
+        {/* 상태 인디케이터 (아바타 우하단) */}
+        <span
+          className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white"
+          style={{ backgroundColor: statusColor }}
+          title={statusTitle}
+        />
       </div>
 
       {/* 정보 */}
@@ -180,13 +231,6 @@ function ParticipantItem({
           </span>
         )}
       </div>
-
-      {/* 활성 상태 */}
-      <Circle
-        className={`w-2 h-2 shrink-0 ${
-          isActive ? 'fill-green-500 text-green-500' : 'fill-gray-300 text-gray-300'
-        }`}
-      />
     </motion.div>
   )
 }

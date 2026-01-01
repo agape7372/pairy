@@ -2,37 +2,54 @@
 
 /**
  * 연결 상태 표시 컴포넌트
- * 협업 세션의 연결 상태를 시각적으로 표시
+ * useReconnect 훅을 사용한 재연결 상태 관리
  */
 
 import { motion, AnimatePresence } from 'framer-motion'
-import { Wifi, WifiOff, Loader2, CloudOff, Users } from 'lucide-react'
-import { useCollabOptional } from '@/lib/collab'
-
-type ConnectionStatus = 'connected' | 'connecting' | 'disconnected' | 'offline'
+import { Wifi, WifiOff, Loader2, CloudOff, Users, RefreshCw } from 'lucide-react'
+import { useReconnect, getStatusMessage, type ConnectionStatus } from '@/hooks/useReconnect'
+import type { CollabUser } from '@/lib/collab/types'
 
 interface ConnectionIndicatorProps {
+  sessionId: string | null
+  isConnected: boolean
+  participantCount?: number
+  onReconnect?: () => Promise<boolean>
+  onDisconnect?: () => void
   className?: string
   showLabel?: boolean
   size?: 'sm' | 'md' | 'lg'
 }
 
 export function ConnectionIndicator({
+  sessionId,
+  isConnected: externalIsConnected,
+  participantCount: externalParticipantCount = 0,
+  onReconnect,
+  onDisconnect,
   className = '',
   showLabel = true,
   size = 'md',
 }: ConnectionIndicatorProps) {
-  const collab = useCollabOptional()
+  // useReconnect 훅 사용 (재연결 로직 위임 시)
+  const reconnect = useReconnect({
+    onReconnect: onReconnect || (async () => false),
+    onDisconnect,
+    autoReconnect: !!sessionId,
+  })
 
+  // 외부 상태와 재연결 상태 통합
   const getStatus = (): ConnectionStatus => {
-    if (!collab) return 'offline'
-    if (collab.isConnected) return 'connected'
-    if (collab.isSyncing) return 'connecting'
+    if (!sessionId) return 'offline'
+    if (externalIsConnected) return 'connected'
+    if (reconnect.status === 'reconnecting') return 'reconnecting'
+    if (reconnect.status === 'connecting') return 'connecting'
+    if (!reconnect.isOnline) return 'offline'
     return 'disconnected'
   }
 
   const status = getStatus()
-  const participantCount = collab ? collab.remoteUsers.size + 1 : 0
+  const participantCount = externalParticipantCount
 
   const sizeClasses = {
     sm: 'text-xs gap-1',
@@ -85,6 +102,19 @@ export function ConnectionIndicator({
             </>
           )}
 
+          {status === 'reconnecting' && (
+            <>
+              <RefreshCw className={`${iconSizes[size]} text-amber-500 animate-spin`} />
+              {showLabel && (
+                <span className="text-amber-600 font-medium">
+                  {reconnect.retryIn
+                    ? `${reconnect.retryIn}초 후 재연결...`
+                    : `재연결 중... (${reconnect.retryCount + 1}/${5})`}
+                </span>
+              )}
+            </>
+          )}
+
           {status === 'disconnected' && (
             <>
               <WifiOff className={`${iconSizes[size]} text-red-500`} />
@@ -125,34 +155,62 @@ export function ConnectionIndicator({
 // ============================================
 
 interface ConnectionBannerProps {
+  sessionId: string | null
+  isConnected: boolean
+  isReconnecting?: boolean
+  retryIn?: number | null
+  lastError?: string | null
   onReconnect?: () => void
 }
 
-export function ConnectionBanner({ onReconnect }: ConnectionBannerProps) {
-  const collab = useCollabOptional()
-
-  if (!collab || collab.isConnected) return null
+export function ConnectionBanner({
+  sessionId,
+  isConnected,
+  isReconnecting,
+  retryIn,
+  lastError,
+  onReconnect,
+}: ConnectionBannerProps) {
+  // 연결 안됨 + 세션 있을 때만 표시
+  if (!sessionId || isConnected) return null
 
   return (
-    <motion.div
-      initial={{ y: 100, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      exit={{ y: 100, opacity: 0 }}
-      className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50"
-    >
-      <div className="flex items-center gap-3 px-4 py-3 bg-red-500 text-white rounded-xl shadow-lg">
-        <WifiOff className="w-5 h-5" />
-        <span className="font-medium">협업 연결이 끊어졌습니다</span>
-        {onReconnect && (
-          <button
-            onClick={onReconnect}
-            className="px-3 py-1 bg-white text-red-500 rounded-lg text-sm font-medium hover:bg-red-50 transition-colors"
-          >
-            재연결
-          </button>
-        )}
-      </div>
-    </motion.div>
+    <AnimatePresence>
+      <motion.div
+        initial={{ y: 100, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: 100, opacity: 0 }}
+        className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50"
+      >
+        <div className="flex items-center gap-3 px-4 py-3 bg-red-500 text-white rounded-xl shadow-lg">
+          {isReconnecting ? (
+            <RefreshCw className="w-5 h-5 animate-spin" />
+          ) : (
+            <WifiOff className="w-5 h-5" />
+          )}
+          <div className="flex flex-col">
+            <span className="font-medium">
+              {isReconnecting
+                ? retryIn
+                  ? `${retryIn}초 후 재연결 시도...`
+                  : '재연결 중...'
+                : '협업 연결이 끊어졌습니다'}
+            </span>
+            {lastError && (
+              <span className="text-xs text-red-200">{lastError}</span>
+            )}
+          </div>
+          {onReconnect && !isReconnecting && (
+            <button
+              onClick={onReconnect}
+              className="px-3 py-1 bg-white text-red-500 rounded-lg text-sm font-medium hover:bg-red-50 transition-colors"
+            >
+              재연결
+            </button>
+          )}
+        </div>
+      </motion.div>
+    </AnimatePresence>
   )
 }
 

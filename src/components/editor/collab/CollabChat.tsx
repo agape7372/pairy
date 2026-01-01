@@ -2,85 +2,96 @@
 
 /**
  * 협업 채팅 컴포넌트
- * 간단한 메시지 & 이모지 반응 기능
+ * useCollabChat 훅을 사용한 실시간 메시지 & 이모지 반응
  */
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { MessageCircle, Send, X, Smile } from 'lucide-react'
-import { useCollabOptional } from '@/lib/collab'
+import { useCollabChat, type ChatMessage } from '@/hooks/useCollabChat'
+import { TypingIndicator } from './TypingIndicator'
+import type { CollabUser } from '@/lib/collab/types'
 
 // 빠른 이모지 반응 목록
 const QUICK_REACTIONS = ['👍', '❤️', '😊', '🎉', '👀', '✨', '🔥', '💯']
 
-interface ChatMessage {
-  id: string
-  userId: string
-  userName: string
-  userColor: string
-  content: string
-  type: 'text' | 'reaction'
-  timestamp: number
-}
-
 interface CollabChatProps {
+  sessionId: string | null
+  user: CollabUser | null
   className?: string
   position?: 'bottom-left' | 'bottom-right'
 }
 
-export function CollabChat({ className = '', position = 'bottom-right' }: CollabChatProps) {
-  const collab = useCollabOptional()
+export function CollabChat({
+  sessionId,
+  user,
+  className = '',
+  position = 'bottom-right',
+}: CollabChatProps) {
   const [isOpen, setIsOpen] = useState(false)
-  const [message, setMessage] = useState('')
-  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [inputValue, setInputValue] = useState('')
   const [showReactions, setShowReactions] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  // useCollabChat 훅 사용
+  const {
+    messages,
+    sendMessage,
+    typingUsers,
+    startTyping,
+    stopTyping,
+    isConnected,
+    unreadCount,
+    markAsRead,
+  } = useCollabChat({
+    sessionId,
+    user,
+  })
 
   // 메시지 자동 스크롤
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  // 채팅창 열릴 때 input 포커스
+  // 채팅창 열릴 때 input 포커스 및 읽음 처리
   useEffect(() => {
     if (isOpen) {
       inputRef.current?.focus()
+      markAsRead()
     }
-  }, [isOpen])
+  }, [isOpen, markAsRead])
 
-  const sendMessage = useCallback((content: string, type: 'text' | 'reaction' = 'text') => {
-    if (!collab?.localUser || !content.trim()) return
+  // 입력 변경 시 타이핑 상태 업데이트
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    setInputValue(value)
 
-    const newMessage: ChatMessage = {
-      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-      userId: collab.localUser.id,
-      userName: collab.localUser.name,
-      userColor: collab.localUser.color,
-      content: content.trim(),
-      type,
-      timestamp: Date.now(),
+    if (value.trim()) {
+      startTyping()
+    } else {
+      stopTyping()
     }
+  }, [startTyping, stopTyping])
 
-    setMessages((prev) => [...prev, newMessage])
-    setMessage('')
-
-    // TODO: Supabase Realtime으로 브로드캐스트
-    // collab.broadcastChat(newMessage)
-  }, [collab])
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault()
-    sendMessage(message, 'text')
-  }
+    if (!inputValue.trim()) return
 
-  const handleReaction = (emoji: string) => {
+    sendMessage(inputValue, 'text')
+    setInputValue('')
+    stopTyping()
+  }, [inputValue, sendMessage, stopTyping])
+
+  const handleReaction = useCallback((emoji: string) => {
     sendMessage(emoji, 'reaction')
     setShowReactions(false)
-  }
+  }, [sendMessage])
 
-  const isConnected = collab?.isConnected ?? false
   const positionClasses = position === 'bottom-left' ? 'left-4' : 'right-4'
+
+  // 세션이 없으면 렌더링하지 않음
+  if (!sessionId) return null
 
   return (
     <>
@@ -99,14 +110,14 @@ export function CollabChat({ className = '', position = 'bottom-right' }: Collab
           <MessageCircle className="w-5 h-5" />
         )}
 
-        {/* 알림 배지 */}
-        {!isOpen && messages.length > 0 && (
+        {/* 읽지 않은 메시지 배지 */}
+        {!isOpen && unreadCount > 0 && (
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full text-xs font-bold flex items-center justify-center"
           >
-            {messages.length > 9 ? '9+' : messages.length}
+            {unreadCount > 9 ? '9+' : unreadCount}
           </motion.div>
         )}
       </motion.button>
@@ -121,8 +132,16 @@ export function CollabChat({ className = '', position = 'bottom-right' }: Collab
             className={`fixed bottom-20 ${positionClasses} z-40 w-80 bg-white rounded-2xl shadow-xl overflow-hidden`}
           >
             {/* 헤더 */}
-            <div className="px-4 py-3 bg-gradient-to-r from-primary-100 to-accent-100 border-b">
+            <div className="px-4 py-3 bg-gradient-to-r from-primary-100 to-accent-100 border-b flex items-center justify-between">
               <h3 className="font-semibold text-gray-800">채팅</h3>
+              {isConnected ? (
+                <span className="text-xs text-green-600 flex items-center gap-1">
+                  <span className="w-2 h-2 bg-green-500 rounded-full" />
+                  연결됨
+                </span>
+              ) : (
+                <span className="text-xs text-gray-400">연결 중...</span>
+              )}
             </div>
 
             {/* 메시지 영역 */}
@@ -140,12 +159,19 @@ export function CollabChat({ className = '', position = 'bottom-right' }: Collab
                   <ChatMessageBubble
                     key={msg.id}
                     message={msg}
-                    isOwn={msg.userId === collab?.localUser?.id}
+                    isOwn={msg.userId === user?.id}
                   />
                 ))
               )}
               <div ref={messagesEndRef} />
             </div>
+
+            {/* 타이핑 인디케이터 */}
+            {typingUsers.length > 0 && (
+              <div className="px-3 py-2 border-t bg-white">
+                <TypingIndicator typingUsers={typingUsers} variant="inline" />
+              </div>
+            )}
 
             {/* 빠른 이모지 반응 */}
             <AnimatePresence>
@@ -186,15 +212,16 @@ export function CollabChat({ className = '', position = 'bottom-right' }: Collab
               <input
                 ref={inputRef}
                 type="text"
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
+                value={inputValue}
+                onChange={handleInputChange}
+                onBlur={stopTyping}
                 placeholder={isConnected ? "메시지 입력..." : "연결 대기 중..."}
                 disabled={!isConnected}
                 className="flex-1 px-3 py-2 bg-gray-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-200 disabled:opacity-50"
               />
               <button
                 type="submit"
-                disabled={!isConnected || !message.trim()}
+                disabled={!isConnected || !inputValue.trim()}
                 className="p-2 bg-primary-400 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary-500 transition-colors"
               >
                 <Send className="w-5 h-5" />
@@ -220,6 +247,17 @@ interface ChatMessageBubbleProps {
 }
 
 function ChatMessageBubble({ message, isOwn }: ChatMessageBubbleProps) {
+  // 시스템 메시지
+  if (message.type === 'system') {
+    return (
+      <div className="flex justify-center">
+        <span className="text-xs text-gray-400 bg-gray-100 px-3 py-1 rounded-full">
+          {message.content}
+        </span>
+      </div>
+    )
+  }
+
   // 이모지 반응인 경우 큰 이모지로 표시
   if (message.type === 'reaction') {
     return (
@@ -287,9 +325,11 @@ function FloatingReactions({ messages, position }: FloatingReactionsProps) {
       setFloatingEmojis((prev) => [...prev, newFloating])
 
       // 2초 후 제거
-      setTimeout(() => {
+      const timeoutId = setTimeout(() => {
         setFloatingEmojis((prev) => prev.filter((f) => f.id !== newFloating.id))
       }, 2000)
+
+      return () => clearTimeout(timeoutId)
     }
   }, [messages])
 
