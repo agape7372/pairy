@@ -1,102 +1,115 @@
 'use client'
 
-import { Suspense, useEffect, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { Suspense, useEffect, useState, useRef } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 function AuthCallbackContent() {
-  const router = useRouter()
   const searchParams = useSearchParams()
-  const [error, setError] = useState<string | null>(null)
+  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
+  const [message, setMessage] = useState('로그인 처리 중...')
+  const processedRef = useRef(false)
 
   useEffect(() => {
+    // 이미 처리했으면 무시 (React Strict Mode 대응)
+    if (processedRef.current) {
+      console.log('[Auth Callback] Already processed, skipping')
+      return
+    }
+
     const handleCallback = async () => {
       const code = searchParams.get('code')
       const redirectTo = searchParams.get('redirectTo') || '/'
+      const basePath = process.env.NEXT_PUBLIC_BASE_PATH || ''
 
-      console.log('[Auth Callback] Starting with code:', code ? 'exists' : 'missing')
-      console.log('[Auth Callback] Redirect to:', redirectTo)
+      console.log('[Auth Callback] Starting...', { code: code ? 'exists' : 'missing', redirectTo })
 
+      // 코드가 없으면 에러
       if (!code) {
-        console.error('[Auth Callback] No code found')
-        setError('인증 코드가 없습니다.')
-        setTimeout(() => router.push('/login?error=no_code'), 2000)
+        console.error('[Auth Callback] No code provided')
+        setStatus('error')
+        setMessage('인증 코드가 없습니다.')
+        setTimeout(() => {
+          window.location.href = `${basePath}/login?error=no_code`
+        }, 2000)
         return
       }
 
+      processedRef.current = true
+      const supabase = createClient()
+
       try {
-        const supabase = createClient()
+        // 먼저 이미 세션이 있는지 확인
+        const { data: { session: existingSession } } = await supabase.auth.getSession()
 
-        // 1. Exchange code for session
+        if (existingSession) {
+          console.log('[Auth Callback] Session already exists, redirecting...')
+          setStatus('success')
+          setMessage('로그인 완료! 이동 중...')
+          const finalUrl = redirectTo.startsWith('/') ? `${basePath}${redirectTo}` : redirectTo
+          window.location.href = finalUrl
+          return
+        }
+
+        // 세션이 없으면 코드로 교환
         console.log('[Auth Callback] Exchanging code for session...')
-        let sessionData, sessionError
-        try {
-          const result = await supabase.auth.exchangeCodeForSession(code)
-          sessionData = result.data
-          sessionError = result.error
-          console.log('[Auth Callback] Exchange complete, error:', sessionError?.message || 'none')
-        } catch (e) {
-          console.error('[Auth Callback] Exchange threw:', e)
-          throw e
+        const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+
+        if (error) {
+          console.error('[Auth Callback] Exchange error:', error.message)
+          // 이미 사용된 코드일 수 있음 - 세션 다시 확인
+          const { data: { session: retrySession } } = await supabase.auth.getSession()
+          if (retrySession) {
+            console.log('[Auth Callback] Session found on retry, redirecting...')
+            setStatus('success')
+            setMessage('로그인 완료! 이동 중...')
+            const finalUrl = redirectTo.startsWith('/') ? `${basePath}${redirectTo}` : redirectTo
+            window.location.href = finalUrl
+            return
+          }
+          throw error
         }
 
-        if (sessionError) {
-          console.error('[Auth Callback] Session exchange error:', sessionError)
-          throw sessionError
-        }
+        console.log('[Auth Callback] Session obtained for:', data.user?.email)
 
-        console.log('[Auth Callback] Session obtained successfully')
+        // 프로필 확인/생성
+        if (data.user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('id', data.user.id)
+            .single()
 
-        // 2. Get user
-        const { data: { user }, error: userError } = await supabase.auth.getUser()
-
-        if (userError || !user) {
-          console.error('[Auth Callback] Get user error:', userError)
-          throw userError || new Error('User not found')
-        }
-
-        console.log('[Auth Callback] User:', user.email)
-
-        // 3. Check/create profile
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('id', user.id)
-          .single()
-
-        if (profileError && profileError.code !== 'PGRST116') {
-          // PGRST116 = no rows returned (profile doesn't exist)
-          console.error('[Auth Callback] Profile fetch error:', profileError)
-        }
-
-        if (!profile) {
-          console.log('[Auth Callback] Creating new profile...')
-          const { error: insertError } = await supabase.from('profiles').insert({
-            id: user.id,
-            username: user.email?.split('@')[0] || null,
-            display_name: user.user_metadata?.full_name || user.user_metadata?.name || '새로운 사용자',
-            avatar_url: user.user_metadata?.avatar_url || user.user_metadata?.picture,
-            role: 'user',
-          })
-
-          if (insertError) {
-            console.error('[Auth Callback] Profile insert error:', insertError)
-            // Don't throw - user can still proceed without profile
-          } else {
-            console.log('[Auth Callback] Profile created successfully')
+          if (!profile) {
+            console.log('[Auth Callback] Creating profile...')
+            await supabase.from('profiles').insert({
+              id: data.user.id,
+              username: data.user.email?.split('@')[0] || null,
+              display_name: data.user.user_metadata?.full_name || data.user.user_metadata?.name || '새로운 사용자',
+              avatar_url: data.user.user_metadata?.avatar_url || data.user.user_metadata?.picture,
+              role: 'user',
+            }).then(res => {
+              if (res.error) console.error('[Auth Callback] Profile creation error:', res.error)
+              else console.log('[Auth Callback] Profile created')
+            })
           }
         }
 
-        // 4. Redirect - window.location 사용 (router.push가 정적 사이트에서 불안정)
-        const basePath = process.env.NEXT_PUBLIC_BASE_PATH || ''
-        const finalRedirect = redirectTo.startsWith('/') ? `${basePath}${redirectTo}` : redirectTo
-        console.log('[Auth Callback] Redirecting to:', finalRedirect)
-        window.location.href = finalRedirect
+        // 리다이렉트
+        setStatus('success')
+        setMessage('로그인 완료! 이동 중...')
+        const finalUrl = redirectTo.startsWith('/') ? `${basePath}${redirectTo}` : redirectTo
+        console.log('[Auth Callback] Redirecting to:', finalUrl)
 
-      } catch (err) {
+        // 약간의 딜레이 후 리다이렉트 (상태 업데이트가 보이도록)
+        setTimeout(() => {
+          window.location.href = finalUrl
+        }, 500)
+
+      } catch (err: any) {
         console.error('[Auth Callback] Error:', err)
-        setError('인증에 실패했습니다.')
-        const basePath = process.env.NEXT_PUBLIC_BASE_PATH || ''
+        setStatus('error')
+        setMessage(err.message || '인증에 실패했습니다.')
         setTimeout(() => {
           window.location.href = `${basePath}/login?error=auth_failed`
         }, 2000)
@@ -104,24 +117,23 @@ function AuthCallbackContent() {
     }
 
     handleCallback()
-  }, [searchParams, router])
-
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#FFD9D9] to-[#D7FAFA]">
-        <div className="text-center p-8 bg-white rounded-2xl shadow-lg">
-          <p className="text-red-500 mb-2">{error}</p>
-          <p className="text-gray-500 text-sm">로그인 페이지로 이동합니다...</p>
-        </div>
-      </div>
-    )
-  }
+  }, [searchParams])
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#FFD9D9] to-[#D7FAFA]">
-      <div className="text-center p-8 bg-white rounded-2xl shadow-lg">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#FFD9D9] border-t-transparent mx-auto mb-4"></div>
-        <p className="text-gray-600">로그인 처리 중...</p>
+      <div className="text-center p-8 bg-white rounded-2xl shadow-lg max-w-sm">
+        {status === 'loading' && (
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#FFD9D9] border-t-transparent mx-auto mb-4" />
+        )}
+        {status === 'success' && (
+          <div className="text-4xl mb-4">✓</div>
+        )}
+        {status === 'error' && (
+          <div className="text-4xl mb-4">⚠️</div>
+        )}
+        <p className={status === 'error' ? 'text-red-500' : 'text-gray-600'}>
+          {message}
+        </p>
       </div>
     </div>
   )
@@ -131,7 +143,7 @@ function LoadingFallback() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#FFD9D9] to-[#D7FAFA]">
       <div className="text-center p-8 bg-white rounded-2xl shadow-lg">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#FFD9D9] border-t-transparent mx-auto mb-4"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#FFD9D9] border-t-transparent mx-auto mb-4" />
         <p className="text-gray-600">로딩 중...</p>
       </div>
     </div>
