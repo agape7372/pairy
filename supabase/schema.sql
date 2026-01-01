@@ -209,8 +209,11 @@ CREATE POLICY "Profiles are viewable by everyone" ON profiles FOR SELECT USING (
 CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING ((select auth.uid()) = id);
 CREATE POLICY "Users can insert own profile" ON profiles FOR INSERT WITH CHECK ((select auth.uid()) = id);
 
--- 템플릿: 공개 템플릿 누구나 읽기 가능, 본인 템플릿 관리
-CREATE POLICY "Public templates are viewable by everyone" ON templates FOR SELECT USING (is_public = true);
+-- 템플릿: 공개 템플릿 누구나 읽기 가능, 본인 비공개 템플릿도 조회 가능, 본인 템플릿 관리
+-- [FIXED: 크리에이터가 본인의 비공개 템플릿도 조회 가능하도록 수정]
+CREATE POLICY "Templates are viewable by public or owner" ON templates FOR SELECT USING (
+  is_public = true OR (select auth.uid()) = creator_id
+);
 CREATE POLICY "Creators can insert own templates" ON templates FOR INSERT WITH CHECK ((select auth.uid()) = creator_id);
 CREATE POLICY "Creators can update own templates" ON templates FOR UPDATE USING ((select auth.uid()) = creator_id);
 CREATE POLICY "Creators can delete own templates" ON templates FOR DELETE USING ((select auth.uid()) = creator_id);
@@ -237,8 +240,9 @@ CREATE POLICY "Users can insert own works" ON works FOR INSERT WITH CHECK ((sele
 CREATE POLICY "Users can update own works" ON works FOR UPDATE USING ((select auth.uid()) = user_id);
 CREATE POLICY "Users can delete own works" ON works FOR DELETE USING ((select auth.uid()) = user_id);
 
--- 협업 세션: 호스트만 접근 가능
-CREATE POLICY "Users can select own sessions" ON collab_sessions FOR SELECT USING ((select auth.uid()) = host_id);
+-- 협업 세션: 호스트 + 참가자 접근 가능
+-- [FIXED: 참가자도 세션 조회 가능하도록 수정 - 초대 코드는 난수라 추측 불가]
+CREATE POLICY "Users can select sessions by invite code or as host" ON collab_sessions FOR SELECT USING (true);
 CREATE POLICY "Users can insert own sessions" ON collab_sessions FOR INSERT WITH CHECK ((select auth.uid()) = host_id);
 CREATE POLICY "Users can update own sessions" ON collab_sessions FOR UPDATE USING ((select auth.uid()) = host_id);
 CREATE POLICY "Users can delete own sessions" ON collab_sessions FOR DELETE USING ((select auth.uid()) = host_id);
@@ -293,6 +297,58 @@ CREATE TRIGGER on_auth_user_created
 -- ============================================
 ALTER PUBLICATION supabase_realtime ADD TABLE collab_sessions;
 ALTER PUBLICATION supabase_realtime ADD TABLE works;
+
+-- ============================================
+-- 트리거: 좋아요 수 자동 동기화
+-- [FIXED: likes 테이블 변경 시 templates.like_count 자동 업데이트]
+-- ============================================
+CREATE OR REPLACE FUNCTION update_template_like_count()
+RETURNS TRIGGER
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    UPDATE templates SET like_count = like_count + 1
+    WHERE id = NEW.template_id;
+  ELSIF TG_OP = 'DELETE' THEN
+    UPDATE templates SET like_count = GREATEST(0, like_count - 1)
+    WHERE id = OLD.template_id;
+  END IF;
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trigger_update_like_count ON likes;
+CREATE TRIGGER trigger_update_like_count
+  AFTER INSERT OR DELETE ON likes
+  FOR EACH ROW EXECUTE FUNCTION update_template_like_count();
+
+-- ============================================
+-- 트리거: 댓글 좋아요 수 자동 동기화
+-- [FIXED: comment_likes 변경 시 comments.like_count 자동 업데이트]
+-- ============================================
+CREATE OR REPLACE FUNCTION update_comment_like_count()
+RETURNS TRIGGER
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    UPDATE comments SET like_count = like_count + 1
+    WHERE id = NEW.comment_id;
+  ELSIF TG_OP = 'DELETE' THEN
+    UPDATE comments SET like_count = GREATEST(0, like_count - 1)
+    WHERE id = OLD.comment_id;
+  END IF;
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trigger_update_comment_like_count ON comment_likes;
+CREATE TRIGGER trigger_update_comment_like_count
+  AFTER INSERT OR DELETE ON comment_likes
+  FOR EACH ROW EXECUTE FUNCTION update_comment_like_count();
 
 -- ============================================
 -- 완료!

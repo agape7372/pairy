@@ -1,6 +1,11 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+/**
+ * 구매 관련 훅
+ * [FIXED: useRef로 race condition 방지 - 빠른 더블클릭 시 중복 구매 방지]
+ */
+
+import { useCallback, useState, useRef } from 'react'
 import { useMarketplaceStore, PricingType, Purchase } from '@/stores/marketplaceStore'
 
 interface TemplateForPurchase {
@@ -25,17 +30,22 @@ export function usePurchase(template: TemplateForPurchase): UsePurchaseReturn {
   const [isPurchasing, setIsPurchasing] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // [FIXED: useRef로 동기적 체크 - 상태는 비동기라 race condition 발생 가능]
+  const purchasingRef = useRef(false)
+
   const storePurchase = useMarketplaceStore((state) => state.purchaseTemplate)
   const hasPurchased = useMarketplaceStore((state) => state.hasPurchased(template.id))
   const existingPurchase = useMarketplaceStore((state) => state.getPurchasesByTemplate(template.id))
 
   const purchaseTemplate = useCallback(async (): Promise<Purchase | null> => {
-    // Race condition 방지: 이미 구매 중이면 무시
-    if (isPurchasing) {
+    // [FIXED: ref 기반 동기적 체크로 race condition 완전 방지]
+    if (purchasingRef.current) {
       return null
     }
+    purchasingRef.current = true
 
     if (hasPurchased) {
+      purchasingRef.current = false
       setError('이미 구매한 템플릿입니다.')
       return null
     }
@@ -51,6 +61,7 @@ export function usePurchase(template: TemplateForPurchase): UsePurchaseReturn {
         price: 0,
         pricingType: 'free',
       })
+      purchasingRef.current = false
       return purchase
     }
 
@@ -80,8 +91,9 @@ export function usePurchase(template: TemplateForPurchase): UsePurchaseReturn {
       return null
     } finally {
       setIsPurchasing(false)
+      purchasingRef.current = false  // [FIXED: 반드시 해제]
     }
-  }, [template, hasPurchased, storePurchase, isPurchasing])
+  }, [template, hasPurchased, storePurchase])
 
   return {
     isPurchasing,
