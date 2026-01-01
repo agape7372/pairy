@@ -917,9 +917,9 @@ export default function CanvasEditor({
           </Button>
 
           {/* Sprint 32+: 협업 상태 표시 (개선) */}
-          {collab?.isConnected && (
+          {sessionId && (
             <div className="flex items-center gap-2">
-              <ConnectionIndicator size="sm" showLabel={false} />
+              <ConnectionIndicator size="sm" showLabel />
               <button
                 onClick={() => setShowInviteModal(true)}
                 className="flex items-center gap-1 px-2 py-1 bg-accent-50 text-accent-700 rounded-lg hover:bg-accent-100 transition-colors"
@@ -927,7 +927,7 @@ export default function CanvasEditor({
               >
                 <Users className="w-4 h-4" />
                 <span className="text-xs font-medium hidden sm:inline">
-                  {collab.remoteUsers.size + 1}명 참여 중
+                  {collab?.isConnected ? `${collab.remoteUsers.size + 1}명` : '대기'}
                 </span>
               </button>
             </div>
@@ -1312,14 +1312,14 @@ export default function CanvasEditor({
       />
 
       {/* 협업 확장: 참여자 목록 */}
-      {collab?.isConnected && (
+      {sessionId && (
         <div className="fixed top-20 right-4 z-30">
           <ParticipantList />
         </div>
       )}
 
       {/* 협업 확장: 채팅 */}
-      {collab?.isConnected && (
+      {sessionId && (
         <CollabChat position="bottom-right" />
       )}
 

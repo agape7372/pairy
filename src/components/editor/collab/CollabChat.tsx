@@ -79,8 +79,7 @@ export function CollabChat({ className = '', position = 'bottom-right' }: Collab
     setShowReactions(false)
   }
 
-  if (!collab || !collab.isConnected) return null
-
+  const isConnected = collab?.isConnected ?? false
   const positionClasses = position === 'bottom-left' ? 'left-4' : 'right-4'
 
   return (
@@ -128,7 +127,11 @@ export function CollabChat({ className = '', position = 'bottom-right' }: Collab
 
             {/* 메시지 영역 */}
             <div className="h-64 overflow-y-auto p-3 space-y-2 bg-gray-50">
-              {messages.length === 0 ? (
+              {!isConnected ? (
+                <div className="h-full flex items-center justify-center text-gray-400 text-sm">
+                  <span className="animate-pulse">연결 중...</span>
+                </div>
+              ) : messages.length === 0 ? (
                 <div className="h-full flex items-center justify-center text-gray-400 text-sm">
                   메시지를 보내보세요!
                 </div>
@@ -137,7 +140,7 @@ export function CollabChat({ className = '', position = 'bottom-right' }: Collab
                   <ChatMessageBubble
                     key={msg.id}
                     message={msg}
-                    isOwn={msg.userId === collab.localUser?.id}
+                    isOwn={msg.userId === collab?.localUser?.id}
                   />
                 ))
               )}
@@ -173,9 +176,10 @@ export function CollabChat({ className = '', position = 'bottom-right' }: Collab
               <button
                 type="button"
                 onClick={() => setShowReactions(!showReactions)}
+                disabled={!isConnected}
                 className={`p-2 rounded-lg transition-colors ${
                   showReactions ? 'bg-primary-100 text-primary-600' : 'text-gray-400 hover:bg-gray-100'
-                }`}
+                } disabled:opacity-50`}
               >
                 <Smile className="w-5 h-5" />
               </button>
@@ -184,12 +188,13 @@ export function CollabChat({ className = '', position = 'bottom-right' }: Collab
                 type="text"
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                placeholder="메시지 입력..."
-                className="flex-1 px-3 py-2 bg-gray-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-200"
+                placeholder={isConnected ? "메시지 입력..." : "연결 대기 중..."}
+                disabled={!isConnected}
+                className="flex-1 px-3 py-2 bg-gray-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-200 disabled:opacity-50"
               />
               <button
                 type="submit"
-                disabled={!message.trim()}
+                disabled={!isConnected || !message.trim()}
                 className="p-2 bg-primary-400 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary-500 transition-colors"
               >
                 <Send className="w-5 h-5" />

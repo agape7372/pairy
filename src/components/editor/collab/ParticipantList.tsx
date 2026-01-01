@@ -36,10 +36,9 @@ export function ParticipantList({ isHost, hostName, className = '' }: Participan
   const collab = useCollabOptional()
   const [isExpanded, setIsExpanded] = useState(true)
 
-  if (!collab || !collab.isConnected) return null
-
-  const participants = Array.from(collab.remoteUsers.entries())
-  const totalCount = participants.length + 1 // +1 for local user
+  const isConnected = collab?.isConnected ?? false
+  const participants = isConnected ? Array.from(collab!.remoteUsers.entries()) : []
+  const totalCount = isConnected ? participants.length + 1 : 1 // +1 for local user
 
   return (
     <motion.div
@@ -78,15 +77,24 @@ export function ParticipantList({ isHost, hostName, className = '' }: Participan
             className="overflow-hidden"
           >
             <div className="p-2 space-y-1 max-h-60 overflow-y-auto">
+              {/* 연결 상태 표시 */}
+              {!isConnected && (
+                <div className="px-3 py-2 text-center text-sm text-gray-500">
+                  <span className="animate-pulse">연결 중...</span>
+                </div>
+              )}
+
               {/* 나 (로컬 사용자) */}
-              <ParticipantItem
-                userId={collab.localUser?.id || 'me'}
-                userName={collab.localUser?.name || '나'}
-                color={collab.localUser?.color || '#FF6B6B'}
-                zone={collab.myZone}
-                isLocal
-                isHost={isHost}
-              />
+              {isConnected && (
+                <ParticipantItem
+                  userId={collab?.localUser?.id || 'me'}
+                  userName={collab?.localUser?.name || '나'}
+                  color={collab?.localUser?.color || '#FF6B6B'}
+                  zone={collab?.myZone ?? null}
+                  isLocal
+                  isHost={isHost}
+                />
+              )}
 
               {/* 원격 사용자들 */}
               {participants.map(([userId, state]) => (
