@@ -30,12 +30,13 @@ function AuthCallbackContent() {
               .single()
 
             if (!profile) {
-              // Create new profile
+              // Create new profile with default role
               await supabase.from('profiles').insert({
                 id: user.id,
-                email: user.email,
+                username: user.email?.split('@')[0] || null,
                 display_name: user.user_metadata?.full_name || user.user_metadata?.name || '새로운 사용자',
                 avatar_url: user.user_metadata?.avatar_url || user.user_metadata?.picture,
+                role: 'user', // 기본 역할
               })
             }
           }

@@ -6,6 +6,8 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
+export type UserRole = 'user' | 'creator' | 'admin' | 'super_admin'
+
 export interface Database {
   public: {
     Tables: {
@@ -16,6 +18,7 @@ export interface Database {
           display_name: string | null
           avatar_url: string | null
           bio: string | null
+          role: UserRole
           is_creator: boolean
           follower_count: number
           following_count: number
@@ -30,6 +33,7 @@ export interface Database {
           display_name?: string | null
           avatar_url?: string | null
           bio?: string | null
+          role?: UserRole
           is_creator?: boolean
           follower_count?: number
           following_count?: number
@@ -44,6 +48,7 @@ export interface Database {
           display_name?: string | null
           avatar_url?: string | null
           bio?: string | null
+          role?: UserRole
           is_creator?: boolean
           follower_count?: number
           following_count?: number

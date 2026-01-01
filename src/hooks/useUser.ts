@@ -3,18 +3,26 @@
 import { useEffect, useState } from 'react'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import type { User } from '@supabase/supabase-js'
+import type { UserRole } from '@/types/database.types'
+
+export type { UserRole }
 
 interface Profile {
   id: string
   display_name: string | null
   avatar_url: string | null
   bio: string | null
+  role: UserRole
 }
 
 interface UseUserReturn {
   user: User | null
   profile: Profile | null
   isLoading: boolean
+  role: UserRole | null
+  isAdmin: boolean
+  isSuperAdmin: boolean
+  isCreator: boolean
   signOut: () => Promise<void>
 }
 
@@ -41,7 +49,7 @@ export function useUser(): UseUserReturn {
         if (user) {
           const { data: profile } = await supabase
             .from('profiles')
-            .select('id, display_name, avatar_url, bio')
+            .select('id, display_name, avatar_url, bio, role')
             .eq('id', user.id)
             .single()
 
@@ -64,7 +72,7 @@ export function useUser(): UseUserReturn {
         if (session?.user) {
           const { data: profile } = await supabase
             .from('profiles')
-            .select('id, display_name, avatar_url, bio')
+            .select('id, display_name, avatar_url, bio, role')
             .eq('id', session.user.id)
             .single()
 
@@ -91,5 +99,10 @@ export function useUser(): UseUserReturn {
     setProfile(null)
   }
 
-  return { user, profile, isLoading, signOut }
+  const role = profile?.role ?? null
+  const isAdmin = role === 'admin' || role === 'super_admin'
+  const isSuperAdmin = role === 'super_admin'
+  const isCreator = role === 'creator' || isAdmin
+
+  return { user, profile, isLoading, role, isAdmin, isSuperAdmin, isCreator, signOut }
 }

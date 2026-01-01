@@ -2,18 +2,28 @@
 
 import { Suspense, useState } from 'react'
 import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Mail, Lock, Eye, EyeOff } from 'lucide-react'
 import { Button } from '@/components/ui'
 import { createClient } from '@/lib/supabase/client'
 
 type Provider = 'google' | 'twitter'
+type AuthMode = 'login' | 'signup'
 
 function LoginContent() {
+  const router = useRouter()
   const searchParams = useSearchParams()
   const redirectTo = searchParams.get('redirectTo') || '/'
 
-  const [isLoading, setIsLoading] = useState<Provider | null>(null)
+  const [mode, setMode] = useState<AuthMode>('login')
+  const [isLoading, setIsLoading] = useState<Provider | 'email' | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
+
+  // 이메일/비밀번호 폼
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
 
   const handleSocialLogin = async (provider: Provider) => {
     setIsLoading(provider)
@@ -21,10 +31,11 @@ function LoginContent() {
 
     try {
       const supabase = createClient()
+      const basePath = process.env.NODE_ENV === 'production' ? '/pairy' : ''
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: `${window.location.origin}/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`,
+          redirectTo: `${window.location.origin}${basePath}/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`,
         },
       })
 
@@ -34,6 +45,66 @@ function LoginContent() {
     } catch (err) {
       console.error('Login error:', err)
       setError('로그인 중 오류가 발생했어요. 다시 시도해주세요.')
+      setIsLoading(null)
+    }
+  }
+
+  const handleEmailAuth = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsLoading('email')
+    setError(null)
+    setSuccess(null)
+
+    try {
+      const supabase = createClient()
+
+      if (mode === 'signup') {
+        // 회원가입
+        const basePath = process.env.NODE_ENV === 'production' ? '/pairy' : ''
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}${basePath}/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`,
+          },
+        })
+
+        if (error) throw error
+
+        if (data.user && !data.user.confirmed_at) {
+          setSuccess('이메일을 확인해주세요! 인증 링크를 보냈어요.')
+        } else {
+          // 이메일 인증이 필요 없는 경우 바로 프로필 생성
+          if (data.user) {
+            await supabase.from('profiles').insert({
+              id: data.user.id,
+              username: email.split('@')[0],
+              display_name: email.split('@')[0],
+              role: 'user',
+            })
+          }
+          router.push(redirectTo)
+        }
+      } else {
+        // 로그인
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        })
+
+        if (error) {
+          if (error.message.includes('Invalid login credentials')) {
+            throw new Error('이메일 또는 비밀번호가 올바르지 않아요.')
+          }
+          throw error
+        }
+
+        router.push(redirectTo)
+      }
+    } catch (err: any) {
+      console.error('Auth error:', err)
+      setError(err.message || '오류가 발생했어요. 다시 시도해주세요.')
+    } finally {
       setIsLoading(null)
     }
   }
@@ -115,6 +186,102 @@ function LoginContent() {
               <span>X로 계속하기</span>
             </button>
           </div>
+
+          {/* Divider */}
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-200" />
+            </div>
+            <div className="relative flex justify-center text-xs">
+              <span className="px-2 bg-white text-gray-400">또는</span>
+            </div>
+          </div>
+
+          {/* Email/Password Form */}
+          <form onSubmit={handleEmailAuth} className="space-y-4">
+            {/* Success Message */}
+            {success && (
+              <div className="p-4 bg-green-50 border border-green-200 rounded-xl text-sm text-green-600">
+                {success}
+              </div>
+            )}
+
+            {/* Email Input */}
+            <div className="relative">
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="이메일"
+                required
+                className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent"
+              />
+            </div>
+
+            {/* Password Input */}
+            <div className="relative">
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="비밀번호"
+                required
+                minLength={6}
+                className="w-full pl-12 pr-12 py-3 border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
+
+            {/* Submit Button */}
+            <Button
+              type="submit"
+              disabled={isLoading !== null}
+              className="w-full"
+            >
+              {isLoading === 'email' ? (
+                <LoadingSpinner />
+              ) : mode === 'login' ? (
+                '로그인'
+              ) : (
+                '회원가입'
+              )}
+            </Button>
+
+            {/* Toggle Mode */}
+            <div className="text-center text-sm text-gray-500">
+              {mode === 'login' ? (
+                <>
+                  계정이 없으신가요?{' '}
+                  <button
+                    type="button"
+                    onClick={() => setMode('signup')}
+                    className="text-primary-400 hover:underline font-medium"
+                  >
+                    회원가입
+                  </button>
+                </>
+              ) : (
+                <>
+                  이미 계정이 있으신가요?{' '}
+                  <button
+                    type="button"
+                    onClick={() => setMode('login')}
+                    className="text-primary-400 hover:underline font-medium"
+                  >
+                    로그인
+                  </button>
+                </>
+              )}
+            </div>
+          </form>
 
           {/* Divider */}
           <div className="relative my-6">
