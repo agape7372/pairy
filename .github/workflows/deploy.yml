@@ -36,6 +36,8 @@ jobs:
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_BASE_PATH: /pairy
+          NEXT_PUBLIC_SITE_URL: https://agape7372.github.io/pairy
 
       - name: Setup Pages
         uses: actions/configure-pages@v4

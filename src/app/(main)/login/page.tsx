@@ -31,7 +31,7 @@ function LoginContent() {
 
     try {
       const supabase = createClient()
-      const basePath = process.env.NODE_ENV === 'production' ? '/pairy' : ''
+      const basePath = process.env.NEXT_PUBLIC_BASE_PATH || ''
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
@@ -60,7 +60,7 @@ function LoginContent() {
 
       if (mode === 'signup') {
         // 회원가입
-        const basePath = process.env.NODE_ENV === 'production' ? '/pairy' : ''
+        const basePath = process.env.NEXT_PUBLIC_BASE_PATH || ''
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
