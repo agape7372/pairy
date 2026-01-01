@@ -27,15 +27,18 @@ export function createClient() {
       SUPABASE_ANON_KEY!,
       {
         auth: {
-          // 기본 설정 사용 - Supabase가 자동으로 localStorage에 저장
           persistSession: true,
           autoRefreshToken: true,
-          detectSessionInUrl: true,
+          // [FIXED: detectSessionInUrl을 false로 설정]
+          // true일 경우 Supabase가 자동으로 URL의 OAuth code를 감지하고 교환함
+          // 우리가 수동으로 exchangeCodeForSession()을 호출하면 충돌 발생
+          // → "PKCE code verifier not found" 또는 "code already used" 에러
+          detectSessionInUrl: false,
         },
       }
     )
 
-    console.log('[Supabase] Client initialized')
+    console.log('[Supabase] Client initialized with detectSessionInUrl: false')
   }
 
   return supabaseClient
