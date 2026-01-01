@@ -30,6 +30,14 @@ import { ZoneSelector } from './ZoneSelector'
 import { OnboardingTour, useOnboarding, DEFAULT_TOUR_STEPS } from './OnboardingTour'
 import { ContextMenu, useContextMenu, createContextMenuItems } from './ContextMenu'
 import { useCollabOptional } from '@/lib/collab'
+// 협업 확장 컴포넌트
+import {
+  ParticipantList,
+  ConnectionIndicator,
+  ConnectionBanner,
+  CollabChat,
+  InviteShareModal,
+} from '@/components/editor/collab'
 import { useReducedMotion, useAnnounce } from '@/hooks/useAccessibility'
 import type { TemplateConfig, TemplateRendererRef } from '@/types/template'
 import {
@@ -155,6 +163,9 @@ export default function CanvasEditor({
   const [editingTextId, setEditingTextId] = useState<string | null>(null)
   const [editingValue, setEditingValue] = useState('')
   const inlineInputRef = useRef<HTMLTextAreaElement>(null)
+
+  // 협업 확장: 초대 모달
+  const [showInviteModal, setShowInviteModal] = useState(false)
 
   // 핀치 줌 상태
   const lastTouchDistance = useRef<number | null>(null)
@@ -905,13 +916,20 @@ export default function CanvasEditor({
             <span className="hidden sm:inline ml-1">저장</span>
           </Button>
 
-          {/* Sprint 32: 협업 상태 표시 */}
+          {/* Sprint 32+: 협업 상태 표시 (개선) */}
           {collab?.isConnected && (
-            <div className="flex items-center gap-1 px-2 py-1 bg-accent-50 text-accent-700 rounded-lg">
-              <Users className="w-4 h-4" />
-              <span className="text-xs font-medium hidden sm:inline">
-                {collab.remoteUsers.size + 1}명 참여 중
-              </span>
+            <div className="flex items-center gap-2">
+              <ConnectionIndicator size="sm" showLabel={false} />
+              <button
+                onClick={() => setShowInviteModal(true)}
+                className="flex items-center gap-1 px-2 py-1 bg-accent-50 text-accent-700 rounded-lg hover:bg-accent-100 transition-colors"
+                title="초대 공유"
+              >
+                <Users className="w-4 h-4" />
+                <span className="text-xs font-medium hidden sm:inline">
+                  {collab.remoteUsers.size + 1}명 참여 중
+                </span>
+              </button>
             </div>
           )}
 
@@ -1291,6 +1309,38 @@ export default function CanvasEditor({
             toast.info('초기화 기능은 준비 중입니다')
           },
         })}
+      />
+
+      {/* 협업 확장: 참여자 목록 */}
+      {collab?.isConnected && (
+        <div className="fixed top-20 right-4 z-30">
+          <ParticipantList />
+        </div>
+      )}
+
+      {/* 협업 확장: 채팅 */}
+      {collab?.isConnected && (
+        <CollabChat position="bottom-right" />
+      )}
+
+      {/* 협업 확장: 연결 끊김 배너 */}
+      <ConnectionBanner
+        onReconnect={() => {
+          // TODO: 재연결 로직
+          if (sessionId && collab?.localUser) {
+            collab.connect(sessionId, collab.localUser)
+          }
+        }}
+      />
+
+      {/* 협업 확장: 초대 공유 모달 */}
+      <InviteShareModal
+        isOpen={showInviteModal}
+        onClose={() => setShowInviteModal(false)}
+        inviteCode={sessionId?.slice(-6).toUpperCase() || 'DEMO'}
+        sessionId={sessionId || ''}
+        maxParticipants={2}
+        currentParticipants={collab ? collab.remoteUsers.size + 1 : 1}
       />
     </div>
   )

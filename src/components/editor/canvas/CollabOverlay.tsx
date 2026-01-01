@@ -1,16 +1,33 @@
 'use client'
 
 /**
- * Sprint 32: 협업 오버레이 컴포넌트
- * - 원격 커서 표시
+ * Sprint 32+: 협업 오버레이 컴포넌트 (개선)
+ * - 원격 커서 표시 (부드러운 애니메이션)
  * - 영역 분리 시각화
  * - 충돌 알림
  */
 
-import { useMemo } from 'react'
+import { useMemo, useEffect, useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { AlertCircle, Edit3 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { useCollabOptional, type UserEditingState, type EditConflict, type EditingZone } from '@/lib/collab'
+
+// 사용자 색상 팔레트
+const USER_COLORS = [
+  '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4',
+  '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F',
+  '#BB8FCE', '#85C1E9', '#F8B500', '#00CED1',
+]
+
+function getUserColor(userId: string): string {
+  let hash = 0
+  for (let i = 0; i < userId.length; i++) {
+    hash = ((hash << 5) - hash) + userId.charCodeAt(i)
+    hash = hash & hash
+  }
+  return USER_COLORS[Math.abs(hash) % USER_COLORS.length]
+}
 
 interface CollabOverlayProps {
   canvasWidth: number
@@ -34,10 +51,12 @@ export function CollabOverlay({ canvasWidth, canvasHeight, slots }: CollabOverla
       className="absolute inset-0 pointer-events-none z-40"
       style={{ width: canvasWidth, height: canvasHeight }}
     >
-      {/* 원격 커서들 */}
-      {Array.from(collab.remoteUsers.entries()).map(([userId, state]) => (
-        <RemoteCursor key={userId} state={state} />
-      ))}
+      {/* 원격 커서들 (애니메이션 적용) */}
+      <AnimatePresence>
+        {Array.from(collab.remoteUsers.entries()).map(([userId, state]) => (
+          <RemoteCursor key={userId} userId={userId} state={state} />
+        ))}
+      </AnimatePresence>
 
       {/* 영역 분리 표시 */}
       {slots.map((slot) => {
@@ -51,81 +70,107 @@ export function CollabOverlay({ canvasWidth, canvasHeight, slots }: CollabOverla
             key={slot.id}
             slot={slot}
             ownerName={getRemoteUserName(collab.remoteUsers, owner)}
+            zone={slot.zone}
           />
         )
       })}
 
       {/* 충돌 알림 */}
-      {collab.currentConflict && (
-        <ConflictNotification
-          conflict={collab.currentConflict}
-          onDismiss={collab.dismissConflict}
-        />
-      )}
+      <AnimatePresence>
+        {collab.currentConflict && (
+          <ConflictNotification
+            conflict={collab.currentConflict}
+            onDismiss={collab.dismissConflict}
+          />
+        )}
+      </AnimatePresence>
     </div>
   )
 }
 
 // ============================================
-// 원격 커서 컴포넌트
+// 원격 커서 컴포넌트 (개선된 애니메이션)
 // ============================================
 
-function RemoteCursor({ state }: { state: UserEditingState }) {
+function RemoteCursor({ userId, state }: { userId: string; state: UserEditingState }) {
+  const [isStale, setIsStale] = useState(false)
+
+  // 3초 이상 업데이트 없으면 stale 처리
+  useEffect(() => {
+    const checkStale = () => {
+      setIsStale(Date.now() - state.lastActivity > 3000)
+    }
+    checkStale()
+    const interval = setInterval(checkStale, 1000)
+    return () => clearInterval(interval)
+  }, [state.lastActivity])
+
   if (!state.cursor) return null
 
-  // 사용자별 고유 색상 생성
-  const color = useMemo(() => {
-    const colors = ['#E8A8A8', '#9FD9D9', '#B8A8E8', '#A8E8B8', '#E8D8A8']
-    const index = state.userId.charCodeAt(0) % colors.length
-    return colors[index]
-  }, [state.userId])
+  const color = getUserColor(userId)
 
   return (
-    <div
-      className="absolute transition-all duration-75 ease-out"
-      style={{
-        left: state.cursor.x,
-        top: state.cursor.y,
-        transform: 'translate(-2px, -2px)',
+    <motion.div
+      initial={{ opacity: 0, scale: 0.5 }}
+      animate={{
+        opacity: isStale ? 0.4 : 1,
+        scale: 1,
+        x: state.cursor.x - 2,
+        y: state.cursor.y - 2,
       }}
+      exit={{ opacity: 0, scale: 0.5 }}
+      transition={{
+        x: { type: 'spring', stiffness: 400, damping: 25 },
+        y: { type: 'spring', stiffness: 400, damping: 25 },
+        opacity: { duration: 0.2 },
+        scale: { duration: 0.2 },
+      }}
+      className="absolute top-0 left-0"
+      style={{ willChange: 'transform' }}
     >
-      {/* 커서 아이콘 */}
+      {/* 커서 SVG (개선된 디자인) */}
       <svg
-        width="20"
-        height="20"
-        viewBox="0 0 20 20"
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
         fill="none"
-        className="drop-shadow-sm"
+        className="drop-shadow-md"
       >
         <path
-          d="M5.5 3L14.5 11.5L9.5 12L7 17L5.5 3Z"
+          d="M5.5 3.21V20.8c0 .45.54.67.85.35l4.86-4.86a.5.5 0 0 1 .35-.15h6.87c.46 0 .68-.54.35-.85L6.35 2.86a.5.5 0 0 0-.85.35z"
           fill={color}
           stroke="white"
           strokeWidth="1.5"
         />
       </svg>
 
-      {/* 이름 태그 */}
-      <div
-        className="absolute left-4 top-4 px-2 py-0.5 rounded text-xs font-medium text-white whitespace-nowrap shadow-sm"
+      {/* 이름 태그 (애니메이션) */}
+      <motion.div
+        initial={{ opacity: 0, y: -5 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="absolute left-5 top-5 px-2 py-0.5 rounded-md text-xs font-medium text-white whitespace-nowrap shadow-md"
         style={{ backgroundColor: color }}
       >
-        {state.userId.slice(0, 8)}
-      </div>
+        {userId.slice(0, 8)}
+      </motion.div>
 
       {/* 편집 중 표시 */}
       {(state.selectedSlotId || state.selectedTextId) && (
-        <div className="absolute left-4 top-8 flex items-center gap-1 text-xs text-gray-500">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="absolute left-5 top-10 flex items-center gap-1 text-xs bg-white/90 text-gray-600 px-1.5 py-0.5 rounded shadow-sm"
+        >
           <Edit3 className="w-3 h-3" />
           <span>편집 중</span>
-        </div>
+        </motion.div>
       )}
-    </div>
+    </motion.div>
   )
 }
 
 // ============================================
-// 영역 표시 컴포넌트
+// 영역 표시 컴포넌트 (애니메이션 적용)
 // ============================================
 
 interface ZoneIndicatorProps {
@@ -134,12 +179,30 @@ interface ZoneIndicatorProps {
     transform: { x: number; y: number; width: number; height: number }
   }
   ownerName: string
+  zone?: EditingZone
 }
 
-function ZoneIndicator({ slot, ownerName }: ZoneIndicatorProps) {
+function ZoneIndicator({ slot, ownerName, zone }: ZoneIndicatorProps) {
+  const zoneColor = zone === 'A' ? {
+    border: 'border-primary-400',
+    bg: 'bg-primary-100/30',
+    badge: 'bg-primary-400',
+  } : {
+    border: 'border-accent-400',
+    bg: 'bg-accent-100/30',
+    badge: 'bg-accent-400',
+  }
+
   return (
-    <div
-      className="absolute border-2 border-accent-400 bg-accent-100/30 rounded-lg pointer-events-none"
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      className={cn(
+        'absolute border-2 rounded-xl pointer-events-none',
+        zoneColor.border,
+        zoneColor.bg
+      )}
       style={{
         left: slot.transform.x,
         top: slot.transform.y,
@@ -147,23 +210,37 @@ function ZoneIndicator({ slot, ownerName }: ZoneIndicatorProps) {
         height: slot.transform.height,
       }}
     >
-      {/* 소유자 배지 */}
-      <div className="absolute -top-6 left-0 px-2 py-0.5 bg-accent-400 text-white text-xs font-medium rounded-t">
-        {ownerName} 편집 중
-      </div>
+      {/* 소유자 배지 (애니메이션) */}
+      <motion.div
+        initial={{ y: -10, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        className={cn(
+          'absolute -top-7 left-2 px-3 py-1 text-white text-xs font-medium rounded-lg shadow-md',
+          zoneColor.badge
+        )}
+      >
+        {zone} 영역 · {ownerName} 편집 중
+      </motion.div>
 
-      {/* 반투명 오버레이 */}
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div className="bg-white/80 px-3 py-1.5 rounded-full text-sm text-gray-600 shadow-sm">
-          {ownerName}님이 편집 중
-        </div>
-      </div>
-    </div>
+      {/* 패턴 오버레이 */}
+      <div
+        className="absolute inset-0 opacity-10"
+        style={{
+          backgroundImage: `repeating-linear-gradient(
+            45deg,
+            transparent,
+            transparent 10px,
+            currentColor 10px,
+            currentColor 11px
+          )`,
+        }}
+      />
+    </motion.div>
   )
 }
 
 // ============================================
-// 충돌 알림 컴포넌트
+// 충돌 알림 컴포넌트 (개선된 애니메이션)
 // ============================================
 
 interface ConflictNotificationProps {
@@ -175,23 +252,30 @@ function ConflictNotification({ conflict, onDismiss }: ConflictNotificationProps
   const target = conflict.slotId ? '이미지 슬롯' : conflict.textId ? '텍스트' : '요소'
 
   return (
-    <div
-      className={cn(
-        'fixed bottom-4 left-1/2 -translate-x-1/2 z-50',
-        'bg-warning text-warning-dark px-4 py-3 rounded-xl shadow-lg',
-        'flex items-center gap-3',
-        'animate-in slide-in-from-bottom-4 fade-in duration-300'
-      )}
+    <motion.div
+      initial={{ opacity: 0, y: 50, scale: 0.9 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: 50, scale: 0.9 }}
+      transition={{ type: 'spring', damping: 20 }}
+      className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 cursor-pointer"
       onClick={onDismiss}
     >
-      <AlertCircle className="w-5 h-5 shrink-0" />
-      <div>
-        <p className="font-medium">편집 충돌!</p>
-        <p className="text-sm opacity-80">
-          {conflict.userName}님이 같은 {target}을 편집 중입니다
-        </p>
+      <div className="flex items-center gap-3 px-5 py-4 bg-amber-50 border-2 border-amber-300 rounded-2xl shadow-lg">
+        <motion.div
+          animate={{ rotate: [0, -10, 10, -10, 10, 0] }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center shrink-0"
+        >
+          <AlertCircle className="w-5 h-5 text-amber-600" />
+        </motion.div>
+        <div>
+          <p className="font-semibold text-amber-800">편집 충돌!</p>
+          <p className="text-sm text-amber-600">
+            {conflict.userName}님이 같은 {target}을 편집 중입니다
+          </p>
+        </div>
       </div>
-    </div>
+    </motion.div>
   )
 }
 

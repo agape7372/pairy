@@ -434,9 +434,9 @@ Canvas 기반 에디터 재구축 (react-konva)
 
 ### Phase 5 Sprint 34 완료 (성능 & 접근성)
 - [x] 이미지 압축 유틸리티 (lib/utils/imageCompressor.ts)
-  - 최대 크기 제한 (2000px)
-  - 파일 크기 제한 (5MB)
-  - 품질 자동 조정 (0.9 → 0.5)
+  - 최대 크기 제한 (4000px 4K 지원)
+  - 파일 크기 제한 (10MB)
+  - 품질 자동 조정 (0.92 → 0.6)
   - OffscreenCanvas 활용 (메인 스레드 블로킹 최소화)
   - ImageManager 클래스 (참조 카운트 기반 메모리 관리)
 - [x] 접근성 훅 (hooks/useAccessibility.ts)
@@ -457,14 +457,55 @@ Canvas 기반 에디터 재구축 (react-konva)
   - 기존 ARIA 라벨 유지 (20+ 라벨 적용됨)
   - 스크린 리더 알림 (내보내기 완료 등)
 
+### Phase 5 협업 기능 확장 완료 (Sprint 32+)
+- [x] CollabOverlay 개선 (components/editor/canvas/CollabOverlay.tsx)
+  - Framer Motion 기반 부드러운 커서 애니메이션 (spring 물리)
+  - 사용자별 고유 색상 팔레트 (12색)
+  - Stale 커서 페이드 처리 (3초 이상 업데이트 없음)
+  - 영역 표시 패턴 오버레이
+  - 충돌 알림 shake 애니메이션
+- [x] ParticipantList 컴포넌트 (components/editor/collab/ParticipantList.tsx)
+  - 참여자 목록 접기/펼치기
+  - 호스트 표시 (Crown 아이콘)
+  - 활성 상태 표시 (green dot)
+  - 영역 편집 상태 배지
+- [x] ZoneSelector 개선 (components/editor/collab/ZoneSelector.tsx)
+  - A/B 영역 선택 버튼 UI
+  - 자유 편집 모드 옵션
+  - 영역 점유 상태 시각화
+- [x] ConnectionIndicator 컴포넌트 (components/editor/collab/ConnectionIndicator.tsx)
+  - 연결 상태 아이콘 (연결됨/연결 중/끊김/오프라인)
+  - 참여자 수 배지
+  - ConnectionBanner (연결 끊김 시 재연결 버튼)
+- [x] CollabChat 컴포넌트 (components/editor/collab/CollabChat.tsx)
+  - 메시지 채팅 UI
+  - 빠른 이모지 반응 (8개 이모지)
+  - 플로팅 이모지 애니메이션
+- [x] InviteShareModal 컴포넌트 (components/editor/collab/InviteShareModal.tsx)
+  - 초대 코드 복사
+  - 초대 링크 복사
+  - 웹 공유 API 연동
+  - 카카오톡 공유
+  - QR 코드 표시
+- [x] ConflictToast 컴포넌트 (components/editor/collab/ConflictToast.tsx)
+  - 편집 충돌 알림
+  - 영역 잠금 알림
+  - 동기화 상태 알림
+- [x] CanvasEditor 협업 통합 확장
+  - ConnectionIndicator 헤더 표시
+  - ParticipantList 사이드 패널
+  - CollabChat 플로팅 버튼
+  - InviteShareModal 연결
+
 ### Phase 5 목표 달성
 - [x] 이미지 편집 강화 (반전, 투명도, 필터)
 - [x] 텍스트 편집 고도화 (효과, 인라인 편집)
 - [x] 스티커 시스템
 - [x] 실시간 협업 (Yjs + Supabase Realtime)
 - [x] UX 고도화 (온보딩, 컨텍스트 메뉴, 레이어 패널, 색상 프리셋)
-- [x] 성능 최적화 (이미지 압축)
+- [x] 성능 최적화 (이미지 압축 4K/10MB 지원)
 - [x] 접근성 준수 (모션 감소, 고대비, ARIA)
+- [x] 협업 확장 (참여자 목록, 채팅, 초대 공유, 연결 상태)
 
 ---
 
