@@ -34,7 +34,6 @@ export function useUser(): UseUserReturn {
   useEffect(() => {
     // Supabase 설정이 없으면 데모 모드로 동작
     if (!isSupabaseConfigured()) {
-      console.log('[useUser] Demo mode - no Supabase configured')
       setIsLoading(false)
       return
     }
@@ -44,13 +43,10 @@ export function useUser(): UseUserReturn {
     // Get initial session from localStorage (no network call - faster!)
     const initSession = async () => {
       try {
-        console.log('[useUser] Checking session from storage...')
-
         // getSession()은 localStorage에서 바로 읽음 (네트워크 호출 없음)
         const { data: { session }, error: sessionError } = await supabase.auth.getSession()
 
         if (sessionError) {
-          console.error('[useUser] Session error:', sessionError.message)
           setUser(null)
           setProfile(null)
           setIsLoading(false)
@@ -58,14 +54,12 @@ export function useUser(): UseUserReturn {
         }
 
         if (!session) {
-          console.log('[useUser] No session found')
           setUser(null)
           setProfile(null)
           setIsLoading(false)
           return
         }
 
-        console.log('[useUser] Session found:', session.user?.email)
         setUser(session.user)
         setIsLoading(false) // UI 먼저 업데이트
 
@@ -77,15 +71,11 @@ export function useUser(): UseUserReturn {
             .eq('id', session.user.id)
             .single()
 
-          if (profileError) {
-            console.error('[useUser] Profile error:', profileError.message)
-          } else {
-            console.log('[useUser] Profile loaded:', profileData?.display_name)
+          if (!profileError) {
             setProfile(profileData as Profile)
           }
         }
-      } catch (error) {
-        console.error('[useUser] Unexpected error:', error)
+      } catch {
         setUser(null)
         setProfile(null)
         setIsLoading(false)
@@ -97,10 +87,7 @@ export function useUser(): UseUserReturn {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('[useUser] Auth state changed:', event, session?.user?.email)
-
         if (event === 'SIGNED_OUT') {
-          console.log('[useUser] Setting user to null (signed out)')
           setUser(null)
           setProfile(null)
           setIsLoading(false)
@@ -108,9 +95,7 @@ export function useUser(): UseUserReturn {
         }
 
         // 즉시 사용자 상태 업데이트 (UI가 먼저 반응하도록)
-        const newUser = session?.user ?? null
-        console.log('[useUser] Setting user:', newUser?.email)
-        setUser(newUser)
+        setUser(session?.user ?? null)
         setIsLoading(false) // 먼저 로딩 끝내기
 
         // 프로필은 별도로 비동기 로드 (UI 블로킹 방지)
@@ -122,15 +107,11 @@ export function useUser(): UseUserReturn {
               .eq('id', session.user.id)
               .single()
 
-            if (error) {
-              console.error('[useUser] Profile error on auth change:', error.message)
-              // 프로필이 없어도 user는 유지
-            } else {
-              console.log('[useUser] Profile loaded on auth change:', profileData?.display_name)
+            if (!error) {
               setProfile(profileData as Profile)
             }
-          } catch (err) {
-            console.error('[useUser] Profile fetch error:', err)
+          } catch {
+            // 프로필 로드 실패해도 user는 유지
           }
         } else {
           setProfile(null)
@@ -146,7 +127,6 @@ export function useUser(): UseUserReturn {
   const signOut = async () => {
     if (!isSupabaseConfigured()) return
 
-    console.log('[useUser] Signing out...')
     const supabase = createClient()
     await supabase.auth.signOut()
     setUser(null)

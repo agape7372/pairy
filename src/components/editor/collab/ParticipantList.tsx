@@ -60,10 +60,7 @@ export function ParticipantList({
   // 로컬 사용자 활동 상태 추적
   const { status: activityStatus } = useUserActivity({
     enabled: !!sessionId,
-    onStatusChange: (newStatus) => {
-      // TODO: 활동 상태 변경 시 다른 사용자에게 브로드캐스트
-      console.log('[ParticipantList] Activity status changed:', newStatus)
-    },
+    // TODO: 활동 상태 변경 시 다른 사용자에게 브로드캐스트
   })
 
   const isConnected = !!sessionId && !!user

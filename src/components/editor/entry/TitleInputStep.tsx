@@ -8,8 +8,6 @@ import { cn } from '@/lib/utils/cn'
 import { Button } from '@/components/ui'
 import { useEditorEntryStore } from '@/stores/editorEntryStore'
 import { WordReveal } from '@/components/ui/text-reveal'
-// NOTE: useCollabSession은 Duo 모드 세션 생성 시 활성화 예정
-// import { useCollabSession } from '@/hooks/useCollabSession'
 
 interface TitleInputStepProps {
   className?: string
@@ -32,7 +30,6 @@ export function TitleInputStep({ className }: TitleInputStepProps) {
     reset,
   } = useEditorEntryStore()
 
-  // const { createSession } = useCollabSession() // Duo 모드 활성화 시 사용
   const [isNavigating, setIsNavigating] = useState(false)
   const resetTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -80,11 +77,6 @@ export function TitleInputStep({ className }: TitleInputStepProps) {
 
       // Duo 모드일 경우 세션 생성
       if (mode === 'duo') {
-        // 실제 구현에서는 workId가 필요하지만, 데모에서는 스킵
-        // const sessionCode = await createSession(workId)
-        // if (sessionCode) {
-        //   params.set('session', sessionCode)
-        // }
         params.set('mode', 'duo')
       }
 

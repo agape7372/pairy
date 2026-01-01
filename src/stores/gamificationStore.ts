@@ -256,18 +256,12 @@ export const useGamificationStore = create<GamificationState>()(
         const currentXP = get().xp
         const newXP = currentXP + amount
         const { level, name } = calculateLevel(newXP)
-        const oldLevel = get().level
 
         set({
           xp: newXP,
           level,
           levelName: name,
         })
-
-        // 레벨업 감지 (외부에서 처리 가능하도록)
-        if (level > oldLevel) {
-          console.log(`Level up! ${oldLevel} -> ${level}`)
-        }
       },
 
       checkIn: () => {

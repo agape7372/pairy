@@ -507,7 +507,6 @@ export default function CanvasEditor({
   // 저장 (useCallback으로 메모이제이션) - 안전한 localStorage 접근
   const handleSave = useCallback(async () => {
     // TODO: 실제 Supabase 저장 로직 구현
-    console.log('Saving...', { formData, images, colors })
     markSaved()
     // 자동 저장 데이터 삭제 (수동 저장 완료)
     safeRemoveAutoSaveData(autoSaveKey)
