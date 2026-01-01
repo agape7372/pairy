@@ -34,6 +34,7 @@ export function useUser(): UseUserReturn {
   useEffect(() => {
     // Supabase 설정이 없으면 데모 모드로 동작
     if (!isSupabaseConfigured()) {
+      console.log('[useUser] Demo mode - no Supabase configured')
       setIsLoading(false)
       return
     }
@@ -43,21 +44,41 @@ export function useUser(): UseUserReturn {
     // Get initial session
     const getUser = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser()
+        console.log('[useUser] Fetching user...')
+        const { data: { user }, error: userError } = await supabase.auth.getUser()
+
+        if (userError) {
+          console.error('[useUser] Auth error:', userError.message)
+          setUser(null)
+          setProfile(null)
+          setIsLoading(false)
+          return
+        }
+
+        console.log('[useUser] User:', user?.email || 'none')
         setUser(user)
 
         if (user) {
-          const { data: profile } = await supabase
+          console.log('[useUser] Fetching profile for:', user.id)
+          const { data: profileData, error: profileError } = await supabase
             .from('profiles')
             .select('id, display_name, avatar_url, bio, role')
             .eq('id', user.id)
             .single()
 
-          setProfile(profile)
+          if (profileError) {
+            console.error('[useUser] Profile error:', profileError.message, profileError.code)
+            // 프로필이 없어도 계속 진행
+            setProfile(null)
+          } else {
+            console.log('[useUser] Profile loaded:', profileData?.display_name)
+            setProfile(profileData as Profile)
+          }
         }
       } catch (error) {
-        console.error('Error getting user:', error)
+        console.error('[useUser] Unexpected error:', error)
       } finally {
+        console.log('[useUser] Loading complete')
         setIsLoading(false)
       }
     }
@@ -67,16 +88,30 @@ export function useUser(): UseUserReturn {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('[useUser] Auth state changed:', event, session?.user?.email)
+
+        if (event === 'SIGNED_OUT') {
+          setUser(null)
+          setProfile(null)
+          setIsLoading(false)
+          return
+        }
+
         setUser(session?.user ?? null)
 
         if (session?.user) {
-          const { data: profile } = await supabase
+          const { data: profileData, error } = await supabase
             .from('profiles')
             .select('id, display_name, avatar_url, bio, role')
             .eq('id', session.user.id)
             .single()
 
-          setProfile(profile)
+          if (error) {
+            console.error('[useUser] Profile error on auth change:', error.message)
+            setProfile(null)
+          } else {
+            setProfile(profileData as Profile)
+          }
         } else {
           setProfile(null)
         }
@@ -93,6 +128,7 @@ export function useUser(): UseUserReturn {
   const signOut = async () => {
     if (!isSupabaseConfigured()) return
 
+    console.log('[useUser] Signing out...')
     const supabase = createClient()
     await supabase.auth.signOut()
     setUser(null)
