@@ -209,9 +209,11 @@ CREATE POLICY "Profiles are viewable by everyone" ON profiles FOR SELECT USING (
 CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING ((select auth.uid()) = id);
 CREATE POLICY "Users can insert own profile" ON profiles FOR INSERT WITH CHECK ((select auth.uid()) = id);
 
--- 템플릿: 공개 템플릿 누구나 읽기 가능
+-- 템플릿: 공개 템플릿 누구나 읽기 가능, 본인 템플릿 관리
 CREATE POLICY "Public templates are viewable by everyone" ON templates FOR SELECT USING (is_public = true);
-CREATE POLICY "Creators can manage own templates" ON templates FOR ALL USING ((select auth.uid()) = creator_id);
+CREATE POLICY "Creators can insert own templates" ON templates FOR INSERT WITH CHECK ((select auth.uid()) = creator_id);
+CREATE POLICY "Creators can update own templates" ON templates FOR UPDATE USING ((select auth.uid()) = creator_id);
+CREATE POLICY "Creators can delete own templates" ON templates FOR DELETE USING ((select auth.uid()) = creator_id);
 
 -- 태그: 누구나 읽기 가능
 CREATE POLICY "Tags are viewable by everyone" ON tags FOR SELECT USING (true);
@@ -219,23 +221,32 @@ CREATE POLICY "Tags are viewable by everyone" ON tags FOR SELECT USING (true);
 -- 템플릿 태그: 누구나 읽기 가능
 CREATE POLICY "Template tags are viewable by everyone" ON template_tags FOR SELECT USING (true);
 
--- 좋아요: 본인 것만 관리 가능
+-- 좋아요: 누구나 읽기 가능, 본인만 추가/삭제
 CREATE POLICY "Likes are viewable by everyone" ON likes FOR SELECT USING (true);
-CREATE POLICY "Users can manage own likes" ON likes FOR ALL USING ((select auth.uid()) = user_id);
+CREATE POLICY "Users can insert own likes" ON likes FOR INSERT WITH CHECK ((select auth.uid()) = user_id);
+CREATE POLICY "Users can delete own likes" ON likes FOR DELETE USING ((select auth.uid()) = user_id);
 
 -- 북마크: 본인 것만 관리 가능
-CREATE POLICY "Users can manage own bookmarks" ON bookmarks FOR ALL USING ((select auth.uid()) = user_id);
+CREATE POLICY "Users can select own bookmarks" ON bookmarks FOR SELECT USING ((select auth.uid()) = user_id);
+CREATE POLICY "Users can insert own bookmarks" ON bookmarks FOR INSERT WITH CHECK ((select auth.uid()) = user_id);
+CREATE POLICY "Users can delete own bookmarks" ON bookmarks FOR DELETE USING ((select auth.uid()) = user_id);
 
 -- 작품: 본인 것만 관리 가능
-CREATE POLICY "Users can manage own works" ON works FOR ALL USING ((select auth.uid()) = user_id);
+CREATE POLICY "Users can select own works" ON works FOR SELECT USING ((select auth.uid()) = user_id);
+CREATE POLICY "Users can insert own works" ON works FOR INSERT WITH CHECK ((select auth.uid()) = user_id);
+CREATE POLICY "Users can update own works" ON works FOR UPDATE USING ((select auth.uid()) = user_id);
+CREATE POLICY "Users can delete own works" ON works FOR DELETE USING ((select auth.uid()) = user_id);
 
 -- 협업 세션: 호스트만 접근 가능
-CREATE POLICY "Users can view own sessions" ON collab_sessions FOR SELECT USING ((select auth.uid()) = host_id);
-CREATE POLICY "Users can manage own sessions" ON collab_sessions FOR ALL USING ((select auth.uid()) = host_id);
+CREATE POLICY "Users can select own sessions" ON collab_sessions FOR SELECT USING ((select auth.uid()) = host_id);
+CREATE POLICY "Users can insert own sessions" ON collab_sessions FOR INSERT WITH CHECK ((select auth.uid()) = host_id);
+CREATE POLICY "Users can update own sessions" ON collab_sessions FOR UPDATE USING ((select auth.uid()) = host_id);
+CREATE POLICY "Users can delete own sessions" ON collab_sessions FOR DELETE USING ((select auth.uid()) = host_id);
 
--- 팔로우: 본인 것만 관리 가능
+-- 팔로우: 누구나 읽기 가능, 본인만 추가/삭제
 CREATE POLICY "Follows are viewable by everyone" ON follows FOR SELECT USING (true);
-CREATE POLICY "Users can manage own follows" ON follows FOR ALL USING ((select auth.uid()) = follower_id);
+CREATE POLICY "Users can insert own follows" ON follows FOR INSERT WITH CHECK ((select auth.uid()) = follower_id);
+CREATE POLICY "Users can delete own follows" ON follows FOR DELETE USING ((select auth.uid()) = follower_id);
 
 -- 댓글: 누구나 읽기 가능, 본인만 수정/삭제 가능
 CREATE POLICY "Comments are viewable by everyone" ON comments FOR SELECT USING (true);
@@ -244,9 +255,11 @@ CREATE POLICY "Users can update own comments" ON comments FOR UPDATE USING ((sel
 CREATE POLICY "Users can delete own comments" ON comments FOR DELETE USING ((select auth.uid()) = user_id);
 
 -- 댓글 좋아요: 본인 것만 관리 가능
-CREATE POLICY "Users can manage own comment likes" ON comment_likes FOR ALL USING ((select auth.uid()) = user_id);
+CREATE POLICY "Users can select own comment likes" ON comment_likes FOR SELECT USING ((select auth.uid()) = user_id);
+CREATE POLICY "Users can insert own comment likes" ON comment_likes FOR INSERT WITH CHECK ((select auth.uid()) = user_id);
+CREATE POLICY "Users can delete own comment likes" ON comment_likes FOR DELETE USING ((select auth.uid()) = user_id);
 
--- 구매: 본인 것만 조회 가능
+-- 구매: 본인 것만 조회/생성 가능
 CREATE POLICY "Users can view own purchases" ON purchases FOR SELECT USING ((select auth.uid()) = buyer_id);
 CREATE POLICY "Users can create purchases" ON purchases FOR INSERT WITH CHECK ((select auth.uid()) = buyer_id);
 
