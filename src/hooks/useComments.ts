@@ -1,5 +1,10 @@
 'use client'
 
+/**
+ * 댓글 관련 훅
+ * [FIXED: useRef로 race condition 방지 - 빠른 더블클릭 시 중복 요청 방지]
+ */
+
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { createClient, IS_DEMO_MODE } from '@/lib/supabase/client'
 import type { CommentWithUser } from '@/types/database.types'
@@ -140,6 +145,9 @@ export function useComments(templateId: string): UseCommentsReturn {
     return () => { isMountedRef.current = false }
   }, [])
 
+  // [FIXED: useRef로 동기적 체크 - 상태는 비동기라 race condition 발생 가능]
+  const isProcessingRef = useRef(false)
+
   // 댓글 로드
   const loadComments = useCallback(async () => {
     setIsLoading(true)
@@ -253,47 +261,51 @@ export function useComments(templateId: string): UseCommentsReturn {
 
   // 댓글 작성
   const addComment = useCallback(async (content: string, parentId?: string): Promise<boolean> => {
-    if (IS_DEMO_MODE) {
-      const newComment: CommentWithUser = {
-        id: `demo-${Date.now()}`,
-        template_id: templateId,
-        user_id: 'demo-user',
-        parent_id: parentId || null,
-        content,
-        like_count: 0,
-        is_edited: false,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        user: {
-          id: 'demo-user',
-          display_name: '나',
-          avatar_url: null,
-        },
-        isLiked: false,
-      }
-
-      if (parentId) {
-        // 답글인 경우
-        setComments(prev => prev.map(c => {
-          if (c.id === parentId) {
-            return {
-              ...c,
-              replies: [...(c.replies || []), newComment],
-            }
-          }
-          return c
-        }))
-      } else {
-        // 새 댓글인 경우
-        setComments(prev => [newComment, ...prev])
-      }
-
-      return true
-    }
-
-    if (!currentUserId) return false
+    // [FIXED: ref 기반 동기적 체크로 race condition 완전 방지]
+    if (isProcessingRef.current) return false
+    isProcessingRef.current = true
 
     try {
+      if (IS_DEMO_MODE) {
+        const newComment: CommentWithUser = {
+          id: `demo-${Date.now()}`,
+          template_id: templateId,
+          user_id: 'demo-user',
+          parent_id: parentId || null,
+          content,
+          like_count: 0,
+          is_edited: false,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          user: {
+            id: 'demo-user',
+            display_name: '나',
+            avatar_url: null,
+          },
+          isLiked: false,
+        }
+
+        if (parentId) {
+          // 답글인 경우
+          setComments(prev => prev.map(c => {
+            if (c.id === parentId) {
+              return {
+                ...c,
+                replies: [...(c.replies || []), newComment],
+              }
+            }
+            return c
+          }))
+        } else {
+          // 새 댓글인 경우
+          setComments(prev => [newComment, ...prev])
+        }
+
+        return true
+      }
+
+      if (!currentUserId) return false
+
       const supabase = createClient()
       if (!supabase) return false
 
@@ -313,34 +325,40 @@ export function useComments(templateId: string): UseCommentsReturn {
     } catch (err) {
       console.error('Failed to add comment:', err)
       return false
+    } finally {
+      isProcessingRef.current = false  // [FIXED: 반드시 해제]
     }
   }, [templateId, currentUserId, loadComments])
 
   // 댓글 수정
   const editComment = useCallback(async (commentId: string, content: string): Promise<boolean> => {
-    if (IS_DEMO_MODE) {
-      setComments(prev => prev.map(c => {
-        if (c.id === commentId) {
-          return { ...c, content, is_edited: true, updated_at: new Date().toISOString() }
-        }
-        if (c.replies) {
-          return {
-            ...c,
-            replies: c.replies.map(r =>
-              r.id === commentId
-                ? { ...r, content, is_edited: true, updated_at: new Date().toISOString() }
-                : r
-            ),
-          }
-        }
-        return c
-      }))
-      return true
-    }
-
-    if (!currentUserId) return false
+    // [FIXED: ref 기반 동기적 체크로 race condition 완전 방지]
+    if (isProcessingRef.current) return false
+    isProcessingRef.current = true
 
     try {
+      if (IS_DEMO_MODE) {
+        setComments(prev => prev.map(c => {
+          if (c.id === commentId) {
+            return { ...c, content, is_edited: true, updated_at: new Date().toISOString() }
+          }
+          if (c.replies) {
+            return {
+              ...c,
+              replies: c.replies.map(r =>
+                r.id === commentId
+                  ? { ...r, content, is_edited: true, updated_at: new Date().toISOString() }
+                  : r
+              ),
+            }
+          }
+          return c
+        }))
+        return true
+      }
+
+      if (!currentUserId) return false
+
       const supabase = createClient()
       if (!supabase) return false
 
@@ -357,27 +375,33 @@ export function useComments(templateId: string): UseCommentsReturn {
     } catch (err) {
       console.error('Failed to edit comment:', err)
       return false
+    } finally {
+      isProcessingRef.current = false  // [FIXED: 반드시 해제]
     }
   }, [currentUserId, loadComments])
 
   // 댓글 삭제
   const deleteComment = useCallback(async (commentId: string): Promise<boolean> => {
-    if (IS_DEMO_MODE) {
-      setComments(prev => {
-        // 최상위 댓글인 경우
-        const filtered = prev.filter(c => c.id !== commentId)
-        // 답글인 경우
-        return filtered.map(c => ({
-          ...c,
-          replies: c.replies?.filter(r => r.id !== commentId),
-        }))
-      })
-      return true
-    }
-
-    if (!currentUserId) return false
+    // [FIXED: ref 기반 동기적 체크로 race condition 완전 방지]
+    if (isProcessingRef.current) return false
+    isProcessingRef.current = true
 
     try {
+      if (IS_DEMO_MODE) {
+        setComments(prev => {
+          // 최상위 댓글인 경우
+          const filtered = prev.filter(c => c.id !== commentId)
+          // 답글인 경우
+          return filtered.map(c => ({
+            ...c,
+            replies: c.replies?.filter(r => r.id !== commentId),
+          }))
+        })
+        return true
+      }
+
+      if (!currentUserId) return false
+
       const supabase = createClient()
       if (!supabase) return false
 
@@ -394,38 +418,44 @@ export function useComments(templateId: string): UseCommentsReturn {
     } catch (err) {
       console.error('Failed to delete comment:', err)
       return false
+    } finally {
+      isProcessingRef.current = false  // [FIXED: 반드시 해제]
     }
   }, [currentUserId, loadComments])
 
   // 댓글 좋아요
   const likeComment = useCallback(async (commentId: string): Promise<boolean> => {
-    if (IS_DEMO_MODE) {
-      const likes = getDemoCommentLikes()
-      likes.add(commentId)
-      saveDemoCommentLikes(likes)
-
-      setComments(prev => prev.map(c => {
-        if (c.id === commentId) {
-          return { ...c, like_count: c.like_count + 1, isLiked: true }
-        }
-        if (c.replies) {
-          return {
-            ...c,
-            replies: c.replies.map(r =>
-              r.id === commentId
-                ? { ...r, like_count: r.like_count + 1, isLiked: true }
-                : r
-            ),
-          }
-        }
-        return c
-      }))
-      return true
-    }
-
-    if (!currentUserId) return false
+    // [FIXED: ref 기반 동기적 체크로 race condition 완전 방지]
+    if (isProcessingRef.current) return false
+    isProcessingRef.current = true
 
     try {
+      if (IS_DEMO_MODE) {
+        const likes = getDemoCommentLikes()
+        likes.add(commentId)
+        saveDemoCommentLikes(likes)
+
+        setComments(prev => prev.map(c => {
+          if (c.id === commentId) {
+            return { ...c, like_count: c.like_count + 1, isLiked: true }
+          }
+          if (c.replies) {
+            return {
+              ...c,
+              replies: c.replies.map(r =>
+                r.id === commentId
+                  ? { ...r, like_count: r.like_count + 1, isLiked: true }
+                  : r
+              ),
+            }
+          }
+          return c
+        }))
+        return true
+      }
+
+      if (!currentUserId) return false
+
       const supabase = createClient()
       if (!supabase) return false
 
@@ -458,38 +488,44 @@ export function useComments(templateId: string): UseCommentsReturn {
     } catch (err) {
       console.error('Failed to like comment:', err)
       return false
+    } finally {
+      isProcessingRef.current = false  // [FIXED: 반드시 해제]
     }
   }, [currentUserId])
 
   // 댓글 좋아요 취소
   const unlikeComment = useCallback(async (commentId: string): Promise<boolean> => {
-    if (IS_DEMO_MODE) {
-      const likes = getDemoCommentLikes()
-      likes.delete(commentId)
-      saveDemoCommentLikes(likes)
-
-      setComments(prev => prev.map(c => {
-        if (c.id === commentId) {
-          return { ...c, like_count: Math.max(0, c.like_count - 1), isLiked: false }
-        }
-        if (c.replies) {
-          return {
-            ...c,
-            replies: c.replies.map(r =>
-              r.id === commentId
-                ? { ...r, like_count: Math.max(0, r.like_count - 1), isLiked: false }
-                : r
-            ),
-          }
-        }
-        return c
-      }))
-      return true
-    }
-
-    if (!currentUserId) return false
+    // [FIXED: ref 기반 동기적 체크로 race condition 완전 방지]
+    if (isProcessingRef.current) return false
+    isProcessingRef.current = true
 
     try {
+      if (IS_DEMO_MODE) {
+        const likes = getDemoCommentLikes()
+        likes.delete(commentId)
+        saveDemoCommentLikes(likes)
+
+        setComments(prev => prev.map(c => {
+          if (c.id === commentId) {
+            return { ...c, like_count: Math.max(0, c.like_count - 1), isLiked: false }
+          }
+          if (c.replies) {
+            return {
+              ...c,
+              replies: c.replies.map(r =>
+                r.id === commentId
+                  ? { ...r, like_count: Math.max(0, r.like_count - 1), isLiked: false }
+                  : r
+              ),
+            }
+          }
+          return c
+        }))
+        return true
+      }
+
+      if (!currentUserId) return false
+
       const supabase = createClient()
       if (!supabase) return false
 
@@ -521,6 +557,8 @@ export function useComments(templateId: string): UseCommentsReturn {
     } catch (err) {
       console.error('Failed to unlike comment:', err)
       return false
+    } finally {
+      isProcessingRef.current = false  // [FIXED: 반드시 해제]
     }
   }, [currentUserId])
 
