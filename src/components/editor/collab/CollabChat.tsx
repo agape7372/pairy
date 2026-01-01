@@ -15,11 +15,12 @@ import type { CollabUser } from '@/lib/collab/types'
 // 빠른 이모지 반응 목록
 const QUICK_REACTIONS = ['👍', '❤️', '😊', '🎉', '👀', '✨', '🔥', '💯']
 
-// 변경 이유: XSS 방지를 위한 텍스트 이스케이프 함수
-function escapeHtml(text: string): string {
-  const div = document.createElement('div')
-  div.textContent = text
-  return div.innerHTML
+// [FIXED: CSS Injection 방지 - hex color만 허용]
+function sanitizeColor(color: string | undefined): string {
+  if (!color) return '#888888'
+  // hex color 패턴만 허용 (#RGB, #RRGGBB, #RRGGBBAA)
+  const hexPattern = /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$/
+  return hexPattern.test(color) ? color : '#888888'
 }
 
 // 변경 이유: 안전한 텍스트 렌더링 (HTML 태그 무력화)
@@ -302,7 +303,7 @@ function ChatMessageBubble({ message, isOwn }: ChatMessageBubbleProps) {
         {!isOwn && (
           <span
             className="text-xs font-medium mb-0.5 block"
-            style={{ color: message.userColor }}
+            style={{ color: sanitizeColor(message.userColor) }}
           >
             {/* 변경 이유: 사용자 이름도 XSS 방지 */}
             <SafeText>{message.userName}</SafeText>
