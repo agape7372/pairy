@@ -3,6 +3,7 @@
 /**
  * 텍스트 필드 렌더러
  * 변경 이유: TemplateRenderer.tsx에서 분리하여 단일 책임 원칙 준수
+ * Sprint 30: 인라인 편집 기능 추가
  */
 
 import { Group, Rect, Text } from 'react-konva'
@@ -15,6 +16,7 @@ interface TextFieldRendererProps {
   colors: ColorData
   isSelected: boolean
   onClick?: () => void
+  onDoubleClick?: () => void // Sprint 30: 인라인 편집 트리거
 }
 
 export function TextFieldRenderer({
@@ -23,6 +25,7 @@ export function TextFieldRenderer({
   colors,
   isSelected,
   onClick,
+  onDoubleClick,
 }: TextFieldRendererProps) {
   const { transform, style, effects, defaultValue, placeholder, background } = field
   const displayText = value || defaultValue || placeholder || ''
@@ -80,7 +83,12 @@ export function TextFieldRenderer({
   }
 
   return (
-    <Group onClick={onClick} onTap={onClick}>
+    <Group
+      onClick={onClick}
+      onTap={onClick}
+      onDblClick={onDoubleClick}
+      onDblTap={onDoubleClick}
+    >
       {/* 배경 */}
       {background && (
         <Rect

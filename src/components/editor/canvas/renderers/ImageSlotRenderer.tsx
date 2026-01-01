@@ -44,7 +44,7 @@ export function ImageSlotRenderer({
   const effectivePositionX = (imagePosition?.x ?? 0) + currentTransform.x
   const effectivePositionY = (imagePosition?.y ?? 0) + currentTransform.y
 
-  // GlobalCompositeOperation을 사용한 마스킹
+  // GlobalCompositeOperation을 사용한 마스킹 (Sprint 29: 필터 추가)
   const [maskedCanvas, isProcessing] = useMaskedImage(
     imageSrc,
     mask,
@@ -54,7 +54,8 @@ export function ImageSlotRenderer({
     effectivePositionX,
     effectivePositionY,
     currentTransform.scale,
-    currentTransform.rotation
+    currentTransform.rotation,
+    currentTransform.filters
   )
 
   // 선택 시 Transformer 연결
@@ -165,6 +166,12 @@ export function ImageSlotRenderer({
             draggable={editable && isSelected && !!imageSrc}
             onDragEnd={handleDragEnd}
             onTransformEnd={handleTransformEnd}
+            // Sprint 29: 반전 및 투명도
+            scaleX={currentTransform.flipX ? -1 : 1}
+            scaleY={currentTransform.flipY ? -1 : 1}
+            offsetX={currentTransform.flipX ? transform.width : 0}
+            offsetY={currentTransform.flipY ? transform.height : 0}
+            opacity={currentTransform.opacity ?? 1}
           />
         )}
 

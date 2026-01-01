@@ -8,3 +8,4 @@ export { ImageSlotRenderer } from './ImageSlotRenderer'
 export { TextFieldRenderer } from './TextFieldRenderer'
 export { DynamicShapeRenderer } from './DynamicShapeRenderer'
 export { OverlayImageRenderer } from './OverlayImageRenderer'
+export { StickerRenderer } from './StickerRenderer' // Sprint 31

@@ -15,6 +15,10 @@ import type {
   ColorReference,
   SlotImageTransform,
   SlotTransforms,
+  ImageFilters,
+  TextEffects,
+  TextStyle,
+  StickerLayer,
 } from '@/types/template'
 import { DEFAULT_SLOT_TRANSFORM } from '@/types/template'
 import {
@@ -51,6 +55,7 @@ interface CanvasEditorState extends HistoryState, LayerSliceState {
   // UI 상태
   selectedSlotId: string | null
   selectedTextId: string | null
+  selectedStickerId: string | null // Sprint 31
   zoom: number
 
   // 저장 상태
@@ -78,6 +83,24 @@ interface CanvasEditorActions extends HistoryActions, LayerSliceActions {
   updateSlotTransform: (slotId: string, transform: Partial<SlotImageTransform>) => void
   resetSlotTransform: (slotId: string) => void
   getSlotTransform: (slotId: string) => SlotImageTransform
+
+  // Sprint 29: 이미지 편집 강화
+  toggleFlipX: (slotId: string) => void
+  toggleFlipY: (slotId: string) => void
+  setImageOpacity: (slotId: string, opacity: number) => void
+  setImageFilters: (slotId: string, filters: ImageFilters) => void
+
+  // Sprint 30: 텍스트 편집 고도화
+  updateTextEffects: (textId: string, effects: Partial<TextEffects>) => void
+  updateTextStyle: (textId: string, style: Partial<TextStyle>) => void
+  clearTextEffects: (textId: string) => void
+
+  // Sprint 31: 스티커 시스템
+  addSticker: (sticker: StickerLayer) => void
+  removeSticker: (stickerId: string) => void
+  updateStickerTransform: (stickerId: string, transform: Partial<StickerLayer['transform']>) => void
+  selectSticker: (stickerId: string | null) => void
+  selectedStickerId: string | null
 
   // UI 상태
   selectSlot: (slotId: string | null) => void
@@ -127,6 +150,7 @@ const initialState: CanvasEditorState = {
 
   selectedSlotId: null,
   selectedTextId: null,
+  selectedStickerId: null, // Sprint 31
   zoom: 1,
 
   isDirty: false,
@@ -261,9 +285,231 @@ export const useCanvasEditorStore = create<CanvasEditorState & CanvasEditorActio
           return get().slotTransforms[slotId] || DEFAULT_SLOT_TRANSFORM
         },
 
+        // Sprint 29: 이미지 편집 강화
+        toggleFlipX: (slotId) => {
+          set((state) => {
+            const current = state.slotTransforms[slotId] || DEFAULT_SLOT_TRANSFORM
+            return {
+              slotTransforms: {
+                ...state.slotTransforms,
+                [slotId]: {
+                  ...current,
+                  flipX: !current.flipX,
+                },
+              },
+              isDirty: true,
+            }
+          })
+          get().pushHistory()
+        },
+
+        toggleFlipY: (slotId) => {
+          set((state) => {
+            const current = state.slotTransforms[slotId] || DEFAULT_SLOT_TRANSFORM
+            return {
+              slotTransforms: {
+                ...state.slotTransforms,
+                [slotId]: {
+                  ...current,
+                  flipY: !current.flipY,
+                },
+              },
+              isDirty: true,
+            }
+          })
+          get().pushHistory()
+        },
+
+        setImageOpacity: (slotId, opacity) => {
+          set((state) => {
+            const current = state.slotTransforms[slotId] || DEFAULT_SLOT_TRANSFORM
+            return {
+              slotTransforms: {
+                ...state.slotTransforms,
+                [slotId]: {
+                  ...current,
+                  opacity: Math.max(0, Math.min(1, opacity)),
+                },
+              },
+              isDirty: true,
+            }
+          })
+          get().pushHistory()
+        },
+
+        setImageFilters: (slotId, filters) => {
+          set((state) => {
+            const current = state.slotTransforms[slotId] || DEFAULT_SLOT_TRANSFORM
+            return {
+              slotTransforms: {
+                ...state.slotTransforms,
+                [slotId]: {
+                  ...current,
+                  filters: { ...current.filters, ...filters },
+                },
+              },
+              isDirty: true,
+            }
+          })
+          get().pushHistory()
+        },
+
+        // Sprint 30: 텍스트 편집 고도화
+        updateTextEffects: (textId, effects) => {
+          set((state) => {
+            if (!state.templateConfig) return state
+            const texts = state.templateConfig.layers.texts.map((text) => {
+              if (text.id !== textId) return text
+              return {
+                ...text,
+                effects: {
+                  ...text.effects,
+                  ...effects,
+                },
+              }
+            })
+            return {
+              templateConfig: {
+                ...state.templateConfig,
+                layers: {
+                  ...state.templateConfig.layers,
+                  texts,
+                },
+              },
+              isDirty: true,
+            }
+          })
+          get().pushHistory()
+        },
+
+        updateTextStyle: (textId, style) => {
+          set((state) => {
+            if (!state.templateConfig) return state
+            const texts = state.templateConfig.layers.texts.map((text) => {
+              if (text.id !== textId) return text
+              return {
+                ...text,
+                style: {
+                  ...text.style,
+                  ...style,
+                },
+              }
+            })
+            return {
+              templateConfig: {
+                ...state.templateConfig,
+                layers: {
+                  ...state.templateConfig.layers,
+                  texts,
+                },
+              },
+              isDirty: true,
+            }
+          })
+          get().pushHistory()
+        },
+
+        clearTextEffects: (textId) => {
+          set((state) => {
+            if (!state.templateConfig) return state
+            const texts = state.templateConfig.layers.texts.map((text) => {
+              if (text.id !== textId) return text
+              return {
+                ...text,
+                effects: undefined,
+              }
+            })
+            return {
+              templateConfig: {
+                ...state.templateConfig,
+                layers: {
+                  ...state.templateConfig.layers,
+                  texts,
+                },
+              },
+              isDirty: true,
+            }
+          })
+          get().pushHistory()
+        },
+
+        // Sprint 31: 스티커 시스템
+        addSticker: (sticker) => {
+          set((state) => {
+            if (!state.templateConfig) return state
+            const stickers = [...(state.templateConfig.layers.stickers || []), sticker]
+            return {
+              templateConfig: {
+                ...state.templateConfig,
+                layers: {
+                  ...state.templateConfig.layers,
+                  stickers,
+                },
+              },
+              selectedStickerId: sticker.id,
+              isDirty: true,
+            }
+          })
+          get().pushHistory()
+        },
+
+        removeSticker: (stickerId) => {
+          set((state) => {
+            if (!state.templateConfig) return state
+            const stickers = (state.templateConfig.layers.stickers || []).filter(
+              (s) => s.id !== stickerId
+            )
+            return {
+              templateConfig: {
+                ...state.templateConfig,
+                layers: {
+                  ...state.templateConfig.layers,
+                  stickers,
+                },
+              },
+              selectedStickerId: state.selectedStickerId === stickerId ? null : state.selectedStickerId,
+              isDirty: true,
+            }
+          })
+          get().pushHistory()
+        },
+
+        updateStickerTransform: (stickerId, transform) => {
+          set((state) => {
+            if (!state.templateConfig) return state
+            const stickers = (state.templateConfig.layers.stickers || []).map((sticker) => {
+              if (sticker.id !== stickerId) return sticker
+              return {
+                ...sticker,
+                transform: {
+                  ...sticker.transform,
+                  ...transform,
+                },
+              }
+            })
+            return {
+              templateConfig: {
+                ...state.templateConfig,
+                layers: {
+                  ...state.templateConfig.layers,
+                  stickers,
+                },
+              },
+              isDirty: true,
+            }
+          })
+          get().pushHistory()
+        },
+
+        selectSticker: (stickerId) => set({
+          selectedStickerId: stickerId,
+          selectedSlotId: null,
+          selectedTextId: null,
+        }),
+
         // UI 상태
-        selectSlot: (slotId) => set({ selectedSlotId: slotId, selectedTextId: null }),
-        selectText: (textId) => set({ selectedTextId: textId, selectedSlotId: null }),
+        selectSlot: (slotId) => set({ selectedSlotId: slotId, selectedTextId: null, selectedStickerId: null }),
+        selectText: (textId) => set({ selectedTextId: textId, selectedSlotId: null, selectedStickerId: null }),
         setZoom: (zoom) => set({ zoom: Math.max(0.25, Math.min(2, zoom)) }),
 
         // 이미지 삭제

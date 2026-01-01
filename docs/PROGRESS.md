@@ -1,6 +1,6 @@
 # Pairy 개발 진행도
 
-> 마지막 업데이트: 2025-12-29
+> 마지막 업데이트: 2026-01-01
 
 ## 현재 상태
 
@@ -9,8 +9,11 @@ Phase 1 ████████████████████ 100% 완료
 Phase 2 ████████████████████ 100% 완료
 Phase 3 ████████████████████ 100% 완료
 Phase 4 ████████████████████ 100% 완료
+Phase 5 █████████████████░░░  85% 진행 중
 ```
 
+
+> **Phase 5 상세 계획:** [EDITOR-UPGRADE-PLAN.md](./EDITOR-UPGRADE-PLAN.md)
 ---
 
 ## Phase 1: MVP 기본 (완료)
@@ -134,7 +137,7 @@ Phase 4 ████████████████████ 100% 완료
 
 ---
 
-## Phase 4: 고급 에디터 (진행 중)
+## Phase 4: 고급 에디터 (완료)
 
 Canvas 기반 에디터 재구축 (react-konva)
 
@@ -304,6 +307,130 @@ Canvas 기반 에디터 재구축 (react-konva)
 - [x] 드래그로 이미지 위치 조정
 - [x] 기존 에디터 완전 대체
 - [x] Doodle/Premium 듀얼 애니메이션 시스템
+
+---
+
+
+## Phase 5: 에디터 고도화 (진행 중)
+
+에디터 기능 확장 및 실시간 협업
+
+| Sprint | 작업 | 상태 | 완료일 |
+|--------|------|:----:|--------|
+| Sprint 29 | 이미지 편집 강화 (클립보드, 반전, 투명도, 필터) | ✅ | 2026-01-01 |
+| Sprint 30 | 텍스트 편집 고도화 (외곽선, 그림자, 인라인) | ✅ | 2026-01-01 |
+| Sprint 31 | 스티커 시스템 (이미지 스티커, 검색, 배치/삭제) | ✅ | 2026-01-01 |
+| Sprint 32 | 실시간 협업 (Yjs 통합) | ✅ | 2026-01-01 |
+| Sprint 33 | UX 고도화 (온보딩, 레이어 패널, 프리셋) | ✅ | 2026-01-01 |
+| Sprint 34 | 성능 & 접근성 | ⏳ | - |
+
+### Phase 5 Sprint 29 완료 (이미지 편집 강화)
+- [x] 클립보드 붙여넣기 (Ctrl+V) - 선택된 슬롯에 이미지 붙여넣기
+- [x] 이미지 좌우/상하 반전 (flipX, flipY)
+- [x] 투명도 조절 슬라이더 (0~100%)
+- [x] 이미지 필터 (흑백, 세피아)
+- [x] 밝기/대비 조절 (-100~100)
+- [x] 사이드바 UI 업데이트 (반전 버튼, 투명도, 필터 토글)
+- [x] SlotImageTransform 타입 확장 (template.ts)
+- [x] canvasEditorStore 액션 추가 (toggleFlipX/Y, setImageOpacity, setImageFilters)
+- [x] ImageSlotRenderer 반전/투명도 적용
+- [x] useKonvaImage 훅 필터 적용 (CSS filter 문법)
+
+### Phase 5 Sprint 30 완료 (텍스트 편집 고도화)
+- [x] TextEffects, TextStyle 타입 분리 (template.ts)
+- [x] 텍스트 효과 스토어 액션 (updateTextEffects, updateTextStyle, clearTextEffects)
+- [x] TextEffectsPanel 컴포넌트 (그림자/외곽선/글로우 토글 및 세부 설정)
+- [x] 그림자 효과 (색상, 흐림, X/Y 오프셋)
+- [x] 외곽선 효과 (색상, 두께)
+- [x] 글로우 효과 (색상, 흐림)
+- [x] 인라인 텍스트 편집 (더블클릭 → 오버레이 textarea)
+- [x] TextFieldRenderer에 onDoubleClick 지원
+- [x] TemplateRenderer에 onTextDoubleClick 콜백 추가
+- [x] CanvasEditor 인라인 편집 오버레이 구현
+
+### Phase 5 Sprint 31 완료 (스티커 시스템)
+- [x] 스티커 타입 정의 (types/sticker.ts)
+  - Sticker, StickerPack, StickerLayer, StickerCategory 타입
+  - 이미지 스티커만 지원 (이모지 배제)
+  - DECORATION_STICKER_PACK, FRAME_STICKER_PACK (이미지 스티커용)
+  - searchStickers 검색 함수 (태그 기반)
+- [x] TemplateConfig 확장 (layers.stickers 추가)
+- [x] StickerRenderer 컴포넌트 (renderers/StickerRenderer.tsx)
+  - Konva Image 렌더링
+  - Konva Transformer 리사이즈/회전
+  - 드래그 이동 지원
+  - 선택 상태 시각화
+- [x] 스토어 액션 추가 (canvasEditorStore.ts)
+  - addSticker: 캔버스 중앙에 스티커 추가
+  - removeSticker: 스티커 삭제
+  - updateStickerTransform: 위치/크기/회전 업데이트
+  - selectSticker: 스티커 선택
+- [x] TemplateRenderer 스티커 레이어 렌더링
+- [x] CanvasEditor 스티커 핸들링 연결
+- [x] StickerPanel UI (EditorSidebar.tsx)
+  - 검색 입력 필드
+  - 팩 선택 탭 (장식, 프레임)
+  - 4열 이미지 스티커 그리드
+  - 배치된 스티커 목록 (선택/삭제)
+  - "스티커 준비 중" 안내 UI
+
+### Phase 5 Sprint 32 완료 (실시간 협업 - Yjs 통합)
+- [x] Yjs 패키지 설치 (yjs, y-protocols, lib0)
+- [x] 협업 타입 정의 (lib/collab/types.ts)
+  - SyncState, CollabUser, EditingZone 타입
+  - UserEditingState, EditConflict 타입
+- [x] SupabaseYjsProvider 구현 (lib/collab/yjsProvider.ts)
+  - Yjs 문서 (Y.Doc) 생성 및 관리
+  - Supabase Realtime 채널 연결
+  - Y.Map/Y.Array 기반 상태 동기화
+  - Awareness 프로토콜 (커서, 선택 상태)
+  - 원격 업데이트 수신 및 적용
+- [x] CollabContext Provider (lib/collab/CollabContext.tsx)
+  - React Context 기반 협업 상태 관리
+  - Zustand 스토어 ↔ Yjs 상태 동기화
+  - 영역 선점 (claimZone) 기능
+  - 충돌 감지 및 알림
+- [x] CollabOverlay 컴포넌트 (components/editor/canvas/CollabOverlay.tsx)
+  - 원격 커서 표시 (RemoteCursor)
+  - 영역 분리 시각화 (ZoneIndicator)
+  - 충돌 알림 팝업 (ConflictNotification)
+- [x] ZoneSelector 컴포넌트 (components/editor/canvas/ZoneSelector.tsx)
+  - A/B 영역 선택 UI
+  - 영역 점유 상태 표시
+  - 자유 편집 모드 옵션
+- [x] CanvasEditor 협업 통합
+  - useCollabOptional 훅 사용
+  - 협업 상태 표시 (참여자 수)
+  - CollabOverlay 조건부 렌더링
+
+### Phase 5 Sprint 33 완료 (UX 고도화)
+- [x] OnboardingTour 컴포넌트 (components/editor/canvas/OnboardingTour.tsx)
+  - 5단계 온보딩 투어 (캔버스, 이미지 업로드, 테마 색상, 텍스트 입력, 저장)
+  - 타겟 요소 하이라이트 및 툴팁 표시
+  - localStorage 기반 완료 상태 영속화
+  - 키보드 네비게이션 (←→, ESC)
+  - useOnboarding 훅 (첫 방문자 자동 시작)
+- [x] ContextMenu 컴포넌트 (components/editor/canvas/ContextMenu.tsx)
+  - 우클릭 컨텍스트 메뉴
+  - 슬롯/스티커/텍스트/캔버스 타입별 메뉴 아이템
+  - createContextMenuItems 팩토리 함수
+  - 단축키 표시 (Ctrl+V, Del)
+  - useContextMenu 훅
+- [x] LayerPanel 컴포넌트 (components/editor/canvas/LayerPanel.tsx)
+  - 레이어 그룹별 접기/펼치기 (오버레이, 스티커, 텍스트, 슬롯, 배경)
+  - 레이어 잠금/잠금해제 토글
+  - 레이어 표시/숨김 토글
+  - 드래그 핸들 (향후 DnD 구현용)
+  - 썸네일 미리보기
+- [x] ColorPresets 컴포넌트 (components/editor/canvas/ColorPresets.tsx)
+  - 10개 색상 프리셋 (6개 무료, 4개 프리미엄)
+  - 원클릭 색상 조합 적용
+  - PRO 배지 표시
+  - 선택 상태 시각화
+- [x] CanvasEditor UX 기능 통합
+  - data-tour 속성 추가 (캔버스, 패널, 버튼)
+  - OnboardingTour/ContextMenu 렌더링
+  - 클립보드 붙여넣기 메뉴 연결
 
 ---
 

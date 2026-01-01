@@ -5,6 +5,8 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
 });
 
 const nextConfig: NextConfig = {
+  // Turbopack 비활성화 (한글 경로 버그 우회)
+  bundlePagesRouterDependencies: true,
   output: 'export',
   basePath: '/pairy',
   images: {

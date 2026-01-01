@@ -1,13 +1,20 @@
 /**
  * Pairy 템플릿 설정 스키마 v2
  *
- * 3단 레이어 구조:
+ * 레이어 구조 (렌더링 순서):
  * 1. background - 맨 뒤 배경 (이미지, 단색, 그라데이션)
  * 2. slots - 사용자 이미지 영역 (마스킹 지원: shape/image)
- * 3. overlay - 맨 앞 장식/프레임 이미지
+ * 3. stickers - 스티커 레이어 (Sprint 31)
+ * 4. dynamicShapes - 동적 도형
+ * 5. texts - 텍스트 필드
+ * 6. overlay - 맨 앞 장식/프레임 이미지
  *
  * 시장 참고: Canva, Figma, Photopea 마스킹 방식 반영
  */
+
+// Sprint 31: 스티커 타입 re-export (이미지 스티커만 지원)
+export type { StickerLayer, Sticker, StickerPack, StickerCategory } from './sticker'
+export { DECORATION_STICKER_PACK, FRAME_STICKER_PACK, ALL_STICKER_PACKS, searchStickers } from './sticker'
 
 // ============================================
 // 기본 타입
@@ -157,6 +164,39 @@ export interface ImageSlot {
   clickable?: boolean // 기본값: true
 }
 
+/** 텍스트 효과 설정 (Sprint 30) */
+export interface TextEffects {
+  shadow?: {
+    color: string
+    blur: number
+    offsetX: number
+    offsetY: number
+  }
+  stroke?: {
+    color: string | ColorReference
+    width: number
+  }
+  glow?: {
+    color: string | ColorReference
+    blur: number
+  }
+}
+
+/** 텍스트 스타일 설정 */
+export interface TextStyle {
+  fontFamily: string
+  fontSize: number
+  fontWeight?: FontWeight
+  fontStyle?: FontStyle
+  color: string | ColorReference
+  align?: TextAlign
+  verticalAlign?: VerticalAlign
+  lineHeight?: number
+  letterSpacing?: number
+  textDecoration?: 'none' | 'underline' | 'line-through'
+  textTransform?: 'none' | 'uppercase' | 'lowercase' | 'capitalize'
+}
+
 /** 텍스트 필드 */
 export interface TextField {
   id: string
@@ -171,38 +211,11 @@ export interface TextField {
   defaultValue?: string
   placeholder?: string
 
-  // 텍스트 스타일
-  style: {
-    fontFamily: string
-    fontSize: number
-    fontWeight?: FontWeight
-    fontStyle?: FontStyle
-    color: string | ColorReference
-    align?: TextAlign
-    verticalAlign?: VerticalAlign
-    lineHeight?: number // 기본값: 1.2
-    letterSpacing?: number // 픽셀 단위
-    textDecoration?: 'none' | 'underline' | 'line-through'
-    textTransform?: 'none' | 'uppercase' | 'lowercase' | 'capitalize'
-  }
+  // 텍스트 스타일 (TextStyle 참조)
+  style: TextStyle
 
-  // 텍스트 효과
-  effects?: {
-    shadow?: {
-      color: string
-      blur: number
-      offsetX: number
-      offsetY: number
-    }
-    stroke?: {
-      color: string | ColorReference
-      width: number
-    }
-    glow?: {
-      color: string | ColorReference
-      blur: number
-    }
-  }
+  // 텍스트 효과 (TextEffects 참조)
+  effects?: TextEffects
 
   // 배경 (선택적)
   background?: {
@@ -336,10 +349,11 @@ export interface TemplateConfig {
   // 사용자 지정 색상 목록
   colors: ColorConfig[]
 
-  // 레이어 (렌더링 순서: background → slots → dynamicShapes → texts → overlays)
+  // 레이어 (렌더링 순서: background → slots → stickers → dynamicShapes → texts → overlays)
   layers: {
     background: BackgroundLayer
     slots: ImageSlot[]
+    stickers?: import('./sticker').StickerLayer[] // Sprint 31
     dynamicShapes?: DynamicShape[]
     texts: TextField[]
     overlays?: OverlayImage[]
@@ -406,12 +420,28 @@ export interface EditorData {
 // 변경 이유: TemplateRenderer.tsx와 canvasEditorStore.ts에서 중복 정의되어 있던 타입을 통합
 // ============================================
 
+/** 이미지 필터 설정 (Sprint 29) */
+export interface ImageFilters {
+  brightness?: number // -100 ~ 100 (기본값: 0)
+  contrast?: number // -100 ~ 100 (기본값: 0)
+  saturation?: number // 0 ~ 200 (기본값: 100)
+  grayscale?: boolean // 흑백 필터
+  sepia?: boolean // 세피아 필터
+  blur?: number // 0 ~ 20 (기본값: 0)
+}
+
 /** 슬롯 내 이미지 변환 상태 */
 export interface SlotImageTransform {
   x: number // -1 ~ 1 (중앙 = 0)
   y: number // -1 ~ 1 (중앙 = 0)
   scale: number // 1 = 원본
   rotation: number // 도 단위
+
+  // Sprint 29: 이미지 편집 강화
+  flipX?: boolean // 좌우 반전
+  flipY?: boolean // 상하 반전
+  opacity?: number // 0 ~ 1 (기본값: 1)
+  filters?: ImageFilters // 이미지 필터
 }
 
 /** 슬롯별 이미지 변환 데이터 */

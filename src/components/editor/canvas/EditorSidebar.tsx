@@ -10,10 +10,23 @@ import {
   ChevronDown,
   ChevronRight,
   RotateCcw,
+  FlipHorizontal,
+  FlipVertical,
+  SunMedium,
+  Contrast,
+  // Sprint 30: 텍스트 효과
+  Sparkles,
+  PenLine,
+  Eraser,
+  // Sprint 31: 스티커
+  Sticker,
+  Search,
+  Trash2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { useCanvasEditorStore } from '@/stores/canvasEditorStore'
-import type { InputFieldConfig, ImageSlot, ColorConfig } from '@/types/template'
+import type { InputFieldConfig, ImageSlot, ColorConfig, SlotImageTransform, ImageFilters, TextEffects, TextField, StickerLayer } from '@/types/template'
+import { ALL_STICKER_PACKS, searchStickers, type Sticker as StickerType, type StickerPack } from '@/types/sticker'
 
 // ============================================
 // 서브 컴포넌트
@@ -109,7 +122,7 @@ const TextInputField = React.forwardRef<HTMLInputElement | HTMLTextAreaElement |
  */
 function ImageUploadField({
   field,
-  slot,
+  slot: _slot,
   imageUrl,
   onUpload,
   onRemove,
@@ -319,6 +332,265 @@ function ColorPickerField({
 }
 
 /**
+ * Sprint 30: 텍스트 효과 패널
+ */
+function TextEffectsPanel({
+  textField,
+  onUpdateEffects,
+  onClearEffects,
+}: {
+  textField: TextField
+  onUpdateEffects: (effects: Partial<TextEffects>) => void
+  onClearEffects: () => void
+}) {
+  const effects = textField.effects || {}
+
+  // 그림자 토글
+  const handleShadowToggle = () => {
+    if (effects.shadow) {
+      onUpdateEffects({ shadow: undefined })
+    } else {
+      onUpdateEffects({
+        shadow: {
+          color: '#000000',
+          blur: 4,
+          offsetX: 2,
+          offsetY: 2,
+        },
+      })
+    }
+  }
+
+  // 외곽선 토글
+  const handleStrokeToggle = () => {
+    if (effects.stroke) {
+      onUpdateEffects({ stroke: undefined })
+    } else {
+      onUpdateEffects({
+        stroke: {
+          color: '#000000',
+          width: 2,
+        },
+      })
+    }
+  }
+
+  // 글로우 토글
+  const handleGlowToggle = () => {
+    if (effects.glow) {
+      onUpdateEffects({ glow: undefined })
+    } else {
+      onUpdateEffects({
+        glow: {
+          color: '#FFFFFF',
+          blur: 8,
+        },
+      })
+    }
+  }
+
+  return (
+    <div className="space-y-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+      <div className="flex items-center justify-between">
+        <h4 className="text-sm font-medium text-blue-800 flex items-center gap-2">
+          <Sparkles className="w-4 h-4" />
+          텍스트 효과
+        </h4>
+        {(effects.shadow || effects.stroke || effects.glow) && (
+          <button
+            onClick={onClearEffects}
+            className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
+          >
+            <Eraser className="w-3 h-3" />
+            초기화
+          </button>
+        )}
+      </div>
+
+      {/* 효과 토글 버튼들 */}
+      <div className="flex flex-wrap gap-2">
+        <button
+          onClick={handleShadowToggle}
+          className={cn(
+            'px-3 py-1.5 text-xs rounded-full border transition-colors flex items-center gap-1',
+            effects.shadow
+              ? 'bg-blue-600 text-white border-blue-600'
+              : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400'
+          )}
+        >
+          그림자
+        </button>
+        <button
+          onClick={handleStrokeToggle}
+          className={cn(
+            'px-3 py-1.5 text-xs rounded-full border transition-colors flex items-center gap-1',
+            effects.stroke
+              ? 'bg-blue-600 text-white border-blue-600'
+              : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400'
+          )}
+        >
+          <PenLine className="w-3 h-3" />
+          외곽선
+        </button>
+        <button
+          onClick={handleGlowToggle}
+          className={cn(
+            'px-3 py-1.5 text-xs rounded-full border transition-colors flex items-center gap-1',
+            effects.glow
+              ? 'bg-blue-600 text-white border-blue-600'
+              : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400'
+          )}
+        >
+          <Sparkles className="w-3 h-3" />
+          글로우
+        </button>
+      </div>
+
+      {/* 그림자 세부 설정 */}
+      {effects.shadow && (
+        <div className="space-y-2 pt-2 border-t border-blue-200">
+          <p className="text-xs font-medium text-blue-700">그림자 설정</p>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-xs text-gray-500">색상</label>
+              <input
+                type="color"
+                value={effects.shadow.color}
+                onChange={(e) =>
+                  onUpdateEffects({
+                    shadow: { ...effects.shadow!, color: e.target.value },
+                  })
+                }
+                className="w-full h-8 rounded border border-gray-200 cursor-pointer"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500">흐림 ({effects.shadow.blur}px)</label>
+              <input
+                type="range"
+                min="0"
+                max="20"
+                value={effects.shadow.blur}
+                onChange={(e) =>
+                  onUpdateEffects({
+                    shadow: { ...effects.shadow!, blur: Number(e.target.value) },
+                  })
+                }
+                className="w-full"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500">X 오프셋 ({effects.shadow.offsetX}px)</label>
+              <input
+                type="range"
+                min="-20"
+                max="20"
+                value={effects.shadow.offsetX}
+                onChange={(e) =>
+                  onUpdateEffects({
+                    shadow: { ...effects.shadow!, offsetX: Number(e.target.value) },
+                  })
+                }
+                className="w-full"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500">Y 오프셋 ({effects.shadow.offsetY}px)</label>
+              <input
+                type="range"
+                min="-20"
+                max="20"
+                value={effects.shadow.offsetY}
+                onChange={(e) =>
+                  onUpdateEffects({
+                    shadow: { ...effects.shadow!, offsetY: Number(e.target.value) },
+                  })
+                }
+                className="w-full"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 외곽선 세부 설정 */}
+      {effects.stroke && (
+        <div className="space-y-2 pt-2 border-t border-blue-200">
+          <p className="text-xs font-medium text-blue-700">외곽선 설정</p>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-xs text-gray-500">색상</label>
+              <input
+                type="color"
+                value={typeof effects.stroke.color === 'string' ? effects.stroke.color : '#000000'}
+                onChange={(e) =>
+                  onUpdateEffects({
+                    stroke: { ...effects.stroke!, color: e.target.value },
+                  })
+                }
+                className="w-full h-8 rounded border border-gray-200 cursor-pointer"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500">두께 ({effects.stroke.width}px)</label>
+              <input
+                type="range"
+                min="1"
+                max="10"
+                value={effects.stroke.width}
+                onChange={(e) =>
+                  onUpdateEffects({
+                    stroke: { ...effects.stroke!, width: Number(e.target.value) },
+                  })
+                }
+                className="w-full"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 글로우 세부 설정 */}
+      {effects.glow && (
+        <div className="space-y-2 pt-2 border-t border-blue-200">
+          <p className="text-xs font-medium text-blue-700">글로우 설정</p>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-xs text-gray-500">색상</label>
+              <input
+                type="color"
+                value={typeof effects.glow.color === 'string' ? effects.glow.color : '#FFFFFF'}
+                onChange={(e) =>
+                  onUpdateEffects({
+                    glow: { ...effects.glow!, color: e.target.value },
+                  })
+                }
+                className="w-full h-8 rounded border border-gray-200 cursor-pointer"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500">흐림 ({effects.glow.blur}px)</label>
+              <input
+                type="range"
+                min="1"
+                max="30"
+                value={effects.glow.blur}
+                onChange={(e) =>
+                  onUpdateEffects({
+                    glow: { ...effects.glow!, blur: Number(e.target.value) },
+                  })
+                }
+                className="w-full"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/**
  * 슬롯별 입력 그룹
  */
 const SlotInputGroup = React.forwardRef<HTMLDivElement, {
@@ -334,6 +606,12 @@ const SlotInputGroup = React.forwardRef<HTMLDivElement, {
   isExpanded: boolean
   onToggle: () => void
   isSelected?: boolean
+  // Sprint 29: 이미지 편집 강화
+  slotTransform?: SlotImageTransform
+  onFlipX?: () => void
+  onFlipY?: () => void
+  onOpacityChange?: (opacity: number) => void
+  onFiltersChange?: (filters: Partial<ImageFilters>) => void
 }>(function SlotInputGroup({
   slot,
   fields,
@@ -347,6 +625,11 @@ const SlotInputGroup = React.forwardRef<HTMLDivElement, {
   isExpanded,
   onToggle,
   isSelected,
+  slotTransform,
+  onFlipX,
+  onFlipY,
+  onOpacityChange,
+  onFiltersChange,
 }, ref) {
   const imageField = fields.find((f) => f.type === 'image')
   const textFields = fields.filter((f) => f.type !== 'image')
@@ -396,6 +679,125 @@ const SlotInputGroup = React.forwardRef<HTMLDivElement, {
             </button>
           )}
 
+          {/* Sprint 29: 이미지 편집 강화 */}
+          {imageUrl && (
+            <div className="space-y-3 border-t border-gray-100 pt-3 mt-3">
+              {/* 반전 버튼 */}
+              <div className="flex gap-2">
+                <button
+                  onClick={onFlipX}
+                  className={cn(
+                    "flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors",
+                    slotTransform?.flipX 
+                      ? "bg-primary-100 text-primary-700 border border-primary-300" 
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  )}
+                  title="좌우 반전"
+                >
+                  <FlipHorizontal className="w-4 h-4" />
+                  좌우
+                </button>
+                <button
+                  onClick={onFlipY}
+                  className={cn(
+                    "flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors",
+                    slotTransform?.flipY 
+                      ? "bg-primary-100 text-primary-700 border border-primary-300" 
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  )}
+                  title="상하 반전"
+                >
+                  <FlipVertical className="w-4 h-4" />
+                  상하
+                </button>
+              </div>
+
+              {/* 투명도 슬라이더 */}
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-medium text-gray-600">투명도</label>
+                  <span className="text-xs text-gray-500">
+                    {Math.round((slotTransform?.opacity ?? 1) * 100)}%
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={Math.round((slotTransform?.opacity ?? 1) * 100)}
+                  onChange={(e) => onOpacityChange?.(Number(e.target.value) / 100)}
+                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary-500"
+                />
+              </div>
+
+              {/* 필터 토글 */}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => onFiltersChange?.({ grayscale: !slotTransform?.filters?.grayscale })}
+                  className={cn(
+                    "flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors",
+                    slotTransform?.filters?.grayscale 
+                      ? "bg-gray-700 text-white" 
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  )}
+                  title="흑백"
+                >
+                  <Contrast className="w-4 h-4" />
+                  흑백
+                </button>
+                <button
+                  onClick={() => onFiltersChange?.({ sepia: !slotTransform?.filters?.sepia })}
+                  className={cn(
+                    "flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors",
+                    slotTransform?.filters?.sepia 
+                      ? "bg-amber-100 text-amber-700 border border-amber-300" 
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  )}
+                  title="세피아"
+                >
+                  <SunMedium className="w-4 h-4" />
+                  세피아
+                </button>
+              </div>
+
+              {/* 밝기/대비 슬라이더 */}
+              <div className="space-y-2">
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-medium text-gray-600">밝기</label>
+                    <span className="text-xs text-gray-500">
+                      {slotTransform?.filters?.brightness ?? 0}
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="-100"
+                    max="100"
+                    value={slotTransform?.filters?.brightness ?? 0}
+                    onChange={(e) => onFiltersChange?.({ brightness: Number(e.target.value) })}
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary-500"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-medium text-gray-600">대비</label>
+                    <span className="text-xs text-gray-500">
+                      {slotTransform?.filters?.contrast ?? 0}
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="-100"
+                    max="100"
+                    value={slotTransform?.filters?.contrast ?? 0}
+                    onChange={(e) => onFiltersChange?.({ contrast: Number(e.target.value) })}
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary-500"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
           {textFields.map((field) => (
             <TextInputField
               key={field.key}
@@ -410,11 +812,147 @@ const SlotInputGroup = React.forwardRef<HTMLDivElement, {
   )
 })
 
+/**
+ * Sprint 31: 스티커 패널
+ * 이미지 스티커만 지원 (이모지 배제)
+ */
+function StickerPanel({
+  onAddSticker,
+  stickers,
+  selectedStickerId,
+  onSelectSticker,
+  onRemoveSticker,
+}: {
+  onAddSticker: (sticker: StickerType) => void
+  stickers: StickerLayer[]
+  selectedStickerId: string | null
+  onSelectSticker: (id: string | null) => void
+  onRemoveSticker: (id: string) => void
+}) {
+  const [searchQuery, setSearchQuery] = useState('')
+  const [activePack, setActivePack] = useState<string>(ALL_STICKER_PACKS[0]?.id || '')
+
+  const currentPack = ALL_STICKER_PACKS.find((p) => p.id === activePack)
+  const searchResults = searchQuery.trim() ? searchStickers(searchQuery) : []
+
+  const displayStickers = searchQuery.trim()
+    ? searchResults
+    : currentPack?.stickers || []
+
+  return (
+    <div className="space-y-4">
+      {/* 검색 */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="스티커 검색..."
+          className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-300"
+        />
+      </div>
+
+      {/* 팩 선택 탭 */}
+      {!searchQuery.trim() && (
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {ALL_STICKER_PACKS.map((pack) => (
+            <button
+              key={pack.id}
+              onClick={() => setActivePack(pack.id)}
+              className={cn(
+                'px-3 py-1.5 text-sm rounded-full whitespace-nowrap transition-colors',
+                activePack === pack.id
+                  ? 'bg-primary-400 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              )}
+            >
+              {pack.name}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* 스티커 그리드 */}
+      <div className="grid grid-cols-4 gap-2">
+        {displayStickers.map((sticker) => (
+          <button
+            key={sticker.id}
+            onClick={() => onAddSticker(sticker)}
+            className="aspect-square flex items-center justify-center bg-gray-50 hover:bg-primary-50 rounded-xl transition-colors border border-gray-200 hover:border-primary-300 overflow-hidden"
+            title={sticker.tags.join(', ')}
+          >
+            <img
+              src={sticker.thumbnailUrl || sticker.imageUrl}
+              alt={sticker.tags[0] || 'sticker'}
+              className="w-full h-full object-contain p-1"
+            />
+          </button>
+        ))}
+      </div>
+
+      {displayStickers.length === 0 && (
+        <div className="text-center py-8">
+          <Sticker className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+          <p className="text-gray-400 text-sm">
+            {searchQuery.trim() ? '검색 결과가 없습니다' : '스티커 준비 중입니다'}
+          </p>
+          <p className="text-gray-300 text-xs mt-1">
+            곧 다양한 스티커가 추가됩니다
+          </p>
+        </div>
+      )}
+
+      {/* 배치된 스티커 목록 */}
+      {stickers.length > 0 && (
+        <div className="border-t border-gray-200 pt-4 mt-4">
+          <h4 className="text-xs font-medium text-gray-600 mb-2">배치된 스티커</h4>
+          <div className="space-y-2">
+            {stickers.map((sticker) => (
+              <div
+                key={sticker.id}
+                className={cn(
+                  'flex items-center justify-between p-2 rounded-lg border transition-colors cursor-pointer',
+                  selectedStickerId === sticker.id
+                    ? 'border-primary-400 bg-primary-50'
+                    : 'border-gray-200 hover:border-gray-300'
+                )}
+                onClick={() => onSelectSticker(sticker.id)}
+              >
+                <div className="flex items-center gap-2">
+                  <img
+                    src={sticker.imageUrl}
+                    alt="sticker"
+                    className="w-8 h-8 object-contain"
+                  />
+                  <span className="text-xs text-gray-500">
+                    {Math.round(sticker.transform.width)}×{Math.round(sticker.transform.height)}
+                  </span>
+                </div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onRemoveSticker(sticker.id)
+                  }}
+                  className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
+                  title="스티커 삭제"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ============================================
 // 메인 사이드바 컴포넌트
 // ============================================
 
-type Tab = 'slots' | 'general' | 'colors'
+type Tab = 'slots' | 'general' | 'colors' | 'stickers'
 
 interface EditorSidebarProps {
   isOpen?: boolean
@@ -430,10 +968,23 @@ export default function EditorSidebar({ isOpen = true, onClose }: EditorSidebarP
     slotTransforms,
     selectedSlotId,
     selectedTextId,
+    selectedStickerId, // Sprint 31
     updateFormField,
     updateImage,
     updateColor,
     resetSlotTransform,
+    toggleFlipX,
+    toggleFlipY,
+    setImageOpacity,
+    setImageFilters,
+    // Sprint 30: 텍스트 효과
+    updateTextEffects,
+    updateTextStyle,
+    clearTextEffects,
+    // Sprint 31: 스티커
+    addSticker,
+    removeSticker,
+    selectSticker,
   } = useCanvasEditorStore()
 
   const [activeTab, setActiveTab] = useState<Tab>('slots')
@@ -599,6 +1150,7 @@ export default function EditorSidebar({ isOpen = true, onClose }: EditorSidebarP
         {[
           { id: 'slots' as Tab, label: '캐릭터', icon: ImageIcon },
           { id: 'general' as Tab, label: '텍스트', icon: Type },
+          { id: 'stickers' as Tab, label: '스티커', icon: Sticker }, // Sprint 31
           { id: 'colors' as Tab, label: '색상', icon: Palette },
         ].map((tab) => {
           const Icon = tab.icon
@@ -634,6 +1186,7 @@ export default function EditorSidebar({ isOpen = true, onClose }: EditorSidebarP
             role="tabpanel"
             id="tabpanel-slots"
             aria-labelledby="tab-slots"
+            data-tour="slot-panel"
           >
             {slotFieldGroups.map(({ slot, fields }) => {
               const slotTransform = slotTransforms[slot.id]
@@ -659,6 +1212,11 @@ export default function EditorSidebar({ isOpen = true, onClose }: EditorSidebarP
                   isExpanded={expandedSlots.has(slot.id)}
                   onToggle={() => toggleSlotExpand(slot.id)}
                   isSelected={selectedSlotId === slot.id}
+                  slotTransform={slotTransforms[slot.id]}
+                  onFlipX={() => toggleFlipX(slot.id)}
+                  onFlipY={() => toggleFlipY(slot.id)}
+                  onOpacityChange={(opacity) => setImageOpacity(slot.id, opacity)}
+                  onFiltersChange={(filters) => setImageFilters(slot.id, filters)}
                 />
               )
             })}
@@ -672,7 +1230,23 @@ export default function EditorSidebar({ isOpen = true, onClose }: EditorSidebarP
             role="tabpanel"
             id="tabpanel-general"
             aria-labelledby="tab-general"
+            data-tour="text-panel"
           >
+            {/* Sprint 30: 선택된 텍스트 효과 패널 */}
+            {selectedTextId && (() => {
+              const selectedTextField = layers.texts.find((t) => t.id === selectedTextId)
+              if (selectedTextField) {
+                return (
+                  <TextEffectsPanel
+                    textField={selectedTextField}
+                    onUpdateEffects={(effects) => updateTextEffects(selectedTextId, effects)}
+                    onClearEffects={() => clearTextEffects(selectedTextId)}
+                  />
+                )
+              }
+              return null
+            })()}
+
             {generalFields.length > 0 ? (
               generalFields.map((field) => (
                 <TextInputField
@@ -690,6 +1264,43 @@ export default function EditorSidebar({ isOpen = true, onClose }: EditorSidebarP
           </div>
         )}
 
+        {/* Sprint 31: 스티커 탭 */}
+        {activeTab === 'stickers' && (
+          <div
+            role="tabpanel"
+            id="tabpanel-stickers"
+            aria-labelledby="tab-stickers"
+          >
+            <StickerPanel
+              onAddSticker={(sticker) => {
+                // 스티커를 캔버스 중앙에 추가
+                const canvasWidth = templateConfig.canvas.width
+                const canvasHeight = templateConfig.canvas.height
+                const newSticker: StickerLayer = {
+                  id: `sticker-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                  stickerId: sticker.id,
+                  imageUrl: sticker.imageUrl,
+                  transform: {
+                    x: canvasWidth / 2 - sticker.defaultSize.width / 2,
+                    y: canvasHeight / 2 - sticker.defaultSize.height / 2,
+                    width: sticker.defaultSize.width,
+                    height: sticker.defaultSize.height,
+                    rotation: 0,
+                  },
+                  opacity: 1,
+                  flipX: false,
+                  flipY: false,
+                }
+                addSticker(newSticker)
+              }}
+              stickers={templateConfig.layers.stickers || []}
+              selectedStickerId={selectedStickerId}
+              onSelectSticker={selectSticker}
+              onRemoveSticker={removeSticker}
+            />
+          </div>
+        )}
+
         {/* 색상 탭 */}
         {activeTab === 'colors' && (
           <div
@@ -697,6 +1308,7 @@ export default function EditorSidebar({ isOpen = true, onClose }: EditorSidebarP
             role="tabpanel"
             id="tabpanel-colors"
             aria-labelledby="tab-colors"
+            data-tour="color-panel"
           >
             <p className="text-xs text-gray-500">
               테마 색상을 변경하면 템플릿 전체에 반영됩니다

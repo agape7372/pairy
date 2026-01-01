@@ -27,6 +27,7 @@ import type {
   SlotImageTransform,
   SlotTransforms,
   TemplateRendererRef,
+  StickerLayer,
 } from '@/types/template'
 
 // 분리된 렌더러 임포트
@@ -36,6 +37,7 @@ import {
   TextFieldRenderer,
   DynamicShapeRenderer,
   OverlayImageRenderer,
+  StickerRenderer,
 } from './renderers'
 
 // 분리된 유틸리티 (외부 사용을 위해 re-export)
@@ -54,9 +56,14 @@ interface TemplateRendererProps {
   slotTransforms?: SlotTransforms
   onSlotClick?: (slotId: string) => void
   onTextClick?: (textId: string) => void
+  onTextDoubleClick?: (textId: string) => void // Sprint 30: 인라인 편집 트리거
   onSlotTransformChange?: (slotId: string, transform: Partial<SlotImageTransform>) => void
   selectedSlotId?: string | null
   selectedTextId?: string | null
+  // Sprint 31: 스티커 관련 props
+  selectedStickerId?: string | null
+  onStickerClick?: (stickerId: string) => void
+  onStickerTransformChange?: (stickerId: string, transform: Partial<StickerLayer['transform']>) => void
   editable?: boolean
 }
 
@@ -74,9 +81,14 @@ const TemplateRenderer = forwardRef<TemplateRendererRef, TemplateRendererProps>(
       slotTransforms,
       onSlotClick,
       onTextClick,
+      onTextDoubleClick,
       onSlotTransformChange,
       selectedSlotId,
       selectedTextId,
+      // Sprint 31: 스티커 관련 props
+      selectedStickerId,
+      onStickerClick,
+      onStickerTransformChange,
       editable = true,
     },
     ref
@@ -185,7 +197,27 @@ const TemplateRenderer = forwardRef<TemplateRendererRef, TemplateRendererProps>(
           ))}
         </Layer>
 
-        {/* Layer 3: Dynamic Shapes */}
+        {/* Layer 3: Stickers (Sprint 31) */}
+        {layers.stickers && layers.stickers.length > 0 && (
+          <Layer name="stickers">
+            {layers.stickers.map((sticker) => (
+              <StickerRenderer
+                key={sticker.id}
+                sticker={sticker}
+                isSelected={selectedStickerId === sticker.id}
+                onClick={editable ? () => onStickerClick?.(sticker.id) : undefined}
+                onTransformEnd={
+                  onStickerTransformChange
+                    ? (transform) => onStickerTransformChange(sticker.id, transform)
+                    : undefined
+                }
+                editable={editable}
+              />
+            ))}
+          </Layer>
+        )}
+
+        {/* Layer 4: Dynamic Shapes */}
         {layers.dynamicShapes && layers.dynamicShapes.length > 0 && (
           <Layer name="shapes">
             {layers.dynamicShapes.map((shape) => (
@@ -204,6 +236,7 @@ const TemplateRenderer = forwardRef<TemplateRendererRef, TemplateRendererProps>(
               colors={colors}
               isSelected={selectedTextId === textField.id}
               onClick={editable ? () => onTextClick?.(textField.id) : undefined}
+              onDoubleClick={editable ? () => onTextDoubleClick?.(textField.id) : undefined}
             />
           ))}
         </Layer>

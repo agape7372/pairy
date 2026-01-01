@@ -7,7 +7,7 @@
 
 import { useReducer, useEffect, useMemo } from 'react'
 import { calculateImageFit, drawShapeMask } from '@/lib/utils/canvasUtils'
-import type { MaskConfig } from '@/types/template'
+import type { MaskConfig, ImageFilters } from '@/types/template'
 
 // ============================================
 // useImage - 이미지 로딩 훅
@@ -135,7 +135,8 @@ export function useMaskedImage(
   imagePositionX: number = 0,
   imagePositionY: number = 0,
   imageScale: number = 1,
-  imageRotation: number = 0
+  imageRotation: number = 0,
+  filters?: ImageFilters
 ): UseMaskedImageReturn {
   const [userImage] = useImage(userImageSrc)
   const [maskImage] = useImage(
@@ -169,8 +170,35 @@ export function useMaskedImage(
       imagePositionY
     )
 
-    // Step 1: 사용자 이미지 그리기 (스케일/회전 적용)
+    // Step 1: 사용자 이미지 그리기 (스케일/회전/필터 적용)
     ctx.save()
+
+    // Sprint 29: 필터 적용
+    if (filters) {
+      const filterParts: string[] = []
+      if (filters.brightness !== undefined && filters.brightness !== 0) {
+        filterParts.push(`brightness(${100 + filters.brightness}%)`)
+      }
+      if (filters.contrast !== undefined && filters.contrast !== 0) {
+        filterParts.push(`contrast(${100 + filters.contrast}%)`)
+      }
+      if (filters.saturation !== undefined && filters.saturation !== 100) {
+        filterParts.push(`saturate(${filters.saturation}%)`)
+      }
+      if (filters.grayscale) {
+        filterParts.push('grayscale(100%)')
+      }
+      if (filters.sepia) {
+        filterParts.push('sepia(100%)')
+      }
+      if (filters.blur !== undefined && filters.blur > 0) {
+        filterParts.push(`blur(${filters.blur}px)`)
+      }
+      if (filterParts.length > 0) {
+        ctx.filter = filterParts.join(' ')
+      }
+    }
+
     // 중앙 기준 변환
     ctx.translate(slotWidth / 2, slotHeight / 2)
     ctx.rotate((imageRotation * Math.PI) / 180)
@@ -214,6 +242,7 @@ export function useMaskedImage(
     imagePositionY,
     imageScale,
     imageRotation,
+    filters,
   ])
 
   // isProcessing은 이미지 로딩 상태로 판단

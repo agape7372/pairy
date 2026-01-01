@@ -18,12 +18,18 @@ import {
   Keyboard,
   Image as ImageIcon,
   AlertCircle,
+  Users,
 } from 'lucide-react'
 import { Button, useToast } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
 import { useCanvasEditorStore } from '@/stores/canvasEditorStore'
 import EditorSidebar from './EditorSidebar'
 import KeyboardShortcutsModal from './KeyboardShortcutsModal'
+import { CollabOverlay } from './CollabOverlay'
+import { ZoneSelector } from './ZoneSelector'
+import { OnboardingTour, useOnboarding, DEFAULT_TOUR_STEPS } from './OnboardingTour'
+import { ContextMenu, useContextMenu, createContextMenuItems } from './ContextMenu'
+import { useCollabOptional } from '@/lib/collab'
 import type { TemplateConfig, TemplateRendererRef } from '@/types/template'
 import {
   safeGetAutoSaveData,
@@ -70,6 +76,7 @@ const TemplateRenderer = dynamic(() => import('./TemplateRenderer'), {
 interface CanvasEditorProps {
   templateId: string
   initialTitle?: string
+  sessionId?: string // Sprint 32: 협업 세션 ID
 }
 
 // ============================================
@@ -82,9 +89,13 @@ const BASE_PATH = process.env.NODE_ENV === 'production' ? '/pairy' : ''
 export default function CanvasEditor({
   templateId,
   initialTitle,
+  sessionId,
 }: CanvasEditorProps) {
   const rendererRef = useRef<TemplateRendererRef>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+
+  // Sprint 32: 협업 컨텍스트 (선택적)
+  const collab = useCollabOptional()
 
   // Store
   const {
@@ -97,6 +108,7 @@ export default function CanvasEditor({
     slotTransforms,
     selectedSlotId,
     selectedTextId,
+    selectedStickerId, // Sprint 31
     zoom,
     isDirty,
     loadTemplate,
@@ -104,6 +116,8 @@ export default function CanvasEditor({
     setError,
     selectSlot,
     selectText,
+    selectSticker, // Sprint 31
+    updateStickerTransform, // Sprint 31
     setZoom,
     undo,
     redo,
@@ -113,6 +127,8 @@ export default function CanvasEditor({
     markSaved,
     updateSlotTransform,
     removeImage,
+    updateImage,
+    updateFormField,
   } = useCanvasEditorStore()
 
   // Toast
@@ -130,6 +146,11 @@ export default function CanvasEditor({
   const [exportScale, setExportScale] = useState(2)
   const [lastAutoSave, setLastAutoSave] = useState<Date | null>(null)
 
+  // Sprint 30: 인라인 텍스트 편집
+  const [editingTextId, setEditingTextId] = useState<string | null>(null)
+  const [editingValue, setEditingValue] = useState('')
+  const inlineInputRef = useRef<HTMLTextAreaElement>(null)
+
   // 핀치 줌 상태
   const lastTouchDistance = useRef<number | null>(null)
   const lastZoom = useRef(zoom)
@@ -137,6 +158,12 @@ export default function CanvasEditor({
 
   // 복구 토스트 중복 방지
   const recoveryToastShown = useRef(false)
+
+  // Sprint 33: 온보딩 투어
+  const onboarding = useOnboarding()
+
+  // Sprint 33: 컨텍스트 메뉴
+  const contextMenu = useContextMenu()
 
   // 자동 저장 디바운스
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
@@ -176,6 +203,52 @@ export default function CanvasEditor({
       setIsSidebarOpen(true)
     }
   }, [selectText])
+
+  // Sprint 31: 스티커 클릭 핸들러
+  const handleStickerClick = useCallback((stickerId: string | null) => {
+    selectSticker(stickerId)
+    // 모바일에서 스티커 선택 시 사이드바 열기
+    if (stickerId && window.innerWidth < 768) {
+      setIsSidebarOpen(true)
+    }
+  }, [selectSticker])
+
+  // Sprint 30: 텍스트 더블클릭 핸들러 (인라인 편집)
+  const handleTextDoubleClick = useCallback((textId: string) => {
+    if (!templateConfig) return
+    const textField = templateConfig.layers.texts.find((t) => t.id === textId)
+    if (!textField) return
+
+    // 현재 값 또는 기본값으로 편집 시작
+    const currentValue = formData[textField.dataKey] || textField.defaultValue || ''
+    setEditingTextId(textId)
+    setEditingValue(currentValue)
+
+    // 포커스를 위한 지연
+    setTimeout(() => {
+      inlineInputRef.current?.focus()
+      inlineInputRef.current?.select()
+    }, 10)
+  }, [templateConfig, formData])
+
+  // Sprint 30: 인라인 편집 완료 핸들러
+  const handleInlineEditComplete = useCallback(() => {
+    if (!editingTextId || !templateConfig) return
+
+    const textField = templateConfig.layers.texts.find((t) => t.id === editingTextId)
+    if (textField) {
+      updateFormField(textField.dataKey, editingValue)
+    }
+
+    setEditingTextId(null)
+    setEditingValue('')
+  }, [editingTextId, editingValue, templateConfig, updateFormField])
+
+  // Sprint 30: 인라인 편집 취소 핸들러
+  const handleInlineEditCancel = useCallback(() => {
+    setEditingTextId(null)
+    setEditingValue('')
+  }, [])
 
   // 템플릿 로드
   useEffect(() => {
@@ -542,6 +615,43 @@ export default function CanvasEditor({
     images, removeImage, moveSelectedSlot, showExportModal, showShortcutsModal, toast
   ])
 
+  // Sprint 29: 클립보드 붙여넣기 핸들러
+  useEffect(() => {
+    const handlePaste = async (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items
+      if (!items) return
+
+      // 선택된 슬롯이 없으면 첫 번째 슬롯 선택
+      let targetSlotId = selectedSlotId
+      if (!targetSlotId && templateConfig?.layers.slots.length) {
+        targetSlotId = templateConfig.layers.slots[0].id
+        selectSlot(targetSlotId)
+      }
+
+      if (!targetSlotId || !templateConfig) return
+
+      // 선택된 슬롯의 dataKey 찾기
+      const targetSlot = templateConfig.layers.slots.find(s => s.id === targetSlotId)
+      if (!targetSlot) return
+
+      for (const item of items) {
+        if (item.type.startsWith('image/')) {
+          e.preventDefault()
+          const file = item.getAsFile()
+          if (file) {
+            const url = URL.createObjectURL(file)
+            updateImage(targetSlot.dataKey, url)
+            toast.success('이미지가 붙여넣기 되었습니다')
+          }
+          break
+        }
+      }
+    }
+
+    document.addEventListener('paste', handlePaste)
+    return () => document.removeEventListener('paste', handlePaste)
+  }, [selectedSlotId, templateConfig, selectSlot, updateImage, toast])
+
   // 핀치 줌 핸들러
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     if (e.touches.length === 2) {
@@ -788,12 +898,23 @@ export default function CanvasEditor({
             <span className="hidden sm:inline ml-1">저장</span>
           </Button>
 
+          {/* Sprint 32: 협업 상태 표시 */}
+          {collab?.isConnected && (
+            <div className="flex items-center gap-1 px-2 py-1 bg-accent-50 text-accent-700 rounded-lg">
+              <Users className="w-4 h-4" />
+              <span className="text-xs font-medium hidden sm:inline">
+                {collab.remoteUsers.size + 1}명 참여 중
+              </span>
+            </div>
+          )}
+
           {/* 내보내기 */}
           <Button
             variant="outline"
             size="sm"
             onClick={() => setShowExportModal(true)}
             className="px-2 sm:px-3"
+            data-tour="export-btn"
           >
             <Download className="w-4 h-4" />
             <span className="hidden sm:inline ml-1">내보내기</span>
@@ -868,7 +989,16 @@ export default function CanvasEditor({
           </div>
 
           {/* 캔버스 */}
-          <div className="min-h-full flex items-center justify-center p-4 md:p-8">
+          <div
+            className="min-h-full flex items-center justify-center p-4 md:p-8"
+            data-tour="canvas-area"
+            onContextMenu={(e) => {
+              // 캔버스 빈 영역 우클릭
+              if (e.target === e.currentTarget) {
+                contextMenu.open(e, 'canvas', null)
+              }
+            }}
+          >
             {/* 줌된 크기를 레이아웃에 반영하는 래퍼 */}
             <div
               style={{
@@ -888,16 +1018,79 @@ export default function CanvasEditor({
                 <TemplateRenderer
                   ref={rendererRef}
                   config={templateConfig}
-                formData={formData}
-                images={images}
-                colors={colors}
-                slotTransforms={slotTransforms}
-                selectedSlotId={selectedSlotId}
-                selectedTextId={selectedTextId}
-                onSlotClick={handleSlotClick}
-                onTextClick={handleTextClick}
-                onSlotTransformChange={updateSlotTransform}
-              />
+                  formData={formData}
+                  images={images}
+                  colors={colors}
+                  slotTransforms={slotTransforms}
+                  selectedSlotId={selectedSlotId}
+                  selectedTextId={selectedTextId}
+                  selectedStickerId={selectedStickerId}
+                  onSlotClick={handleSlotClick}
+                  onTextClick={handleTextClick}
+                  onTextDoubleClick={handleTextDoubleClick}
+                  onSlotTransformChange={updateSlotTransform}
+                  onStickerClick={handleStickerClick}
+                  onStickerTransformChange={updateStickerTransform}
+                />
+
+                {/* Sprint 32: 협업 오버레이 */}
+                {collab?.isConnected && (
+                  <CollabOverlay
+                    canvasWidth={templateConfig.canvas.width}
+                    canvasHeight={templateConfig.canvas.height}
+                    slots={templateConfig.layers.slots.map((slot, index) => ({
+                      id: slot.id,
+                      zone: index === 0 ? 'A' : 'B',
+                      transform: slot.transform,
+                    }))}
+                  />
+                )}
+
+                {/* Sprint 30: 인라인 텍스트 편집 오버레이 */}
+                {editingTextId && templateConfig && (() => {
+                  const textField = templateConfig.layers.texts.find((t) => t.id === editingTextId)
+                  if (!textField) return null
+                  const { transform, style } = textField
+                  return (
+                    <div
+                      className="absolute pointer-events-none"
+                      style={{
+                        left: (transform.x - transform.width / 2) * zoom,
+                        top: (transform.y - transform.height / 2) * zoom,
+                        width: transform.width * zoom,
+                        height: transform.height * zoom,
+                      }}
+                    >
+                      <textarea
+                        ref={inlineInputRef}
+                        value={editingValue}
+                        onChange={(e) => setEditingValue(e.target.value)}
+                        onBlur={handleInlineEditComplete}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault()
+                            handleInlineEditComplete()
+                          }
+                          if (e.key === 'Escape') {
+                            handleInlineEditCancel()
+                          }
+                        }}
+                        className="w-full h-full resize-none border-2 border-blue-500 rounded pointer-events-auto bg-white/90 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                        style={{
+                          fontFamily: style.fontFamily,
+                          fontSize: style.fontSize * zoom,
+                          fontWeight: style.fontWeight === 'bold' ? 700 : 400,
+                          fontStyle: style.fontStyle === 'italic' ? 'italic' : 'normal',
+                          textAlign: style.align || 'center',
+                          lineHeight: style.lineHeight || 1.2,
+                          letterSpacing: style.letterSpacing ? style.letterSpacing * zoom : undefined,
+                          padding: 4,
+                        }}
+                        placeholder="텍스트 입력..."
+                      />
+                    </div>
+                  )
+                })()}
               </div>
             </div>
           </div>
@@ -1049,6 +1242,48 @@ export default function CanvasEditor({
       <KeyboardShortcutsModal
         isOpen={showShortcutsModal}
         onClose={() => setShowShortcutsModal(false)}
+      />
+
+      {/* Sprint 33: 온보딩 투어 */}
+      <OnboardingTour
+        steps={DEFAULT_TOUR_STEPS}
+        isOpen={onboarding.isOpen}
+        onClose={onboarding.closeTour}
+        onComplete={onboarding.completeTour}
+      />
+
+      {/* Sprint 33: 컨텍스트 메뉴 */}
+      <ContextMenu
+        state={contextMenu.state}
+        onClose={contextMenu.close}
+        items={createContextMenuItems({
+          targetType: contextMenu.state.targetType,
+          targetId: contextMenu.state.targetId,
+          onPaste: async () => {
+            try {
+              const items = await navigator.clipboard.read()
+              for (const item of items) {
+                const imageType = item.types.find(t => t.startsWith('image/'))
+                if (imageType) {
+                  const blob = await item.getType(imageType)
+                  const url = URL.createObjectURL(blob)
+                  // 첫 번째 슬롯에 붙여넣기
+                  if (templateConfig?.layers.slots[0]) {
+                    updateImage(templateConfig.layers.slots[0].dataKey, url)
+                    toast.success('이미지가 붙여넣기 되었습니다')
+                  }
+                  break
+                }
+              }
+            } catch {
+              toast.error('붙여넣기에 실패했습니다')
+            }
+          },
+          onReset: () => {
+            // 전체 초기화 (필요시 구현)
+            toast.info('초기화 기능은 준비 중입니다')
+          },
+        })}
       />
     </div>
   )

@@ -6,10 +6,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 npm run dev      # Start Next.js development server
-npm run build    # Build for production (static export)
+npm run build    # Build for production (static export, uses --webpack)
 npm run lint     # Run ESLint checks
 npm start        # Start production server
 ```
+
+**Note**: Build uses `--webpack` flag to avoid Turbopack Korean path bug (Next.js 16.x).
 
 **Note**: This project uses static export (`output: 'export'`) for GitHub Pages. All pages must support static generation or use `generateStaticParams()` for dynamic routes.
 
@@ -98,6 +100,7 @@ export function generateStaticParams() {
 ```
 docs/
 ├── PROGRESS.md                    # 개발 진행 상황 추적
+├── EDITOR-UPGRADE-PLAN.md         # 에디터 업그레이드 계획 (Phase 5)
 ├── ANALYSIS-REPORT-2025-12-30.md  # 문서-구현 갭 분석
 │
 ├── master-prompt/                 # 핵심 기획/설계 문서
