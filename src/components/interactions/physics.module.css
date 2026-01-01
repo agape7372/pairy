@@ -1,42 +1,32 @@
 /* ============================================
- * Physics-Based Button Interactions
- * Skeuomorphism 2.0 - 다층 레이어 물리 기반 인터랙션
+ * Magic & Fairy Button Interactions
+ * 페어리, 마법, 빛, 반짝임 테마
  * ============================================ */
 
 /* ============================================
- * 물리 엔진 변수 (Physics Engine Variables)
+ * 마법 이징 함수 (Magic Easing)
  * ============================================ */
 
 :root {
-  /* Spring Physics - 탄성 튕김 */
-  --spring-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
-  --spring-soft: cubic-bezier(0.25, 1.5, 0.5, 1);
-  --spring-tight: cubic-bezier(0.5, 1.8, 0.5, 1);
-  --spring-wobbly: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  /* Soft Magic - 부드러운 마법 */
+  --magic-soft: cubic-bezier(0.25, 0.8, 0.25, 1);
+  --magic-float: cubic-bezier(0.4, 0, 0.2, 1);
+  --magic-sparkle: cubic-bezier(0.34, 1.56, 0.64, 1);
 
-  /* Gravity - 중력 가속 */
-  --gravity-fall: cubic-bezier(0.55, 0, 1, 0.45);
-  --gravity-bounce: cubic-bezier(0.34, 1.2, 0.64, 1);
-  --gravity-drop: cubic-bezier(0.6, 0, 0.7, 0.2);
+  /* Fairy - 요정 */
+  --fairy-flutter: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  --fairy-dust: cubic-bezier(0.16, 1, 0.3, 1);
 
-  /* Inertia - 관성 */
-  --inertia-slow: cubic-bezier(0.16, 1, 0.3, 1);
-  --inertia-stop: cubic-bezier(0.22, 0.61, 0.36, 1);
-
-  /* Pressure - 압력 반응 */
-  --pressure-in: cubic-bezier(0.4, 0, 0.2, 1);
-  --pressure-release: cubic-bezier(0, 0, 0.2, 1.5);
-
-  /* Mechanical - 기계적 움직임 */
-  --mechanical-click: cubic-bezier(0.4, 0, 0.6, 1);
-  --mechanical-return: cubic-bezier(0.34, 1.3, 0.64, 1);
+  /* Glow - 빛 */
+  --glow-pulse: cubic-bezier(0.4, 0, 0.6, 1);
+  --glow-fade: cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 /* ============================================
  * 공통 컨테이너 스타일
  * ============================================ */
 
-.physicsButtonContainer {
+.magicButtonContainer {
   position: relative;
   display: inline-flex;
   align-items: center;
@@ -46,1464 +36,1419 @@
   height: 52px;
 }
 
-.physicsButton {
+.magicButton {
   position: relative;
   padding: 12px;
   border-radius: 50%;
   background: transparent;
   border: none;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: all 0.3s var(--magic-soft);
   z-index: 10;
 }
 
-.physicsButton:hover {
-  background-color: rgba(0, 0, 0, 0.05);
+.magicButton:hover {
+  background-color: rgba(255, 182, 193, 0.1);
 }
 
 /* ============================================
- * 1. HEART PUMP - 심장 펌핑
- * 수축→팽창→맥박 파동
+ * LIKE BUTTONS - 마법 테마
  * ============================================ */
 
-/* 맥박 파동 링 */
-.pulseRing {
+/* 1. Fairy Dust - 요정 가루 */
+.fairyDust {
   position: absolute;
-  inset: 0;
+  width: 4px;
+  height: 4px;
+  background: linear-gradient(135deg, #fbbf24, #f472b6);
   border-radius: 50%;
-  border: 2px solid rgba(236, 72, 153, 0);
-  transform: scale(1);
+  box-shadow: 0 0 6px rgba(251, 191, 36, 0.8);
   pointer-events: none;
 }
 
-.pulseRingActive {
-  animation: pulseRingExpand 0.6s var(--spring-soft) forwards;
-}
+.dust1 { animation: dustFloat 1s var(--fairy-dust) forwards; --tx: -20px; --ty: -25px; }
+.dust2 { animation: dustFloat 1s var(--fairy-dust) forwards 0.1s; --tx: 22px; --ty: -20px; }
+.dust3 { animation: dustFloat 1s var(--fairy-dust) forwards 0.05s; --tx: -18px; --ty: 20px; }
+.dust4 { animation: dustFloat 1s var(--fairy-dust) forwards 0.15s; --tx: 20px; --ty: 22px; }
+.dust5 { animation: dustFloat 1s var(--fairy-dust) forwards 0.08s; --tx: 0px; --ty: -28px; }
+.dust6 { animation: dustFloat 1s var(--fairy-dust) forwards 0.12s; --tx: -25px; --ty: 0px; }
+.dust7 { animation: dustFloat 1s var(--fairy-dust) forwards 0.18s; --tx: 25px; --ty: 5px; }
+.dust8 { animation: dustFloat 1s var(--fairy-dust) forwards 0.2s; --tx: 5px; --ty: 25px; }
 
-.pulseRingDelay {
-  animation-delay: 0.1s;
-}
-
-@keyframes pulseRingExpand {
+@keyframes dustFloat {
   0% {
-    transform: scale(0.8);
-    border-color: rgba(236, 72, 153, 0.8);
+    transform: translate(0, 0) scale(0);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+    transform: translate(calc(var(--tx) * 0.3), calc(var(--ty) * 0.3)) scale(1.2);
+  }
+  100% {
+    transform: translate(var(--tx), var(--ty)) scale(0);
+    opacity: 0;
+  }
+}
+
+.softGlow {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(244, 114, 182, 0.3) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.5s var(--glow-fade);
+  pointer-events: none;
+}
+
+.softGlowActive {
+  opacity: 1;
+}
+
+.fairyPulse {
+  animation: fairyPulseAnim 0.8s var(--fairy-flutter);
+}
+
+@keyframes fairyPulseAnim {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.15); }
+  50% { transform: scale(0.95); }
+  70% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+
+.fairyHeartPop {
+  animation: fairyHeartPopAnim 0.8s var(--fairy-flutter);
+}
+
+@keyframes fairyHeartPopAnim {
+  0% { transform: scale(1); filter: brightness(1); }
+  30% { transform: scale(1.3); filter: brightness(1.3); }
+  50% { transform: scale(0.9); filter: brightness(1.1); }
+  100% { transform: scale(1); filter: brightness(1); }
+}
+
+.persistentSparkle {
+  position: absolute;
+  inset: -4px;
+  background: radial-gradient(circle, transparent 30%, rgba(244, 114, 182, 0.1) 70%);
+  border-radius: 50%;
+  animation: persistentSparkleAnim 2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes persistentSparkleAnim {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+
+/* 2. Magic Wand - 마법 지팡이 */
+.magicStar {
+  position: absolute;
+  font-size: 12px;
+  color: #fbbf24;
+  text-shadow: 0 0 8px rgba(251, 191, 36, 0.8);
+  pointer-events: none;
+}
+
+.star1 { animation: starBurst 0.8s var(--magic-sparkle) forwards; --tx: -25px; --ty: -20px; }
+.star2 { animation: starBurst 0.8s var(--magic-sparkle) forwards 0.05s; --tx: 25px; --ty: -18px; }
+.star3 { animation: starBurst 0.8s var(--magic-sparkle) forwards 0.1s; --tx: -22px; --ty: 18px; }
+.star4 { animation: starBurst 0.8s var(--magic-sparkle) forwards 0.08s; --tx: 20px; --ty: 22px; }
+.star5 { animation: starBurst 0.8s var(--magic-sparkle) forwards 0.12s; --tx: 0px; --ty: -28px; }
+.star6 { animation: starBurst 0.8s var(--magic-sparkle) forwards 0.15s; --tx: 0px; --ty: 28px; }
+
+@keyframes starBurst {
+  0% {
+    transform: translate(0, 0) scale(0) rotate(0deg);
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+    transform: translate(calc(var(--tx) * 0.5), calc(var(--ty) * 0.5)) scale(1.5) rotate(180deg);
+  }
+  100% {
+    transform: translate(var(--tx), var(--ty)) scale(0) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+.magicRing {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  pointer-events: none;
+}
+
+.magicRingExpand {
+  animation: magicRingExpandAnim 0.7s var(--magic-soft) forwards;
+}
+
+@keyframes magicRingExpandAnim {
+  0% {
+    transform: scale(0.5);
+    border-color: rgba(251, 191, 36, 0.8);
     opacity: 1;
   }
   100% {
     transform: scale(1.8);
-    border-color: rgba(236, 72, 153, 0);
+    border-color: rgba(251, 191, 36, 0);
     opacity: 0;
   }
 }
 
-/* 버튼 그림자 */
-.buttonShadow {
-  position: absolute;
-  bottom: -2px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 30px;
-  height: 8px;
-  background: radial-gradient(ellipse, rgba(0, 0, 0, 0.15) 0%, transparent 70%);
-  border-radius: 50%;
-  transition: all 0.15s ease;
-  pointer-events: none;
+.wandTouch {
+  animation: wandTouchAnim 0.7s var(--magic-sparkle);
 }
 
-.shadowSquish {
-  animation: shadowSquishAnim 0.8s var(--spring-bounce);
-}
-
-@keyframes shadowSquishAnim {
-  0% { transform: translateX(-50%) scaleX(1); opacity: 1; }
-  15% { transform: translateX(-50%) scaleX(1.4) scaleY(0.6); opacity: 0.8; }
-  30% { transform: translateX(-50%) scaleX(0.7) scaleY(1.2); opacity: 1; }
-  50% { transform: translateX(-50%) scaleX(1.2); opacity: 0.9; }
-  100% { transform: translateX(-50%) scaleX(1); opacity: 1; }
-}
-
-/* 심장 펌프 애니메이션 */
-.heartPumpAnim {
-  animation: heartPumpButton 0.8s var(--spring-bounce);
-}
-
-@keyframes heartPumpButton {
+@keyframes wandTouchAnim {
   0% { transform: scale(1); }
-  10% { transform: scale(0.85) scaleX(1.15); }  /* 수축 - 옆으로 퍼짐 */
-  25% { transform: scale(1.2) scaleX(0.9); }    /* 팽창 - 위로 솟음 */
-  40% { transform: scale(0.95); }
-  55% { transform: scale(1.1); }
-  70% { transform: scale(0.98); }
-  100% { transform: scale(1); }
-}
-
-.heartIconPump {
-  animation: heartIconPumpAnim 0.8s var(--spring-bounce);
-}
-
-@keyframes heartIconPumpAnim {
-  0% { transform: scale(1); }
-  10% { transform: scale(0.7) scaleX(1.3); }    /* 심장 수축 */
-  25% { transform: scale(1.35) scaleX(0.85); }  /* 심장 팽창 */
-  40% { transform: scale(0.9); }
-  55% { transform: scale(1.15); }
-  70% { transform: scale(0.95); }
-  100% { transform: scale(1); }
-}
-
-/* 지속 맥박 글로우 */
-.heartbeatGlow {
-  position: absolute;
-  inset: 4px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(236, 72, 153, 0.3) 0%, transparent 70%);
-  animation: heartbeatPulse 1.2s ease-in-out infinite;
-  pointer-events: none;
-}
-
-@keyframes heartbeatPulse {
-  0%, 100% { opacity: 0.3; transform: scale(1); }
-  50% { opacity: 0.6; transform: scale(1.1); }
-}
-
-/* ============================================
- * 2. STAMP PRESS - 도장 찍기
- * 낙하 가속→충돌 찌그러짐→잉크 퍼짐
- * ============================================ */
-
-/* 잉크 스플랫 */
-.inkSplat {
-  position: absolute;
-  width: 6px;
-  height: 6px;
-  background: rgba(236, 72, 153, 0.7);
-  border-radius: 50%;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.inkSplat1 { top: 50%; left: 10%; }
-.inkSplat2 { top: 30%; left: 80%; }
-.inkSplat3 { top: 80%; left: 70%; }
-
-.inkSplatActive {
-  animation: inkSplatBurst 0.6s var(--spring-bounce) forwards;
-}
-
-.inkSplat1.inkSplatActive { animation-delay: 0s; }
-.inkSplat2.inkSplatActive { animation-delay: 0.05s; }
-.inkSplat3.inkSplatActive { animation-delay: 0.1s; }
-
-@keyframes inkSplatBurst {
-  0% {
-    transform: scale(0) translate(0, 0);
-    opacity: 0;
-  }
-  30% {
-    transform: scale(1.5) translate(var(--tx, 10px), var(--ty, -10px));
-    opacity: 1;
-  }
-  100% {
-    transform: scale(0.8) translate(calc(var(--tx, 10px) * 1.5), calc(var(--ty, -10px) * 1.5));
-    opacity: 0;
-  }
-}
-
-.inkSplat1 { --tx: -15px; --ty: -10px; }
-.inkSplat2 { --tx: 12px; --ty: -15px; }
-.inkSplat3 { --tx: 8px; --ty: 12px; }
-
-/* 충돌 파동 */
-.impactRipple {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  border: 3px solid transparent;
-  pointer-events: none;
-}
-
-.impactRippleActive {
-  animation: impactRippleExpand 0.4s ease-out forwards;
-}
-
-@keyframes impactRippleExpand {
-  0% {
-    transform: scale(0.5);
-    border-color: rgba(236, 72, 153, 0.8);
-    opacity: 1;
-  }
-  100% {
-    transform: scale(1.5);
-    border-color: rgba(236, 72, 153, 0);
-    opacity: 0;
-  }
-}
-
-/* 도장 낙하 애니메이션 */
-.stampFallAnim {
-  animation: stampFall 0.7s var(--gravity-bounce);
-}
-
-@keyframes stampFall {
-  0% { transform: translateY(-20px) scale(0.9); opacity: 0.7; }
-  25% { transform: translateY(0) scale(1); opacity: 1; }
-  30% { transform: translateY(3px) scaleY(0.85) scaleX(1.15); } /* 충돌 찌그러짐 */
-  45% { transform: translateY(-5px) scaleY(1.1) scaleX(0.95); } /* 반동 */
-  60% { transform: translateY(2px) scale(1.02); }
-  100% { transform: translateY(0) scale(1); }
-}
-
-.stampIconSquish {
-  animation: stampIconSquishAnim 0.7s var(--gravity-bounce);
-}
-
-@keyframes stampIconSquishAnim {
-  0% { transform: translateY(-15px); opacity: 0.7; }
-  25% { transform: translateY(0); opacity: 1; }
-  30% { transform: scaleY(0.7) scaleX(1.2); }  /* 찌그러짐 */
-  45% { transform: scaleY(1.2) scaleX(0.9); }  /* 반동 늘어남 */
-  60% { transform: scale(1.05); }
-  100% { transform: scale(1); }
-}
-
-/* ============================================
- * 3. TOGGLE SWITCH - 토글 스위치
- * 저항→스냅→오버슈트 정착
- * ============================================ */
-
-.switchTrack {
-  position: absolute;
-  width: 36px;
-  height: 18px;
-  background: #e5e7eb;
-  border-radius: 10px;
-  transition: background-color 0.3s ease;
-  z-index: 1;
-}
-
-.switchTrackOn {
-  background: rgba(236, 72, 153, 0.3);
-}
-
-.switchKnob {
-  position: absolute;
-  left: 2px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 14px;
-  height: 14px;
-  background: white;
-  border-radius: 50%;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  transition: left 0.3s var(--spring-bounce);
-  z-index: 2;
-}
-
-.switchKnobOn {
-  left: 20px;
-  background: #ec4899;
-}
-
-.switchResistance {
-  animation: switchResistanceAnim 0.1s ease;
-}
-
-@keyframes switchResistanceAnim {
-  0% { transform: translateY(-50%) scale(1); }
-  100% { transform: translateY(-50%) scale(0.9); }
-}
-
-.switchSnap {
-  animation: switchSnapAnim 0.4s var(--spring-tight);
-}
-
-@keyframes switchSnapAnim {
-  0% { transform: translateY(-50%) scale(0.9); }
-  40% { transform: translateY(-50%) scale(1.15); }  /* 오버슈트 */
-  70% { transform: translateY(-50%) scale(0.95); }
-  100% { transform: translateY(-50%) scale(1); }
-}
-
-.switchButton {
-  position: absolute;
-  right: -8px;
-  z-index: 10;
-}
-
-.switchClickFeedback {
-  animation: switchClickFeedbackAnim 0.3s ease;
-}
-
-@keyframes switchClickFeedbackAnim {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(0.9); }
-}
-
-/* ============================================
- * 4. LOCK CLICK - 자물쇠 잠금
- * 걸쇠 회전→금속 충돌 진동→잠금 확정
- * ============================================ */
-
-.metalFlash {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.8) 0%, transparent 60%);
-  opacity: 0;
-  pointer-events: none;
-}
-
-.metalFlashActive {
-  animation: metalFlashAnim 0.2s ease-out forwards;
-}
-
-@keyframes metalFlashAnim {
-  0% { opacity: 0.8; transform: scale(0.8); }
-  100% { opacity: 0; transform: scale(1.2); }
-}
-
-.lockRotateAnim {
-  animation: lockRotate 0.5s var(--mechanical-return);
-}
-
-@keyframes lockRotate {
-  0% { transform: rotate(0deg) scale(1); }
-  30% { transform: rotate(-15deg) scale(0.95); }  /* 잠금 회전 */
-  50% { transform: rotate(5deg) scale(1.05); }
-  70% { transform: rotate(-2deg) scale(1); }
-  100% { transform: rotate(0deg) scale(1); }
-}
-
-.metalVibrate {
-  animation: metalVibrateAnim 0.2s linear;
-}
-
-@keyframes metalVibrateAnim {
-  0%, 100% { transform: translateX(0); }
-  20% { transform: translateX(-2px); }
-  40% { transform: translateX(2px); }
-  60% { transform: translateX(-1px); }
-  80% { transform: translateX(1px); }
-}
-
-.lockIconClamp {
-  animation: lockIconClampAnim 0.5s var(--mechanical-return);
-}
-
-@keyframes lockIconClampAnim {
-  0% { transform: scale(1); }
-  30% { transform: scale(0.85) rotate(-10deg); }
-  50% { transform: scale(1.1) rotate(3deg); }
+  20% { transform: scale(1.2) rotate(5deg); }
+  40% { transform: scale(0.95) rotate(-3deg); }
+  60% { transform: scale(1.1) rotate(2deg); }
   100% { transform: scale(1) rotate(0deg); }
 }
 
-.lockIndicator {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 8px;
-  height: 8px;
-  background: #22c55e;
-  border-radius: 50%;
-  animation: lockIndicatorPulse 2s ease infinite;
+.wandHeartBurst {
+  animation: wandHeartBurstAnim 0.7s var(--magic-sparkle);
 }
 
-@keyframes lockIndicatorPulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.6; transform: scale(0.9); }
+@keyframes wandHeartBurstAnim {
+  0% { transform: scale(1); filter: brightness(1) drop-shadow(0 0 0 transparent); }
+  30% { transform: scale(1.4); filter: brightness(1.4) drop-shadow(0 0 10px rgba(244, 114, 182, 0.8)); }
+  60% { transform: scale(0.9); filter: brightness(1.1); }
+  100% { transform: scale(1); filter: brightness(1); }
 }
 
-/* ============================================
- * 5. DIAL TURN - 다이얼 회전
- * 노치 클릭→관성 오버슈트→정착
- * ============================================ */
-
-.dialTicks {
+/* 3. Sparkle Burst - 빛 파티클 방사 */
+.sparkleRays {
   position: absolute;
-  inset: -2px;
-  opacity: 0.3;
-  transition: opacity 0.3s ease;
+  inset: 0;
   pointer-events: none;
 }
 
-.dialTicksActive {
-  opacity: 0.6;
-}
-
-.dialTick {
+.sparkleRay {
   position: absolute;
-  top: 0;
+  top: 50%;
   left: 50%;
-  width: 2px;
-  height: 6px;
-  background: #9ca3af;
-  transform-origin: center 26px;
-  border-radius: 1px;
+  width: 25px;
+  height: 2px;
+  background: linear-gradient(to right, rgba(244, 114, 182, 0.8), transparent);
+  transform-origin: left center;
+  animation: rayShoot 0.6s var(--magic-soft) forwards;
 }
 
-.dialSpinAnim {
-  animation: dialSpin 0.7s var(--spring-wobbly);
-}
-
-@keyframes dialSpin {
-  0% { transform: rotate(0deg); }
-  40% { transform: rotate(45deg); }    /* 회전 */
-  60% { transform: rotate(-15deg); }   /* 오버슈트 반대 */
-  80% { transform: rotate(5deg); }
-  100% { transform: rotate(0deg); }
-}
-
-.dialNotchClick {
-  animation: dialNotchClickAnim 0.1s var(--mechanical-click);
-}
-
-@keyframes dialNotchClickAnim {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(0.95); }
-}
-
-.dialIconSpin {
-  animation: dialIconSpinAnim 0.7s var(--spring-wobbly);
-}
-
-@keyframes dialIconSpinAnim {
-  0% { transform: rotate(0deg) scale(1); }
-  40% { transform: rotate(180deg) scale(1.1); }
-  60% { transform: rotate(350deg) scale(0.95); }
-  100% { transform: rotate(360deg) scale(1); }
-}
-
-/* ============================================
- * 6. BUTTON DEPRESS - 기계식 버튼
- * 눌림 저항→바닥 찍힘→스프링 반동
- * ============================================ */
-
-.mechanicalBase {
-  position: absolute;
-  bottom: 2px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 40px;
-  height: 6px;
-  background: linear-gradient(to bottom, #d1d5db, #9ca3af);
-  border-radius: 2px;
-  z-index: 1;
-}
-
-.mechanicalBody {
-  position: relative;
-  padding: 12px;
-  border-radius: 50%;
-  background: linear-gradient(to bottom, #f3f4f6, #e5e7eb);
-  border: none;
-  cursor: pointer;
-  box-shadow: 0 4px 0 #9ca3af, 0 6px 8px rgba(0, 0, 0, 0.15);
-  transition: transform 0.1s, box-shadow 0.1s;
-  z-index: 10;
-}
-
-.mechanicalBody:hover {
-  background: linear-gradient(to bottom, #f9fafb, #f3f4f6);
-}
-
-.mechanicalPressed {
-  transform: translateY(4px);
-  box-shadow: 0 0 0 #9ca3af, 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.mechanicalSpringBack {
-  animation: mechanicalSpringBackAnim 0.4s var(--spring-bounce);
-}
-
-@keyframes mechanicalSpringBackAnim {
-  0% { transform: translateY(4px); box-shadow: 0 0 0 #9ca3af; }
-  40% { transform: translateY(-3px); box-shadow: 0 7px 0 #9ca3af; }  /* 오버슈트 */
-  70% { transform: translateY(1px); box-shadow: 0 3px 0 #9ca3af; }
-  100% { transform: translateY(0); box-shadow: 0 4px 0 #9ca3af; }
-}
-
-.mechanicalIconBounce {
-  animation: mechanicalIconBounceAnim 0.4s var(--spring-bounce);
-}
-
-@keyframes mechanicalIconBounceAnim {
-  0% { transform: scale(0.9); }
-  40% { transform: scale(1.2); }
-  70% { transform: scale(0.95); }
-  100% { transform: scale(1); }
-}
-
-.pressureShadow {
-  position: absolute;
-  bottom: -4px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 36px;
-  height: 10px;
-  background: radial-gradient(ellipse, rgba(0, 0, 0, 0.2) 0%, transparent 70%);
-  border-radius: 50%;
-  transition: all 0.1s ease;
-  z-index: 0;
-}
-
-.pressureShadowPressed {
-  width: 44px;
-  height: 6px;
-  opacity: 0.6;
-}
-
-/* ============================================
- * 7. VALVE RELEASE - 밸브 해제
- * 회전 저항→해제→압력 분출
- * ============================================ */
-
-.steamParticle {
-  position: absolute;
-  width: 8px;
-  height: 8px;
-  background: rgba(200, 200, 200, 0.6);
-  border-radius: 50%;
-  filter: blur(2px);
-  pointer-events: none;
-}
-
-.steam1 { animation: steamRise 0.7s ease-out forwards; --angle: -30deg; --dist: 25px; }
-.steam2 { animation: steamRise 0.7s ease-out forwards 0.05s; --angle: -60deg; --dist: 30px; }
-.steam3 { animation: steamRise 0.7s ease-out forwards 0.1s; --angle: -90deg; --dist: 35px; }
-.steam4 { animation: steamRise 0.7s ease-out forwards 0.05s; --angle: -120deg; --dist: 30px; }
-.steam5 { animation: steamRise 0.7s ease-out forwards; --angle: -150deg; --dist: 25px; }
-
-@keyframes steamRise {
+@keyframes rayShoot {
   0% {
-    transform: translate(0, 0) scale(0.5);
-    opacity: 0.8;
+    width: 0;
+    opacity: 1;
+  }
+  50% {
+    width: 30px;
+    opacity: 1;
   }
   100% {
-    transform: translate(
-      calc(cos(var(--angle)) * var(--dist)),
-      calc(sin(var(--angle)) * var(--dist) - 20px)
-    ) scale(1.5);
+    width: 35px;
     opacity: 0;
   }
 }
 
-.pressureGauge {
+.centerFlash {
+  position: absolute;
+  inset: 8px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.8) 0%, transparent 70%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.centerFlashActive {
+  animation: centerFlashAnim 0.4s ease-out forwards;
+}
+
+@keyframes centerFlashAnim {
+  0% { transform: scale(0); opacity: 1; }
+  50% { transform: scale(1.2); opacity: 0.8; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+
+.burstPulse {
+  animation: burstPulseAnim 0.6s var(--magic-sparkle);
+}
+
+@keyframes burstPulseAnim {
+  0% { transform: scale(1); }
+  25% { transform: scale(1.2); }
+  50% { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+
+.burstHeartGlow {
+  animation: burstHeartGlowAnim 0.6s var(--magic-sparkle);
+}
+
+@keyframes burstHeartGlowAnim {
+  0% { filter: brightness(1); }
+  30% { filter: brightness(1.5) drop-shadow(0 0 12px rgba(244, 114, 182, 0.9)); }
+  100% { filter: brightness(1); }
+}
+
+/* 4. Heart Glow - 부드러운 빛 발산 */
+.haloLayer {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  opacity: 0;
+  transition: opacity 0.5s var(--glow-fade);
+  pointer-events: none;
+}
+
+.haloLayer1 {
+  background: radial-gradient(circle, rgba(244, 114, 182, 0.4) 0%, transparent 60%);
+  transform: scale(1);
+}
+
+.haloLayer2 {
+  background: radial-gradient(circle, rgba(251, 191, 36, 0.3) 0%, transparent 70%);
+  transform: scale(1.2);
+}
+
+.haloLayer3 {
+  background: radial-gradient(circle, rgba(167, 139, 250, 0.2) 0%, transparent 80%);
+  transform: scale(1.4);
+}
+
+.haloActive {
+  opacity: 1;
+}
+
+.glowPulse {
+  animation: glowPulseAnim 0.7s var(--glow-pulse);
+}
+
+@keyframes glowPulseAnim {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.15); }
+  70% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.glowHeartFloat {
+  animation: glowHeartFloatAnim 0.7s var(--magic-float);
+}
+
+@keyframes glowHeartFloatAnim {
+  0% { transform: translateY(0) scale(1); }
+  30% { transform: translateY(-4px) scale(1.15); }
+  60% { transform: translateY(-2px) scale(1.08); }
+  100% { transform: translateY(0) scale(1); }
+}
+
+.glowWave {
+  position: absolute;
+  inset: -10px;
+  border-radius: 50%;
+  border: 2px solid rgba(244, 114, 182, 0.4);
+  animation: glowWaveAnim 0.7s var(--magic-soft) forwards;
+  pointer-events: none;
+}
+
+@keyframes glowWaveAnim {
+  0% { transform: scale(0.8); opacity: 1; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+/* 5. Crystal Shine - 크리스탈 빛 굴절 */
+.crystalLight {
+  position: absolute;
+  width: 20px;
+  height: 3px;
+  background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.9), transparent);
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+.refract1 { animation: refractShine 0.7s var(--magic-soft) forwards; transform: rotate(-30deg); top: 20%; left: 60%; }
+.refract2 { animation: refractShine 0.7s var(--magic-soft) forwards 0.1s; transform: rotate(45deg); top: 70%; left: 20%; }
+.refract3 { animation: refractShine 0.7s var(--magic-soft) forwards 0.05s; transform: rotate(0deg); top: 50%; left: 70%; }
+
+@keyframes refractShine {
+  0% { opacity: 0; transform: translateX(-10px) rotate(var(--rotation, 0deg)); }
+  30% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(10px) rotate(var(--rotation, 0deg)); }
+}
+
+.prismEffect {
   position: absolute;
   inset: 4px;
   border-radius: 50%;
-  border: 2px solid #d1d5db;
-  background: linear-gradient(135deg, #fef9c3 0%, #fde68a 100%);
-  opacity: 0.5;
-  transition: all 0.3s ease;
+  background: linear-gradient(135deg,
+    rgba(244, 114, 182, 0.2) 0%,
+    rgba(167, 139, 250, 0.2) 33%,
+    rgba(96, 165, 250, 0.2) 66%,
+    rgba(52, 211, 153, 0.2) 100%
+  );
+  opacity: 0;
+  transition: opacity 0.5s var(--glow-fade);
+  pointer-events: none;
 }
 
-.pressureReleased {
-  border-color: #22c55e;
-  background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+.prismActive {
+  opacity: 1;
 }
 
-.valveTurnAnim {
-  animation: valveTurn 0.9s var(--spring-soft);
+.crystalPulse {
+  animation: crystalPulseAnim 0.7s var(--magic-sparkle);
 }
 
-@keyframes valveTurn {
-  0% { transform: rotate(0deg) scale(1); }
-  20% { transform: rotate(-10deg) scale(0.98); }  /* 저항 */
-  40% { transform: rotate(90deg) scale(1.05); }   /* 해제 */
-  60% { transform: rotate(85deg) scale(1.1); }    /* 압력 분출 */
-  80% { transform: rotate(88deg) scale(1.02); }
-  100% { transform: rotate(0deg) scale(1); }
+@keyframes crystalPulseAnim {
+  0% { transform: scale(1) rotate(0deg); }
+  30% { transform: scale(1.15) rotate(3deg); }
+  60% { transform: scale(0.98) rotate(-2deg); }
+  100% { transform: scale(1) rotate(0deg); }
 }
 
-.valveIconRelease {
-  animation: valveIconReleaseAnim 0.7s var(--spring-bounce);
+.crystalHeartShine {
+  animation: crystalHeartShineAnim 0.7s var(--magic-soft);
 }
 
-@keyframes valveIconReleaseAnim {
-  0% { transform: scale(1); filter: brightness(1); }
-  30% { transform: scale(1.15); filter: brightness(1.2); }
-  60% { transform: scale(1.25); filter: brightness(1.3); }
+@keyframes crystalHeartShineAnim {
+  0% { filter: brightness(1); }
+  30% { filter: brightness(1.4) saturate(1.2); }
+  60% { filter: brightness(1.2); }
+  100% { filter: brightness(1); }
+}
+
+/* 6. Aurora Wave - 오로라 물결 */
+.auroraLayer {
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+  background: linear-gradient(180deg,
+    rgba(96, 165, 250, 0) 0%,
+    rgba(167, 139, 250, 0.3) 30%,
+    rgba(244, 114, 182, 0.3) 50%,
+    rgba(52, 211, 153, 0.3) 70%,
+    rgba(96, 165, 250, 0) 100%
+  );
+  opacity: 0;
+  pointer-events: none;
+}
+
+.auroraWave {
+  animation: auroraWaveAnim 0.9s var(--magic-float);
+}
+
+@keyframes auroraWaveAnim {
+  0% { opacity: 0; transform: translateY(10px) scaleY(0.5); }
+  30% { opacity: 1; transform: translateY(0) scaleY(1); }
+  70% { opacity: 0.7; transform: translateY(-5px) scaleY(1.1); }
+  100% { opacity: 0; transform: translateY(-10px) scaleY(0.8); }
+}
+
+.auroraGlow {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(167, 139, 250, 0.3) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.5s var(--glow-fade);
+  pointer-events: none;
+}
+
+.auroraGlowActive {
+  opacity: 1;
+}
+
+.auroraPulse {
+  animation: auroraPulseAnim 0.9s var(--magic-soft);
+}
+
+@keyframes auroraPulseAnim {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+
+.auroraHeartFloat {
+  animation: auroraHeartFloatAnim 0.9s var(--magic-float);
+}
+
+@keyframes auroraHeartFloatAnim {
+  0% { transform: translateY(0); filter: hue-rotate(0deg); }
+  50% { transform: translateY(-5px); filter: hue-rotate(30deg); }
+  100% { transform: translateY(0); filter: hue-rotate(0deg); }
+}
+
+/* 7. Star Twinkle - 별빛 깜빡임 */
+.twinkleStar {
+  position: absolute;
+  font-size: 10px;
+  color: #fbbf24;
+  opacity: 0;
+  text-shadow: 0 0 6px rgba(251, 191, 36, 0.8);
+  pointer-events: none;
+}
+
+.twinkle1 { top: 5px; left: 5px; }
+.twinkle2 { top: 5px; right: 5px; }
+.twinkle3 { bottom: 5px; left: 5px; }
+.twinkle4 { bottom: 5px; right: 5px; }
+
+.twinkleActive {
+  animation: twinkleAnim 0.8s var(--magic-sparkle);
+}
+
+@keyframes twinkleAnim {
+  0%, 100% { opacity: 0; transform: scale(0); }
+  20% { opacity: 1; transform: scale(1.2); }
+  40% { opacity: 0.5; transform: scale(0.8); }
+  60% { opacity: 1; transform: scale(1.3); }
+  80% { opacity: 0.3; transform: scale(0.9); }
+}
+
+.twinklePulse {
+  animation: twinklePulseAnim 0.8s var(--magic-sparkle);
+}
+
+@keyframes twinklePulseAnim {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.15); }
+  60% { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+
+.twinkleHeartGlow {
+  animation: twinkleHeartGlowAnim 0.8s var(--magic-sparkle);
+}
+
+@keyframes twinkleHeartGlowAnim {
+  0% { filter: brightness(1); }
+  25% { filter: brightness(1.4); }
+  50% { filter: brightness(1.1); }
+  75% { filter: brightness(1.3); }
+  100% { filter: brightness(1); }
+}
+
+.persistentTwinkle {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.persistentTwinkle::before,
+.persistentTwinkle::after {
+  content: '✦';
+  position: absolute;
+  font-size: 8px;
+  color: #fbbf24;
+  opacity: 0.6;
+  animation: persistentTwinkleAnim 1.5s ease-in-out infinite;
+}
+
+.persistentTwinkle::before { top: 2px; right: 2px; }
+.persistentTwinkle::after { bottom: 2px; left: 2px; animation-delay: 0.75s; }
+
+@keyframes persistentTwinkleAnim {
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+  50% { opacity: 0.8; transform: scale(1.2); }
+}
+
+/* 8. Moon Phase - 달빛 차오름 */
+.moonFillContainer {
+  position: absolute;
+  inset: 6px;
+  border-radius: 50%;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.moonFill {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to top, rgba(251, 191, 36, 0.4), rgba(244, 114, 182, 0.2));
+  transition: height 0.05s linear;
+}
+
+.moonGlow {
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(251, 191, 36, 0.3) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.5s var(--glow-fade);
+  pointer-events: none;
+}
+
+.moonGlowActive {
+  opacity: 1;
+  animation: moonGlowPulse 2s ease-in-out infinite;
+}
+
+@keyframes moonGlowPulse {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
+.moonPulse {
+  animation: moonPulseAnim 0.7s var(--magic-soft);
+}
+
+@keyframes moonPulseAnim {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+.moonHeartRise {
+  animation: moonHeartRiseAnim 0.7s var(--magic-float);
+}
+
+@keyframes moonHeartRiseAnim {
+  0% { transform: translateY(3px); opacity: 0.7; }
+  50% { transform: translateY(-3px); opacity: 1; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+/* 9. Petal Float - 꽃잎 떠오름 */
+.petal {
+  position: absolute;
+  font-size: 12px;
+  pointer-events: none;
+  filter: drop-shadow(0 0 4px rgba(244, 114, 182, 0.5));
+}
+
+.petal1 { animation: petalFloat 1.2s var(--fairy-dust) forwards; --tx: -15px; --ty: -30px; --rot: 45deg; }
+.petal2 { animation: petalFloat 1.2s var(--fairy-dust) forwards 0.1s; --tx: 18px; --ty: -25px; --rot: -30deg; }
+.petal3 { animation: petalFloat 1.2s var(--fairy-dust) forwards 0.2s; --tx: -20px; --ty: 15px; --rot: 60deg; }
+.petal4 { animation: petalFloat 1.2s var(--fairy-dust) forwards 0.15s; --tx: 15px; --ty: 20px; --rot: -45deg; }
+.petal5 { animation: petalFloat 1.2s var(--fairy-dust) forwards 0.25s; --tx: 0px; --ty: -35px; --rot: 0deg; }
+
+@keyframes petalFloat {
+  0% {
+    transform: translate(0, 0) rotate(0deg) scale(0);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+    transform: translate(calc(var(--tx) * 0.3), calc(var(--ty) * 0.3)) rotate(calc(var(--rot) * 0.3)) scale(1);
+  }
+  100% {
+    transform: translate(var(--tx), var(--ty)) rotate(var(--rot)) scale(0.5);
+    opacity: 0;
+  }
+}
+
+.petalGlow {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(244, 114, 182, 0.25) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.5s var(--glow-fade);
+  pointer-events: none;
+}
+
+.petalGlowActive {
+  opacity: 1;
+}
+
+.petalPulse {
+  animation: petalPulseAnim 0.8s var(--fairy-flutter);
+}
+
+@keyframes petalPulseAnim {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.15); }
+  60% { transform: scale(0.98); }
+  100% { transform: scale(1); }
+}
+
+.petalHeartBloom {
+  animation: petalHeartBloomAnim 0.8s var(--fairy-flutter);
+}
+
+@keyframes petalHeartBloomAnim {
+  0% { transform: scale(0.9); filter: brightness(1); }
+  40% { transform: scale(1.25); filter: brightness(1.3); }
+  70% { transform: scale(1.05); filter: brightness(1.1); }
   100% { transform: scale(1); filter: brightness(1); }
 }
 
+/* 10. Rainbow Shimmer - 무지개빛 일렁임 */
+.rainbowRing {
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    rgba(244, 114, 182, 0.5),
+    rgba(251, 191, 36, 0.5),
+    rgba(52, 211, 153, 0.5),
+    rgba(96, 165, 250, 0.5),
+    rgba(167, 139, 250, 0.5),
+    rgba(244, 114, 182, 0.5)
+  );
+  opacity: 0;
+  pointer-events: none;
+}
+
+.rainbowShimmer {
+  animation: rainbowShimmerAnim 0.8s var(--magic-soft);
+}
+
+@keyframes rainbowShimmerAnim {
+  0% { opacity: 0; transform: scale(0.8) rotate(0deg); }
+  30% { opacity: 1; transform: scale(1.2) rotate(60deg); }
+  60% { opacity: 0.8; transform: scale(1.1) rotate(120deg); }
+  100% { opacity: 0; transform: scale(1.3) rotate(180deg); }
+}
+
+.rainbowGlow {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(244, 114, 182, 0.2) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.5s var(--glow-fade);
+  pointer-events: none;
+}
+
+.rainbowGlowActive {
+  opacity: 1;
+}
+
+.rainbowPulse {
+  animation: rainbowPulseAnim 0.8s var(--magic-sparkle);
+}
+
+@keyframes rainbowPulseAnim {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.15); }
+  60% { transform: scale(0.98); }
+  100% { transform: scale(1); }
+}
+
+.rainbowHeartShine {
+  animation: rainbowHeartShineAnim 0.8s var(--magic-soft);
+}
+
+@keyframes rainbowHeartShineAnim {
+  0% { filter: brightness(1) hue-rotate(0deg); }
+  25% { filter: brightness(1.3) hue-rotate(30deg); }
+  50% { filter: brightness(1.2) hue-rotate(60deg); }
+  75% { filter: brightness(1.3) hue-rotate(90deg); }
+  100% { filter: brightness(1) hue-rotate(0deg); }
+}
+
+.persistentRainbow {
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  border: 2px solid;
+  border-image: conic-gradient(
+    from 0deg,
+    rgba(244, 114, 182, 0.4),
+    rgba(251, 191, 36, 0.4),
+    rgba(52, 211, 153, 0.4),
+    rgba(96, 165, 250, 0.4),
+    rgba(167, 139, 250, 0.4),
+    rgba(244, 114, 182, 0.4)
+  ) 1;
+  animation: persistentRainbowSpin 3s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes persistentRainbowSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 /* ============================================
- * 8. MAGNET SNAP - 자석 끌림
- * 느린 시작→가속 끌림→충돌 진동→붙음
+ * BOOKMARK BUTTONS - 마법 테마
  * ============================================ */
 
-.magnetField {
+/* 1. Magic Bookmark */
+.magicBookmarkGlow {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.3) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.5s var(--glow-fade);
+  pointer-events: none;
+}
+
+.magicBookmarkGlowActive {
+  opacity: 1;
+}
+
+.magicParticle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: linear-gradient(135deg, #a78bfa, #c4b5fd);
+  border-radius: 50%;
+  box-shadow: 0 0 6px rgba(167, 139, 250, 0.8);
+  pointer-events: none;
+}
+
+.mp1 { animation: magicParticleFloat 0.7s var(--fairy-dust) forwards; --tx: -20px; --ty: -15px; }
+.mp2 { animation: magicParticleFloat 0.7s var(--fairy-dust) forwards 0.1s; --tx: 20px; --ty: -18px; }
+.mp3 { animation: magicParticleFloat 0.7s var(--fairy-dust) forwards 0.05s; --tx: -15px; --ty: 18px; }
+.mp4 { animation: magicParticleFloat 0.7s var(--fairy-dust) forwards 0.15s; --tx: 18px; --ty: 15px; }
+
+@keyframes magicParticleFloat {
+  0% { transform: translate(0, 0) scale(0); opacity: 0; }
+  30% { opacity: 1; transform: translate(calc(var(--tx) * 0.4), calc(var(--ty) * 0.4)) scale(1); }
+  100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
+}
+
+.magicBookmarkPulse {
+  animation: magicBookmarkPulseAnim 0.7s var(--magic-sparkle);
+}
+
+@keyframes magicBookmarkPulseAnim {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.15); }
+  60% { transform: scale(0.98); }
+  100% { transform: scale(1); }
+}
+
+.magicBookmarkIcon {
+  animation: magicBookmarkIconAnim 0.7s var(--magic-sparkle);
+}
+
+@keyframes magicBookmarkIconAnim {
+  0% { filter: brightness(1); }
+  30% { filter: brightness(1.4) drop-shadow(0 0 8px rgba(139, 92, 246, 0.8)); }
+  100% { filter: brightness(1); }
+}
+
+/* 2. Enchant Seal - 마법진 */
+.enchantSeal {
   position: absolute;
   inset: -5px;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.2s ease;
 }
 
-.magnetFieldActive {
+.enchantSealActive {
   opacity: 1;
 }
 
-.fieldLine {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 40px;
-  height: 2px;
-  background: linear-gradient(to right, transparent, rgba(59, 130, 246, 0.5), transparent);
-  transform-origin: left center;
-  animation: fieldLineWave 0.4s ease infinite;
-}
-
-.fieldLine:nth-child(1) { transform: translate(-50%, -50%) rotate(0deg); }
-.fieldLine:nth-child(2) { transform: translate(-50%, -50%) rotate(120deg); animation-delay: 0.1s; }
-.fieldLine:nth-child(3) { transform: translate(-50%, -50%) rotate(240deg); animation-delay: 0.2s; }
-
-@keyframes fieldLineWave {
-  0%, 100% { opacity: 0.3; }
-  50% { opacity: 0.8; }
-}
-
-.magnetSpark {
+.sealRing {
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(59, 130, 246, 0.6) 0%, transparent 50%);
-  animation: magnetSparkFlash 0.15s ease-out;
+  border: 1px solid rgba(139, 92, 246, 0.6);
+  animation: sealRingSpin 2s linear infinite;
 }
 
-@keyframes magnetSparkFlash {
-  0% { transform: scale(0.5); opacity: 1; }
-  100% { transform: scale(1.5); opacity: 0; }
+.sealRing2 {
+  inset: 4px;
+  animation-direction: reverse;
+  animation-duration: 1.5s;
 }
 
-.magnetAttract {
-  animation: magnetAttractAnim 0.35s cubic-bezier(0.4, 0, 1, 1);
+@keyframes sealRingSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
-@keyframes magnetAttractAnim {
-  0% { transform: translateY(-15px) scale(0.9); }
-  60% { transform: translateY(-8px) scale(0.95); }  /* 느린 시작 */
-  100% { transform: translateY(0) scale(1); }        /* 가속 끌림 */
-}
-
-.magnetImpact {
-  animation: magnetImpactAnim 0.1s linear;
-}
-
-@keyframes magnetImpactAnim {
-  0% { transform: translateY(0) scale(1); }
-  30% { transform: translateY(2px) scale(1.1); }  /* 충돌 */
-  60% { transform: translateY(-1px) scale(0.98); }
-  100% { transform: translateY(0) scale(1); }
-}
-
-.magnetStuck {
-  animation: magnetStuckAnim 0.15s var(--spring-tight);
-}
-
-@keyframes magnetStuckAnim {
-  0% { transform: translate(0); }
-  25% { transform: translate(-1px, 0); }
-  50% { transform: translate(1px, 0); }
-  75% { transform: translate(-0.5px, 0); }
-  100% { transform: translate(0); }
-}
-
-/* ============================================
- * 9. GAUGE FILL - 게이지 충전
- * 바늘 스윙→관성 오버슈트→오실레이션
- * ============================================ */
-
-.gaugeBackground {
+.sealRunes {
   position: absolute;
+  top: -20px;
   left: 50%;
-  bottom: 0;
   transform: translateX(-50%);
-  width: 40px;
-  height: 6px;
-  background: #e5e7eb;
-  border-radius: 3px;
-  overflow: hidden;
-  z-index: 1;
+  font-size: 10px;
+  color: #a78bfa;
+  text-shadow: 0 0 6px rgba(167, 139, 250, 0.8);
+  white-space: nowrap;
+  animation: sealRunesFade 0.9s ease forwards;
+  pointer-events: none;
 }
 
-.gaugeFillBar {
-  height: 100%;
-  background: linear-gradient(to right, #fde68a, #f59e0b, #ec4899);
-  border-radius: 3px;
-  transition: width 0.05s linear;
+@keyframes sealRunesFade {
+  0% { opacity: 0; transform: translateX(-50%) translateY(5px); }
+  30% { opacity: 1; transform: translateX(-50%) translateY(0); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-5px); }
 }
 
-.gaugeNeedle {
+.enchantPulse {
+  animation: enchantPulseAnim 0.8s var(--magic-sparkle);
+}
+
+@keyframes enchantPulseAnim {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.15); }
+  70% { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+
+.enchantIcon {
+  animation: enchantIconAnim 0.8s var(--magic-soft);
+}
+
+@keyframes enchantIconAnim {
+  0% { transform: rotate(0deg); filter: brightness(1); }
+  30% { transform: rotate(10deg); filter: brightness(1.3); }
+  60% { transform: rotate(-5deg); filter: brightness(1.1); }
+  100% { transform: rotate(0deg); filter: brightness(1); }
+}
+
+/* 3. Fairy Wing - 요정 날개 */
+.fairyWingLeft,
+.fairyWingRight {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 2px;
+  width: 16px;
   height: 20px;
-  background: linear-gradient(to bottom, #ef4444, #b91c1c);
-  transform-origin: center bottom;
-  border-radius: 1px;
-  transition: transform 0.8s var(--spring-wobbly);
-  z-index: 5;
+  background: linear-gradient(to bottom, rgba(167, 139, 250, 0.4), rgba(196, 181, 253, 0.2));
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  opacity: 0.7;
 }
 
-.needleSwing {
-  animation: needleSwingAnim 0.8s var(--spring-wobbly);
+.fairyWingLeft {
+  left: -8px;
+  transform-origin: right center;
 }
 
-@keyframes needleSwingAnim {
-  0% { transform: rotate(-90deg); }
-  30% { transform: rotate(100deg); }   /* 오버슈트 */
-  50% { transform: rotate(80deg); }
-  70% { transform: rotate(95deg); }    /* 역 오버슈트 */
-  100% { transform: rotate(90deg); }
+.fairyWingRight {
+  right: -8px;
+  transform: translateY(-50%) scaleX(-1);
+  transform-origin: left center;
 }
 
-.gaugePulse {
-  animation: gaugePulseAnim 0.8s var(--spring-bounce);
+.wingFlutter {
+  animation: wingFlutterAnim 0.8s var(--fairy-flutter);
 }
 
-@keyframes gaugePulseAnim {
-  0% { transform: scale(1); }
-  25% { transform: scale(1.05); }
-  50% { transform: scale(0.98); }
-  75% { transform: scale(1.02); }
-  100% { transform: scale(1); }
+@keyframes wingFlutterAnim {
+  0%, 100% { transform: translateY(-50%) rotate(0deg); }
+  25% { transform: translateY(-50%) rotate(-15deg); }
+  50% { transform: translateY(-50%) rotate(10deg); }
+  75% { transform: translateY(-50%) rotate(-8deg); }
 }
 
-.gaugeIconFill {
-  animation: gaugeIconFillAnim 0.8s var(--spring-soft);
-}
-
-@keyframes gaugeIconFillAnim {
-  0% { transform: scale(0.8); opacity: 0.5; }
-  40% { transform: scale(1.3); opacity: 1; }
-  60% { transform: scale(0.95); }
-  80% { transform: scale(1.1); }
-  100% { transform: scale(1); }
-}
-
-/* ============================================
- * 10. CAPSULE POP - 캡슐 폭발
- * 압력 빌드업→팝 폭발→내용물 분출
- * ============================================ */
-
-.popParticle {
+.wingSparkle {
   position: absolute;
-  width: 6px;
-  height: 6px;
-  background: #ec4899;
+  inset: -5px;
+  background: radial-gradient(circle, rgba(196, 181, 253, 0.3) 0%, transparent 70%);
   border-radius: 50%;
+  animation: wingSparkleAnim 1.5s ease-in-out infinite;
   pointer-events: none;
 }
 
-.pop1 { animation: popBurst 0.5s var(--spring-bounce) forwards; --angle: 0deg; }
-.pop2 { animation: popBurst 0.5s var(--spring-bounce) forwards 0.02s; --angle: 60deg; }
-.pop3 { animation: popBurst 0.5s var(--spring-bounce) forwards 0.04s; --angle: 120deg; }
-.pop4 { animation: popBurst 0.5s var(--spring-bounce) forwards 0.02s; --angle: 180deg; }
-.pop5 { animation: popBurst 0.5s var(--spring-bounce) forwards 0.04s; --angle: 240deg; }
-.pop6 { animation: popBurst 0.5s var(--spring-bounce) forwards; --angle: 300deg; }
-
-@keyframes popBurst {
-  0% {
-    transform: translate(0, 0) scale(1);
-    opacity: 1;
-  }
-  50% {
-    transform: translate(
-      calc(cos(var(--angle)) * 25px),
-      calc(sin(var(--angle)) * 25px)
-    ) scale(1.2);
-    opacity: 0.8;
-  }
-  100% {
-    transform: translate(
-      calc(cos(var(--angle)) * 35px),
-      calc(sin(var(--angle)) * 35px)
-    ) scale(0.3);
-    opacity: 0;
-  }
+@keyframes wingSparkleAnim {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
 }
 
-.pressureRing {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  border: 2px solid rgba(236, 72, 153, 0.5);
-  transition: transform 0.05s linear, opacity 0.05s linear;
-  pointer-events: none;
+.wingPulse {
+  animation: wingPulseAnim 0.8s var(--fairy-flutter);
 }
 
-.capsulePressure {
-  animation: capsulePressureAnim 0.3s var(--pressure-in);
-}
-
-@keyframes capsulePressureAnim {
+@keyframes wingPulseAnim {
   0% { transform: scale(1); }
-  50% { transform: scale(0.92); }  /* 압축 */
-  100% { transform: scale(0.95); }
-}
-
-.capsuleExplode {
-  animation: capsuleExplodeAnim 0.4s var(--spring-bounce);
-}
-
-@keyframes capsuleExplodeAnim {
-  0% { transform: scale(0.95); }
-  30% { transform: scale(1.3); }   /* 폭발 */
-  50% { transform: scale(0.9); }
-  70% { transform: scale(1.1); }
+  30% { transform: scale(1.1); }
+  60% { transform: scale(0.98); }
   100% { transform: scale(1); }
 }
 
-.capsuleIconPop {
-  animation: capsuleIconPopAnim 0.4s var(--spring-bounce);
+.wingIcon {
+  animation: wingIconAnim 0.8s var(--magic-float);
 }
 
-@keyframes capsuleIconPopAnim {
-  0% { transform: scale(0.8); }
-  30% { transform: scale(1.4) rotate(10deg); }
-  50% { transform: scale(0.9) rotate(-5deg); }
-  100% { transform: scale(1) rotate(0deg); }
-}
-
-/* ============================================
- * BOOKMARK BUTTONS - 물리 애니메이션
- * ============================================ */
-
-/* 1. Binder Clip - 클립 물림 */
-.clipBite {
-  animation: clipBiteAnim 0.5s var(--spring-tight);
-}
-
-.clipIcon {
-  animation: clipIconAnim 0.5s var(--spring-tight);
-}
-
-@keyframes clipBiteAnim {
-  0% { transform: scale(1) rotate(0deg); }
-  25% { transform: scale(0.9) rotate(5deg); }
-  50% { transform: scale(1.15) rotate(-3deg); }
-  75% { transform: scale(0.98) rotate(1deg); }
-  100% { transform: scale(1) rotate(0deg); }
-}
-
-@keyframes clipIconAnim {
-  0% { transform: scaleX(1); }
-  30% { transform: scaleX(0.7) scaleY(1.1); }
-  60% { transform: scaleX(1.2) scaleY(0.9); }
-  100% { transform: scaleX(1) scaleY(1); }
-}
-
-/* 2. Corner Fold - 모서리 접기 */
-.foldCorner {
-  animation: foldCornerAnim 0.6s var(--spring-soft);
-}
-
-.foldIcon {
-  animation: foldIconAnim 0.6s var(--spring-soft);
-}
-
-@keyframes foldCornerAnim {
-  0% { transform: perspective(100px) rotateY(0deg); }
-  50% { transform: perspective(100px) rotateY(-20deg); }
-  100% { transform: perspective(100px) rotateY(0deg); }
-}
-
-@keyframes foldIconAnim {
-  0% { transform: skewX(0deg) scale(1); }
-  30% { transform: skewX(-10deg) scale(0.95); }
-  60% { transform: skewX(5deg) scale(1.05); }
-  100% { transform: skewX(0deg) scale(1); }
-}
-
-/* 3. Ribbon Insert - 리본 삽입 */
-.ribbonSlide {
-  animation: ribbonSlideAnim 0.65s var(--inertia-slow);
-}
-
-.ribbonIcon {
-  animation: ribbonIconAnim 0.65s var(--spring-soft);
-}
-
-@keyframes ribbonSlideAnim {
-  0% { transform: translateY(-10px); opacity: 0.7; }
-  40% { transform: translateY(5px); opacity: 1; }
+@keyframes wingIconAnim {
+  0% { transform: translateY(0); }
+  30% { transform: translateY(-4px); }
   60% { transform: translateY(-2px); }
   100% { transform: translateY(0); }
 }
 
-@keyframes ribbonIconAnim {
-  0% { transform: translateY(-12px) scaleY(1.2); opacity: 0.5; }
-  40% { transform: translateY(3px) scaleY(0.9); opacity: 1; }
-  70% { transform: translateY(-1px) scaleY(1.05); }
-  100% { transform: translateY(0) scaleY(1); }
-}
-
-/* 4. Sticky Note - 포스트잇 붙이기 */
-.stickySlap {
-  animation: stickySlapAnim 0.55s var(--spring-wobbly);
-}
-
-.stickyIcon {
-  animation: stickyIconAnim 0.55s var(--spring-wobbly);
-}
-
-@keyframes stickySlapAnim {
-  0% { transform: translateY(-8px) rotate(-15deg); }
-  35% { transform: translateY(3px) rotate(8deg); }
-  55% { transform: translateY(-2px) rotate(-4deg); }
-  75% { transform: translateY(1px) rotate(2deg); }
-  100% { transform: translateY(0) rotate(0deg); }
-}
-
-@keyframes stickyIconAnim {
-  0% { transform: rotate(-20deg) scale(0.9); }
-  35% { transform: rotate(10deg) scale(1.1); }
-  55% { transform: rotate(-5deg) scale(0.98); }
-  100% { transform: rotate(0deg) scale(1); }
-}
-
-/* 5. Page Turn - 페이지 넘김 */
-.pageFlip {
-  animation: pageFlipAnim 0.7s var(--spring-soft);
-  perspective: 200px;
-}
-
-.pageIcon {
-  animation: pageIconAnim 0.7s var(--spring-soft);
-}
-
-@keyframes pageFlipAnim {
-  0% { transform: perspective(200px) rotateY(0deg); }
-  50% { transform: perspective(200px) rotateY(-30deg); }
-  100% { transform: perspective(200px) rotateY(0deg); }
-}
-
-@keyframes pageIconAnim {
-  0% { transform: rotateY(0deg) scale(1); }
-  25% { transform: rotateY(-45deg) scale(0.9); }
-  50% { transform: rotateY(-90deg) scale(0.8); }
-  75% { transform: rotateY(-45deg) scale(0.9); }
-  100% { transform: rotateY(0deg) scale(1); }
-}
-
-/* 6. Flag Raise - 깃발 올리기 */
-.flagUp {
-  animation: flagUpAnim 0.6s var(--spring-bounce);
-}
-
-.flagIcon {
-  animation: flagIconAnim 0.6s var(--spring-bounce);
-}
-
-@keyframes flagUpAnim {
-  0% { transform: translateY(10px); opacity: 0.6; }
-  40% { transform: translateY(-5px); opacity: 1; }
-  60% { transform: translateY(2px); }
-  80% { transform: translateY(-1px); }
-  100% { transform: translateY(0); }
-}
-
-@keyframes flagIconAnim {
-  0% { transform: translateY(12px) rotate(10deg); }
-  30% { transform: translateY(-8px) rotate(-15deg); }
-  50% { transform: translateY(-3px) rotate(8deg); }
-  70% { transform: translateY(-5px) rotate(-4deg); }
-  100% { transform: translateY(0) rotate(0deg); }
-}
-
-/* 7. Pin Drop - 핀 낙하 */
-.pinStab {
-  animation: pinStabAnim 0.5s var(--gravity-bounce);
-}
-
-.pinIcon {
-  animation: pinIconAnim 0.5s var(--gravity-bounce);
-}
-
-@keyframes pinStabAnim {
-  0% { transform: translateY(-20px) scale(0.8); }
-  50% { transform: translateY(5px) scale(1.1); }
-  70% { transform: translateY(-2px) scale(0.95); }
-  100% { transform: translateY(0) scale(1); }
-}
-
-@keyframes pinIconAnim {
-  0% { transform: translateY(-25px) rotate(-30deg); opacity: 0.5; }
-  50% { transform: translateY(4px) rotate(10deg); opacity: 1; }
-  70% { transform: translateY(-3px) rotate(-5deg); }
-  100% { transform: translateY(0) rotate(0deg); }
-}
-
-/* 8. Drawer Slide - 서랍 열기 */
-.drawerPull {
-  animation: drawerPullAnim 0.55s var(--spring-soft);
-}
-
-.drawerIcon {
-  animation: drawerIconAnim 0.55s var(--spring-soft);
-}
-
-@keyframes drawerPullAnim {
-  0% { transform: translateX(0) scale(1); }
-  30% { transform: translateX(8px) scale(1.05); }
-  50% { transform: translateX(-3px) scale(0.98); }
-  70% { transform: translateX(2px) scale(1.02); }
-  100% { transform: translateX(0) scale(1); }
-}
-
-@keyframes drawerIconAnim {
-  0% { transform: translateY(0); }
-  30% { transform: translateY(5px); }
-  60% { transform: translateY(-8px); }
-  100% { transform: translateY(0); }
-}
-
-/* 9. Wax Seal - 왁스 도장 */
-.waxDrip {
-  animation: waxDripAnim 0.7s var(--gravity-fall);
-}
-
-.waxIcon {
-  animation: waxIconAnim 0.7s var(--spring-soft);
-}
-
-@keyframes waxDripAnim {
-  0% { transform: scale(0.8); opacity: 0.5; }
-  30% { transform: scale(1.2); opacity: 0.8; }
-  60% { transform: scale(0.9); opacity: 1; }
-  100% { transform: scale(1); opacity: 1; }
-}
-
-@keyframes waxIconAnim {
-  0% { transform: translateY(-15px) scale(0.6); opacity: 0; }
-  30% { transform: translateY(5px) scale(1.2); opacity: 1; }
-  50% { transform: translateY(-2px) scale(0.9); }
-  70% { transform: translateY(1px) scale(1.05); }
-  100% { transform: translateY(0) scale(1); }
-}
-
-/* 10. Tab Punch - 탭 펀칭 */
-.punchHit {
-  animation: punchHitAnim 0.45s var(--mechanical-return);
-}
-
-.punchIcon {
-  animation: punchIconAnim 0.45s var(--spring-tight);
-}
-
-@keyframes punchHitAnim {
-  0% { transform: scale(1); }
-  25% { transform: scale(0.85) translateY(3px); }
-  50% { transform: scale(1.15) translateY(-2px); }
-  75% { transform: scale(0.98) translateY(1px); }
-  100% { transform: scale(1) translateY(0); }
-}
-
-@keyframes punchIconAnim {
-  0% { transform: scale(1) rotate(0deg); }
-  25% { transform: scale(0.7) rotate(-5deg); }
-  50% { transform: scale(1.2) rotate(8deg); }
-  75% { transform: scale(0.95) rotate(-2deg); }
-  100% { transform: scale(1) rotate(0deg); }
-}
-
-/* ============================================
- * BOOKMARK BUTTONS - 추가 레이어 효과
- * ============================================ */
-
-/* Binder Clip 추가 효과 */
-.clipHandle {
+/* 4. Stardust Trail - 별가루 자취 */
+.stardustDot {
   position: absolute;
-  top: -4px;
-  left: 50%;
-  transform: translateX(-50%) rotate(0deg);
-  width: 16px;
-  height: 8px;
-  border: 2px solid #9ca3af;
-  border-bottom: none;
-  border-radius: 4px 4px 0 0;
-  transition: transform 0.2s var(--spring-bounce);
-  pointer-events: none;
-  z-index: 5;
-}
-
-.clipHandleOpen {
-  transform: translateX(-50%) rotate(-30deg);
-}
-
-.clampShock {
-  position: absolute;
-  inset: -4px;
-  border-radius: 50%;
-  border: 2px solid rgba(245, 158, 11, 0.6);
-  animation: clampShockWave 0.3s ease-out forwards;
-}
-
-@keyframes clampShockWave {
-  0% { transform: scale(0.8); opacity: 1; }
-  100% { transform: scale(1.3); opacity: 0; }
-}
-
-.clipIndicator {
-  position: absolute;
-  bottom: -2px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 12px;
+  width: 3px;
   height: 3px;
-  background: #f59e0b;
-  border-radius: 2px;
-}
-
-/* Corner Fold 추가 효과 */
-.paperShadow {
-  position: absolute;
-  bottom: 2px;
-  right: 2px;
-  width: 20px;
-  height: 20px;
-  background: rgba(0, 0, 0, 0.1);
-  border-radius: 0 0 4px 0;
-  transition: all 0.3s ease;
+  background: #fbbf24;
+  border-radius: 50%;
+  box-shadow: 0 0 4px rgba(251, 191, 36, 0.8);
   pointer-events: none;
 }
 
-.paperShadowLift {
-  transform: translate(-2px, -2px);
-  opacity: 0.3;
+.sd1 { animation: stardustTrail 1s var(--fairy-dust) forwards; --sx: -5px; --sy: 20px; --ex: -20px; --ey: -15px; }
+.sd2 { animation: stardustTrail 1s var(--fairy-dust) forwards 0.1s; --sx: 5px; --sy: 20px; --ex: 22px; --ey: -12px; }
+.sd3 { animation: stardustTrail 1s var(--fairy-dust) forwards 0.15s; --sx: 0; --sy: 18px; --ex: -10px; --ey: -20px; }
+.sd4 { animation: stardustTrail 1s var(--fairy-dust) forwards 0.2s; --sx: -8px; --sy: 15px; --ex: 15px; --ey: -18px; }
+.sd5 { animation: stardustTrail 1s var(--fairy-dust) forwards 0.08s; --sx: 8px; --sy: 18px; --ex: 0; --ey: -25px; }
+.sd6 { animation: stardustTrail 1s var(--fairy-dust) forwards 0.25s; --sx: 0; --sy: 22px; --ex: 18px; --ey: -8px; }
+
+@keyframes stardustTrail {
+  0% { transform: translate(var(--sx), var(--sy)); opacity: 0; }
+  20% { opacity: 1; }
+  100% { transform: translate(var(--ex), var(--ey)); opacity: 0; }
 }
 
-.paperShadowFold {
-  transform: translate(-4px, -4px) rotate(-10deg);
+.stardustGlow {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(251, 191, 36, 0.25) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.5s var(--glow-fade);
+  pointer-events: none;
+}
+
+.stardustGlowActive {
+  opacity: 1;
+}
+
+.stardustPulse {
+  animation: stardustPulseAnim 0.7s var(--magic-sparkle);
+}
+
+@keyframes stardustPulseAnim {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.12); }
+  60% { transform: scale(0.98); }
+  100% { transform: scale(1); }
+}
+
+.stardustIcon {
+  animation: stardustIconAnim 0.7s var(--magic-soft);
+}
+
+@keyframes stardustIconAnim {
+  0% { filter: brightness(1); }
+  40% { filter: brightness(1.4) drop-shadow(0 0 6px rgba(251, 191, 36, 0.8)); }
+  100% { filter: brightness(1); }
+}
+
+/* 5. Light Beam - 빛줄기 */
+.lightBeam {
+  position: absolute;
+  top: -30px;
+  left: 50%;
+  width: 20px;
+  height: 50px;
+  transform: translateX(-50%);
+  background: linear-gradient(to bottom,
+    rgba(255, 255, 255, 0.8),
+    rgba(167, 139, 250, 0.4),
+    transparent
+  );
+  clip-path: polygon(30% 0%, 70% 0%, 100% 100%, 0% 100%);
+  animation: lightBeamAnim 0.7s var(--magic-soft) forwards;
+  pointer-events: none;
+}
+
+@keyframes lightBeamAnim {
+  0% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+  30% { opacity: 1; transform: translateX(-50%) translateY(0); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(5px); }
+}
+
+.beamGlow {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(167, 139, 250, 0.3) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.5s var(--glow-fade);
+  pointer-events: none;
+}
+
+.beamGlowActive {
+  opacity: 1;
+}
+
+.beamPulse {
+  animation: beamPulseAnim 0.7s var(--magic-soft);
+}
+
+@keyframes beamPulseAnim {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+
+.beamIcon {
+  animation: beamIconAnim 0.7s var(--magic-float);
+}
+
+@keyframes beamIconAnim {
+  0% { filter: brightness(1); transform: translateY(0); }
+  30% { filter: brightness(1.5); transform: translateY(-3px); }
+  100% { filter: brightness(1); transform: translateY(0); }
+}
+
+/* 6. Crystal Mark - 크리스탈 마크 */
+.crystalFacets {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.facet {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 8px;
+  height: 15px;
+  background: linear-gradient(to bottom, rgba(167, 139, 250, 0.3), transparent);
+  transform-origin: center bottom;
   opacity: 0.5;
 }
 
-.foldedCorner {
+.facet:nth-child(1) { transform: translate(-50%, -100%) rotate(0deg); }
+.facet:nth-child(2) { transform: translate(-50%, -100%) rotate(120deg); }
+.facet:nth-child(3) { transform: translate(-50%, -100%) rotate(240deg); }
+
+.crystalShine {
+  animation: crystalShineAnim 0.7s var(--magic-sparkle);
+}
+
+.crystalShine .facet {
+  animation: facetShine 0.7s var(--magic-soft);
+}
+
+@keyframes facetShine {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+.crystalMarkGlow {
   position: absolute;
-  top: 0;
-  right: 0;
-  width: 12px;
-  height: 12px;
-  background: linear-gradient(135deg, transparent 50%, #fbbf24 50%);
+  inset: 0;
+  border-radius: 50%;
+  background: linear-gradient(135deg,
+    rgba(244, 114, 182, 0.2),
+    rgba(167, 139, 250, 0.2),
+    rgba(96, 165, 250, 0.2)
+  );
+  opacity: 0;
+  transition: opacity 0.5s var(--glow-fade);
   pointer-events: none;
 }
 
-/* Ribbon Insert 추가 효과 */
-.ribbonTail {
+.crystalMarkGlowActive {
+  opacity: 1;
+}
+
+.crystalMarkPulse {
+  animation: crystalMarkPulseAnim 0.7s var(--magic-sparkle);
+}
+
+@keyframes crystalMarkPulseAnim {
+  0% { transform: scale(1) rotate(0deg); }
+  30% { transform: scale(1.12) rotate(5deg); }
+  60% { transform: scale(0.98) rotate(-3deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+.crystalMarkIcon {
+  animation: crystalMarkIconAnim 0.7s var(--magic-soft);
+}
+
+@keyframes crystalMarkIconAnim {
+  0% { filter: brightness(1) saturate(1); }
+  40% { filter: brightness(1.3) saturate(1.3); }
+  100% { filter: brightness(1) saturate(1); }
+}
+
+/* 7. Glow Ribbon - 빛나는 리본 */
+.glowRibbon {
   position: absolute;
   top: 100%;
   left: 50%;
   transform: translateX(-50%);
   width: 8px;
+  height: 0;
+  background: linear-gradient(to bottom, #a78bfa, #c4b5fd);
+  border-radius: 0 0 4px 4px;
+  transition: height 0.3s var(--magic-soft);
+  pointer-events: none;
+}
+
+.glowRibbonActive {
   height: 15px;
-  background: linear-gradient(to bottom, #f59e0b, #d97706);
-  clip-path: polygon(0 0, 100% 0, 100% 70%, 50% 100%, 0 70%);
-  pointer-events: none;
+  box-shadow: 0 0 8px rgba(167, 139, 250, 0.6);
 }
 
-.ribbonTailDrop {
-  animation: ribbonTailDropAnim 0.65s var(--spring-soft);
+.ribbonWave {
+  animation: ribbonWaveAnim 0.7s var(--fairy-flutter);
 }
 
-@keyframes ribbonTailDropAnim {
-  0% { transform: translateX(-50%) translateY(-20px); opacity: 0; }
-  50% { transform: translateX(-50%) translateY(5px); opacity: 1; }
-  100% { transform: translateX(-50%) translateY(0); }
+@keyframes ribbonWaveAnim {
+  0%, 100% { transform: translateX(-50%) skewX(0deg); }
+  25% { transform: translateX(-50%) skewX(5deg); }
+  75% { transform: translateX(-50%) skewX(-5deg); }
 }
 
-.pageLines {
+.ribbonSparkle {
   position: absolute;
-  left: 2px;
-  top: 50%;
-  transform: translateY(-50%);
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  bottom: -15px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  background: #fbbf24;
+  border-radius: 50%;
+  box-shadow: 0 0 6px rgba(251, 191, 36, 0.8);
+  animation: ribbonSparkleAnim 1s ease-in-out infinite;
   pointer-events: none;
 }
 
-.pageLine {
+@keyframes ribbonSparkleAnim {
+  0%, 100% { opacity: 0.5; transform: translateX(-50%) scale(0.8); }
+  50% { opacity: 1; transform: translateX(-50%) scale(1.2); }
+}
+
+.glowRibbonPulse {
+  animation: glowRibbonPulseAnim 0.7s var(--magic-sparkle);
+}
+
+@keyframes glowRibbonPulseAnim {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+
+.glowRibbonIcon {
+  animation: glowRibbonIconAnim 0.7s var(--magic-float);
+}
+
+@keyframes glowRibbonIconAnim {
+  0% { transform: translateY(0); }
+  30% { transform: translateY(-3px); }
+  100% { transform: translateY(0); }
+}
+
+/* 8. Magic Rune - 룬 문자 */
+.runeChar {
+  position: absolute;
+  font-size: 12px;
+  color: #a78bfa;
+  text-shadow: 0 0 6px rgba(167, 139, 250, 0.8);
+  pointer-events: none;
+}
+
+.rune1 { animation: runeAppear 0.9s var(--magic-soft) forwards; top: -5px; left: 50%; transform: translateX(-50%); }
+.rune2 { animation: runeAppear 0.9s var(--magic-soft) forwards 0.1s; bottom: -5px; left: 50%; transform: translateX(-50%); }
+.rune3 { animation: runeAppear 0.9s var(--magic-soft) forwards 0.15s; left: -5px; top: 50%; transform: translateY(-50%); }
+.rune4 { animation: runeAppear 0.9s var(--magic-soft) forwards 0.2s; right: -5px; top: 50%; transform: translateY(-50%); }
+
+@keyframes runeAppear {
+  0% { opacity: 0; filter: blur(4px); }
+  30% { opacity: 1; filter: blur(0); }
+  70% { opacity: 0.8; }
+  100% { opacity: 0; filter: blur(2px); }
+}
+
+.runeCircle {
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 1px dashed rgba(167, 139, 250, 0.4);
+  pointer-events: none;
+}
+
+.runeCircleSpin {
+  animation: runeCircleSpinAnim 0.8s var(--magic-soft);
+}
+
+@keyframes runeCircleSpinAnim {
+  0% { transform: rotate(0deg); opacity: 0; }
+  30% { opacity: 1; }
+  100% { transform: rotate(180deg); opacity: 0; }
+}
+
+.runePulse {
+  animation: runePulseAnim 0.8s var(--magic-sparkle);
+}
+
+@keyframes runePulseAnim {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.15); }
+  70% { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+
+.runeIcon {
+  animation: runeIconAnim 0.8s var(--magic-soft);
+}
+
+@keyframes runeIconAnim {
+  0% { filter: brightness(1); }
+  40% { filter: brightness(1.4) drop-shadow(0 0 8px rgba(167, 139, 250, 0.8)); }
+  100% { filter: brightness(1); }
+}
+
+/* 9. Firefly Dance - 반딧불이 춤 */
+.firefly {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: #84cc16;
+  border-radius: 50%;
+  box-shadow: 0 0 8px rgba(132, 204, 22, 0.8), 0 0 12px rgba(132, 204, 22, 0.4);
+  pointer-events: none;
+}
+
+.ff1 { animation: fireflyDance 1.2s var(--fairy-dust) forwards; --path: 1; }
+.ff2 { animation: fireflyDance 1.2s var(--fairy-dust) forwards 0.1s; --path: 2; }
+.ff3 { animation: fireflyDance 1.2s var(--fairy-dust) forwards 0.2s; --path: 3; }
+.ff4 { animation: fireflyDance 1.2s var(--fairy-dust) forwards 0.15s; --path: 4; }
+.ff5 { animation: fireflyDance 1.2s var(--fairy-dust) forwards 0.25s; --path: 5; }
+
+@keyframes fireflyDance {
+  0% {
+    transform: translate(0, 0) scale(0);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+    transform: translate(calc(sin(var(--path) * 1.5) * 15px), -10px) scale(1);
+  }
+  50% {
+    transform: translate(calc(cos(var(--path) * 2) * 20px), -20px) scale(1.2);
+    opacity: 0.8;
+  }
+  80% {
+    transform: translate(calc(sin(var(--path) * 1) * 25px), -30px) scale(0.8);
+    opacity: 0.6;
+  }
+  100% {
+    transform: translate(calc(cos(var(--path)) * 20px), -35px) scale(0);
+    opacity: 0;
+  }
+}
+
+.fireflyGlow {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(132, 204, 22, 0.2) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.5s var(--glow-fade);
+  pointer-events: none;
+}
+
+.fireflyGlowActive {
+  opacity: 1;
+}
+
+.fireflyPulse {
+  animation: fireflyPulseAnim 0.8s var(--magic-sparkle);
+}
+
+@keyframes fireflyPulseAnim {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.12); }
+  60% { transform: scale(0.98); }
+  100% { transform: scale(1); }
+}
+
+.fireflyIcon {
+  animation: fireflyIconAnim 0.8s var(--magic-soft);
+}
+
+@keyframes fireflyIconAnim {
+  0% { filter: brightness(1); }
+  50% { filter: brightness(1.3) drop-shadow(0 0 6px rgba(132, 204, 22, 0.6)); }
+  100% { filter: brightness(1); }
+}
+
+/* 10. Dream Catcher - 드림캐처 */
+.dreamWeb {
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+  border: 1px solid rgba(167, 139, 250, 0.3);
+  pointer-events: none;
+}
+
+.webLine {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(to right, transparent, rgba(167, 139, 250, 0.4), transparent);
+  transform-origin: center;
+}
+
+.webLine:nth-child(1) { transform: translate(-50%, -50%) rotate(0deg); }
+.webLine:nth-child(2) { transform: translate(-50%, -50%) rotate(60deg); }
+.webLine:nth-child(3) { transform: translate(-50%, -50%) rotate(120deg); }
+
+.dreamWebSpin {
+  animation: dreamWebSpinAnim 0.8s var(--magic-soft);
+}
+
+@keyframes dreamWebSpinAnim {
+  0% { transform: rotate(0deg) scale(0.8); opacity: 0; }
+  30% { opacity: 1; }
+  100% { transform: rotate(60deg) scale(1); opacity: 0.5; }
+}
+
+.dreamFeather {
+  position: absolute;
+  bottom: -10px;
   width: 3px;
   height: 12px;
-  background: #e5e7eb;
-  border-radius: 1px;
-}
-
-/* Sticky Note 추가 효과 */
-.stickImpact {
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle, rgba(251, 191, 36, 0.3) 0%, transparent 70%);
-  animation: stickImpactFlash 0.2s ease-out;
-}
-
-@keyframes stickImpactFlash {
-  0% { opacity: 1; transform: scale(0.8); }
-  100% { opacity: 0; transform: scale(1.2); }
-}
-
-.stickyCorner {
-  position: absolute;
-  bottom: 0;
-  right: 0;
-  width: 10px;
-  height: 10px;
-  background: linear-gradient(135deg, transparent 50%, #fde68a 50%);
-  box-shadow: -1px -1px 2px rgba(0, 0, 0, 0.1);
+  background: linear-gradient(to bottom, #a78bfa, #c4b5fd);
+  border-radius: 0 0 3px 3px;
+  animation: featherSway 2s ease-in-out infinite;
   pointer-events: none;
 }
 
-.stickyShadow {
-  position: absolute;
-  bottom: -3px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 30px;
-  height: 6px;
-  background: radial-gradient(ellipse, rgba(0, 0, 0, 0.15) 0%, transparent 70%);
-  border-radius: 50%;
-  transition: all 0.2s ease;
-  pointer-events: none;
+.feather1 { left: 35%; animation-delay: 0s; }
+.feather2 { right: 35%; animation-delay: 0.5s; }
+
+@keyframes featherSway {
+  0%, 100% { transform: rotate(-5deg); }
+  50% { transform: rotate(5deg); }
 }
 
-.stickyShadowWobble {
-  animation: stickyShadowWobbleAnim 0.55s var(--spring-wobbly);
-}
-
-@keyframes stickyShadowWobbleAnim {
-  0% { transform: translateX(-50%) scaleX(0.8); }
-  35% { transform: translateX(-50%) scaleX(1.3); }
-  55% { transform: translateX(-50%) scaleX(0.9); }
-  100% { transform: translateX(-50%) scaleX(1); }
-}
-
-/* Page Turn 추가 효과 */
-.pageTurnShadow {
-  position: absolute;
-  inset: 0;
-  background: transparent;
-  transition: all 0.3s ease;
-  pointer-events: none;
-}
-
-.pageTurnShadowFlip {
-  box-shadow: -5px 0 10px rgba(0, 0, 0, 0.1);
-}
-
-.pageFlutter {
-  position: absolute;
-  inset: 0;
-  border: 1px solid rgba(245, 158, 11, 0.3);
-  border-radius: 4px;
-  animation: pageFlutterAnim 0.25s ease-out;
-}
-
-@keyframes pageFlutterAnim {
-  0%, 100% { transform: skewX(0deg); }
-  25% { transform: skewX(3deg); }
-  75% { transform: skewX(-2deg); }
-}
-
-/* Flag Raise 추가 효과 */
-.flagPole {
-  position: absolute;
-  left: 8px;
-  bottom: 8px;
-  width: 2px;
-  height: 0;
-  background: #6b7280;
-  transition: height 0.4s var(--spring-bounce);
-  pointer-events: none;
-}
-
-.flagPoleUp {
-  height: 30px;
-}
-
-.flagWave {
-  position: absolute;
-  top: -5px;
-  left: 10px;
-  width: 20px;
-  height: 12px;
-  background: linear-gradient(90deg, #fbbf24, #f59e0b);
-  animation: flagWaveAnim 0.4s ease infinite;
-  clip-path: polygon(0 0, 100% 10%, 100% 90%, 0 100%);
-}
-
-@keyframes flagWaveAnim {
-  0%, 100% { transform: scaleX(1) skewY(0deg); }
-  50% { transform: scaleX(1.05) skewY(3deg); }
-}
-
-/* Pin Drop 추가 효과 */
-.pinImpactRipple {
+.dreamGlow {
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  border: 2px solid rgba(245, 158, 11, 0.6);
-  animation: pinImpactRippleExpand 0.2s ease-out forwards;
-}
-
-@keyframes pinImpactRippleExpand {
-  0% { transform: scale(0.5); opacity: 1; }
-  100% { transform: scale(1.4); opacity: 0; }
-}
-
-.pinHole {
-  position: absolute;
-  bottom: 5px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 4px;
-  height: 4px;
-  background: #4b5563;
-  border-radius: 50%;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3);
-}
-
-.pinVibrate {
-  animation: pinVibrateAnim 0.25s linear;
-}
-
-@keyframes pinVibrateAnim {
-  0%, 100% { transform: translateX(0); }
-  20% { transform: translateX(-1.5px); }
-  40% { transform: translateX(1.5px); }
-  60% { transform: translateX(-1px); }
-  80% { transform: translateX(1px); }
-}
-
-/* Drawer Slide 추가 효과 */
-.drawerFrame {
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 40px;
-  height: 8px;
-  background: linear-gradient(to bottom, #e5e7eb, #d1d5db);
-  border-radius: 2px;
-  transition: transform 0.3s var(--spring-soft);
-  z-index: 1;
-}
-
-.drawerFrameOpen {
-  transform: translateX(-50%) translateY(6px);
-}
-
-.drawerHandle {
-  position: absolute;
-  top: 2px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 10px;
-  height: 4px;
-  background: #9ca3af;
-  border-radius: 2px;
-}
-
-.drawerShadow {
-  position: absolute;
-  bottom: -4px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 35px;
-  height: 4px;
-  background: radial-gradient(ellipse, rgba(0, 0, 0, 0.15) 0%, transparent 70%);
-  border-radius: 50%;
-  transition: all 0.3s ease;
-}
-
-.drawerShadowOpen {
-  width: 40px;
-  height: 6px;
-  opacity: 0.8;
-}
-
-/* Wax Seal 추가 효과 */
-.waxSpread {
-  position: absolute;
-  inset: 8px;
-  border-radius: 50%;
-  background: transparent;
-  transition: all 0.3s ease;
+  background: radial-gradient(circle, rgba(167, 139, 250, 0.25) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.5s var(--glow-fade);
   pointer-events: none;
 }
 
-.waxSpreadActive {
-  background: radial-gradient(circle, rgba(180, 83, 9, 0.4) 0%, transparent 70%);
-  transform: scale(1.3);
+.dreamGlowActive {
+  opacity: 1;
 }
 
-.waxCooling {
-  background: radial-gradient(circle, rgba(180, 83, 9, 0.2) 0%, transparent 60%);
-  transform: scale(1.1);
+.dreamPulse {
+  animation: dreamPulseAnim 0.8s var(--magic-sparkle);
 }
 
-.waxShine {
-  position: absolute;
-  top: 8px;
-  left: 8px;
-  width: 8px;
-  height: 8px;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.6) 0%, transparent 70%);
-  border-radius: 50%;
-  pointer-events: none;
+@keyframes dreamPulseAnim {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.12); }
+  60% { transform: scale(0.98); }
+  100% { transform: scale(1); }
 }
 
-/* Tab Punch 추가 효과 */
-.punchImpact {
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle, rgba(245, 158, 11, 0.4) 0%, transparent 50%);
-  animation: punchImpactFlash 0.15s ease-out;
+.dreamIcon {
+  animation: dreamIconAnim 0.8s var(--magic-float);
 }
 
-@keyframes punchImpactFlash {
-  0% { opacity: 1; transform: scale(0.8); }
-  100% { opacity: 0; transform: scale(1.2); }
-}
-
-.paperChip {
-  position: absolute;
-  width: 4px;
-  height: 4px;
-  background: #fef3c7;
-  border-radius: 1px;
-  pointer-events: none;
-}
-
-.chip1 {
-  animation: chipFly1 0.3s var(--spring-bounce) forwards;
-}
-
-.chip2 {
-  animation: chipFly2 0.3s var(--spring-bounce) forwards;
-}
-
-@keyframes chipFly1 {
-  0% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
-  100% { transform: translate(-15px, -10px) rotate(45deg); opacity: 0; }
-}
-
-@keyframes chipFly2 {
-  0% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
-  100% { transform: translate(12px, -12px) rotate(-30deg); opacity: 0; }
-}
-
-.punchedHole {
-  position: absolute;
-  top: 5px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 6px;
-  height: 6px;
-  background: #f3f4f6;
-  border: 1px solid #d1d5db;
-  border-radius: 50%;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+@keyframes dreamIconAnim {
+  0% { transform: translateY(0); filter: brightness(1); }
+  30% { transform: translateY(-3px); filter: brightness(1.3); }
+  60% { transform: translateY(-1px); filter: brightness(1.1); }
+  100% { transform: translateY(0); filter: brightness(1); }
 }

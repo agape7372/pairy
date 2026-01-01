@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback } from 'react'
 import { Bookmark } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import styles from './physics.module.css'
@@ -10,568 +10,537 @@ interface PhysicsButtonProps {
 }
 
 // ============================================
-// 1. Binder Clip - 바인더 클립
-// 클립 손잡이가 열리고 → 물리며 찰칵 고정
+// 1. Magic Bookmark - 마법 책갈피
+// 마법의 빛이 책갈피를 감싸며 빛남
 // ============================================
 
-export function BookmarkBinderClip({ className }: PhysicsButtonProps) {
+export function BookmarkMagicBookmark({ className }: PhysicsButtonProps) {
   const [isBookmarked, setIsBookmarked] = useState(false)
   const [isAnimating, setIsAnimating] = useState(false)
-  const [clipOpen, setClipOpen] = useState(false)
-  const [showClampEffect, setShowClampEffect] = useState(false)
 
   const handleClick = useCallback(() => {
     if (isAnimating) return
     setIsAnimating(true)
-    const newBookmarked = !isBookmarked
-    setIsBookmarked(newBookmarked)
-
-    if (newBookmarked) {
-      setClipOpen(true)
-      setTimeout(() => {
-        setClipOpen(false)
-        setShowClampEffect(true)
-      }, 200)
-      setTimeout(() => setShowClampEffect(false), 500)
-    }
-
-    setTimeout(() => setIsAnimating(false), 500)
-  }, [isBookmarked, isAnimating])
-
-  return (
-    <div className={cn(styles.physicsButtonContainer, className)} onClick={handleClick}>
-      {/* 클립 손잡이 */}
-      <div className={cn(
-        styles.clipHandle,
-        clipOpen && styles.clipHandleOpen
-      )} />
-
-      {/* 물림 충격 효과 */}
-      {showClampEffect && (
-        <div className={styles.clampShock} />
-      )}
-
-      <button className={cn(
-        styles.physicsButton,
-        isAnimating && styles.clipBite
-      )}>
-        <Bookmark
-          className={cn(
-            'w-6 h-6 transition-colors duration-200',
-            isBookmarked ? 'fill-amber-500 text-amber-500' : 'text-gray-400',
-            isAnimating && styles.clipIcon
-          )}
-        />
-      </button>
-
-      {/* 고정 표시 */}
-      {isBookmarked && !isAnimating && (
-        <div className={styles.clipIndicator} />
-      )}
-    </div>
-  )
-}
-
-// ============================================
-// 2. Corner Fold - 모서리 접기
-// 종이가 들려서 접히고 → 그림자 변화
-// ============================================
-
-export function BookmarkCornerFold({ className }: PhysicsButtonProps) {
-  const [isBookmarked, setIsBookmarked] = useState(false)
-  const [isAnimating, setIsAnimating] = useState(false)
-  const [foldPhase, setFoldPhase] = useState<'idle' | 'lift' | 'fold' | 'settle'>('idle')
-
-  const handleClick = useCallback(() => {
-    if (isAnimating) return
-    setIsAnimating(true)
-    const newBookmarked = !isBookmarked
-    setIsBookmarked(newBookmarked)
-
-    if (newBookmarked) {
-      setFoldPhase('lift')
-      setTimeout(() => setFoldPhase('fold'), 150)
-      setTimeout(() => setFoldPhase('settle'), 400)
-      setTimeout(() => setFoldPhase('idle'), 600)
-    }
-
-    setTimeout(() => setIsAnimating(false), 600)
-  }, [isBookmarked, isAnimating])
-
-  return (
-    <div className={cn(styles.physicsButtonContainer, className)} onClick={handleClick}>
-      {/* 종이 그림자 */}
-      <div className={cn(
-        styles.paperShadow,
-        foldPhase === 'lift' && styles.paperShadowLift,
-        foldPhase === 'fold' && styles.paperShadowFold
-      )} />
-
-      {/* 접힌 모서리 효과 */}
-      {isBookmarked && (
-        <div className={styles.foldedCorner} />
-      )}
-
-      <button className={cn(
-        styles.physicsButton,
-        isAnimating && styles.foldCorner
-      )}>
-        <Bookmark
-          className={cn(
-            'w-6 h-6 transition-colors duration-200',
-            isBookmarked ? 'fill-amber-500 text-amber-500' : 'text-gray-400',
-            isAnimating && styles.foldIcon
-          )}
-        />
-      </button>
-    </div>
-  )
-}
-
-// ============================================
-// 3. Ribbon Insert - 리본 삽입
-// 리본이 위에서 내려와 → 책 사이로 미끄러져 들어감
-// ============================================
-
-export function BookmarkRibbonInsert({ className }: PhysicsButtonProps) {
-  const [isBookmarked, setIsBookmarked] = useState(false)
-  const [isAnimating, setIsAnimating] = useState(false)
-  const [ribbonVisible, setRibbonVisible] = useState(false)
-
-  const handleClick = useCallback(() => {
-    if (isAnimating) return
-    setIsAnimating(true)
-    const newBookmarked = !isBookmarked
-    setIsBookmarked(newBookmarked)
-
-    if (newBookmarked) {
-      setRibbonVisible(true)
-    }
-
-    setTimeout(() => setIsAnimating(false), 650)
-  }, [isBookmarked, isAnimating])
-
-  return (
-    <div className={cn(styles.physicsButtonContainer, className)} onClick={handleClick}>
-      {/* 리본 꼬리 */}
-      {ribbonVisible && isBookmarked && (
-        <div className={cn(
-          styles.ribbonTail,
-          isAnimating && styles.ribbonTailDrop
-        )} />
-      )}
-
-      {/* 책 페이지 라인 */}
-      <div className={styles.pageLines}>
-        <div className={styles.pageLine} />
-        <div className={styles.pageLine} />
-      </div>
-
-      <button className={cn(
-        styles.physicsButton,
-        isAnimating && styles.ribbonSlide
-      )}>
-        <Bookmark
-          className={cn(
-            'w-6 h-6 transition-colors duration-200',
-            isBookmarked ? 'fill-amber-500 text-amber-500' : 'text-gray-400',
-            isAnimating && styles.ribbonIcon
-          )}
-        />
-      </button>
-    </div>
-  )
-}
-
-// ============================================
-// 4. Sticky Note - 포스트잇
-// 포스트잇이 휘어지며 떨어져서 → 붙으며 출렁임
-// ============================================
-
-export function BookmarkStickyNote({ className }: PhysicsButtonProps) {
-  const [isBookmarked, setIsBookmarked] = useState(false)
-  const [isAnimating, setIsAnimating] = useState(false)
-  const [showStick, setShowStick] = useState(false)
-
-  const handleClick = useCallback(() => {
-    if (isAnimating) return
-    setIsAnimating(true)
-    const newBookmarked = !isBookmarked
-    setIsBookmarked(newBookmarked)
-
-    if (newBookmarked) {
-      setTimeout(() => setShowStick(true), 350)
-      setTimeout(() => setShowStick(false), 550)
-    }
-
-    setTimeout(() => setIsAnimating(false), 550)
-  }, [isBookmarked, isAnimating])
-
-  return (
-    <div className={cn(styles.physicsButtonContainer, className)} onClick={handleClick}>
-      {/* 붙는 순간 효과 */}
-      {showStick && (
-        <div className={styles.stickImpact} />
-      )}
-
-      {/* 포스트잇 모서리 */}
-      {isBookmarked && (
-        <div className={styles.stickyCorner} />
-      )}
-
-      <button className={cn(
-        styles.physicsButton,
-        isAnimating && styles.stickySlap
-      )}>
-        <Bookmark
-          className={cn(
-            'w-6 h-6 transition-colors duration-200',
-            isBookmarked ? 'fill-amber-500 text-amber-500' : 'text-gray-400',
-            isAnimating && styles.stickyIcon
-          )}
-        />
-      </button>
-
-      {/* 그림자 출렁임 */}
-      <div className={cn(
-        styles.stickyShadow,
-        isAnimating && styles.stickyShadowWobble
-      )} />
-    </div>
-  )
-}
-
-// ============================================
-// 5. Page Turn - 페이지 넘김
-// 페이지가 3D로 넘어가며 → 펄럭이다 정착
-// ============================================
-
-export function BookmarkPageTurn({ className }: PhysicsButtonProps) {
-  const [isBookmarked, setIsBookmarked] = useState(false)
-  const [isAnimating, setIsAnimating] = useState(false)
-  const [pagePhase, setPagePhase] = useState<'idle' | 'lifting' | 'turning' | 'settling'>('idle')
-
-  const handleClick = useCallback(() => {
-    if (isAnimating) return
-    setIsAnimating(true)
-    const newBookmarked = !isBookmarked
-    setIsBookmarked(newBookmarked)
-
-    if (newBookmarked) {
-      setPagePhase('lifting')
-      setTimeout(() => setPagePhase('turning'), 150)
-      setTimeout(() => setPagePhase('settling'), 450)
-      setTimeout(() => setPagePhase('idle'), 700)
-    }
-
+    setIsBookmarked(!isBookmarked)
     setTimeout(() => setIsAnimating(false), 700)
   }, [isBookmarked, isAnimating])
 
   return (
-    <div className={cn(styles.physicsButtonContainer, className)} onClick={handleClick}>
-      {/* 페이지 그림자 */}
+    <div className={cn(styles.magicButtonContainer, className)} onClick={handleClick}>
+      {/* 마법 글로우 */}
       <div className={cn(
-        styles.pageTurnShadow,
-        pagePhase === 'turning' && styles.pageTurnShadowFlip
+        styles.magicBookmarkGlow,
+        isBookmarked && styles.magicBookmarkGlowActive
       )} />
 
-      {/* 펄럭임 효과 */}
-      {pagePhase === 'settling' && (
-        <div className={styles.pageFlutter} />
-      )}
-
-      <button className={cn(
-        styles.physicsButton,
-        isAnimating && styles.pageFlip
-      )}>
-        <Bookmark
-          className={cn(
-            'w-6 h-6 transition-colors duration-200',
-            isBookmarked ? 'fill-amber-500 text-amber-500' : 'text-gray-400',
-            isAnimating && styles.pageIcon
-          )}
-        />
-      </button>
-    </div>
-  )
-}
-
-// ============================================
-// 6. Flag Raise - 깃발 올리기
-// 깃발이 올라가며 → 펄럭이다 정착
-// ============================================
-
-export function BookmarkFlagRaise({ className }: PhysicsButtonProps) {
-  const [isBookmarked, setIsBookmarked] = useState(false)
-  const [isAnimating, setIsAnimating] = useState(false)
-  const [waving, setWaving] = useState(false)
-
-  const handleClick = useCallback(() => {
-    if (isAnimating) return
-    setIsAnimating(true)
-    const newBookmarked = !isBookmarked
-    setIsBookmarked(newBookmarked)
-
-    if (newBookmarked) {
-      setTimeout(() => setWaving(true), 200)
-      setTimeout(() => setWaving(false), 600)
-    }
-
-    setTimeout(() => setIsAnimating(false), 600)
-  }, [isBookmarked, isAnimating])
-
-  return (
-    <div className={cn(styles.physicsButtonContainer, className)} onClick={handleClick}>
-      {/* 깃대 */}
-      <div className={cn(
-        styles.flagPole,
-        isBookmarked && styles.flagPoleUp
-      )} />
-
-      {/* 펄럭임 */}
-      {waving && (
-        <div className={styles.flagWave} />
-      )}
-
-      <button className={cn(
-        styles.physicsButton,
-        isAnimating && styles.flagUp
-      )}>
-        <Bookmark
-          className={cn(
-            'w-6 h-6 transition-colors duration-200',
-            isBookmarked ? 'fill-amber-500 text-amber-500' : 'text-gray-400',
-            isAnimating && styles.flagIcon
-          )}
-        />
-      </button>
-    </div>
-  )
-}
-
-// ============================================
-// 7. Pin Drop - 핀 낙하
-// 핀이 위에서 떨어져 → 박히며 진동
-// ============================================
-
-export function BookmarkPinDrop({ className }: PhysicsButtonProps) {
-  const [isBookmarked, setIsBookmarked] = useState(false)
-  const [isAnimating, setIsAnimating] = useState(false)
-  const [showImpact, setShowImpact] = useState(false)
-  const [vibrating, setVibrating] = useState(false)
-
-  const handleClick = useCallback(() => {
-    if (isAnimating) return
-    setIsAnimating(true)
-    const newBookmarked = !isBookmarked
-    setIsBookmarked(newBookmarked)
-
-    if (newBookmarked) {
-      setTimeout(() => {
-        setShowImpact(true)
-        setVibrating(true)
-      }, 250)
-      setTimeout(() => setShowImpact(false), 450)
-      setTimeout(() => setVibrating(false), 500)
-    }
-
-    setTimeout(() => setIsAnimating(false), 500)
-  }, [isBookmarked, isAnimating])
-
-  return (
-    <div className={cn(styles.physicsButtonContainer, className)} onClick={handleClick}>
-      {/* 충돌 파동 */}
-      {showImpact && (
-        <div className={styles.pinImpactRipple} />
-      )}
-
-      {/* 박힌 구멍 효과 */}
-      {isBookmarked && (
-        <div className={styles.pinHole} />
-      )}
-
-      <button className={cn(
-        styles.physicsButton,
-        isAnimating && styles.pinStab,
-        vibrating && styles.pinVibrate
-      )}>
-        <Bookmark
-          className={cn(
-            'w-6 h-6 transition-colors duration-200',
-            isBookmarked ? 'fill-amber-500 text-amber-500' : 'text-gray-400',
-            isAnimating && styles.pinIcon
-          )}
-        />
-      </button>
-    </div>
-  )
-}
-
-// ============================================
-// 8. Drawer Slide - 서랍 열기
-// 서랍이 열리며 → 안에 넣고 닫힘
-// ============================================
-
-export function BookmarkDrawerSlide({ className }: PhysicsButtonProps) {
-  const [isBookmarked, setIsBookmarked] = useState(false)
-  const [isAnimating, setIsAnimating] = useState(false)
-  const [drawerOpen, setDrawerOpen] = useState(false)
-
-  const handleClick = useCallback(() => {
-    if (isAnimating) return
-    setIsAnimating(true)
-    const newBookmarked = !isBookmarked
-    setIsBookmarked(newBookmarked)
-
-    if (newBookmarked) {
-      setDrawerOpen(true)
-      setTimeout(() => setDrawerOpen(false), 350)
-    }
-
-    setTimeout(() => setIsAnimating(false), 550)
-  }, [isBookmarked, isAnimating])
-
-  return (
-    <div className={cn(styles.physicsButtonContainer, className)} onClick={handleClick}>
-      {/* 서랍 프레임 */}
-      <div className={cn(
-        styles.drawerFrame,
-        drawerOpen && styles.drawerFrameOpen
-      )}>
-        <div className={styles.drawerHandle} />
-      </div>
-
-      <button className={cn(
-        styles.physicsButton,
-        isAnimating && styles.drawerPull
-      )}>
-        <Bookmark
-          className={cn(
-            'w-6 h-6 transition-colors duration-200',
-            isBookmarked ? 'fill-amber-500 text-amber-500' : 'text-gray-400',
-            isAnimating && styles.drawerIcon
-          )}
-        />
-      </button>
-
-      {/* 서랍 그림자 */}
-      <div className={cn(
-        styles.drawerShadow,
-        drawerOpen && styles.drawerShadowOpen
-      )} />
-    </div>
-  )
-}
-
-// ============================================
-// 9. Wax Seal - 왁스 도장
-// 왁스가 떨어지고 → 펴지며 굳음
-// ============================================
-
-export function BookmarkWaxSeal({ className }: PhysicsButtonProps) {
-  const [isBookmarked, setIsBookmarked] = useState(false)
-  const [isAnimating, setIsAnimating] = useState(false)
-  const [waxPhase, setWaxPhase] = useState<'idle' | 'dripping' | 'spreading' | 'cooling'>('idle')
-
-  const handleClick = useCallback(() => {
-    if (isAnimating) return
-    setIsAnimating(true)
-    const newBookmarked = !isBookmarked
-    setIsBookmarked(newBookmarked)
-
-    if (newBookmarked) {
-      setWaxPhase('dripping')
-      setTimeout(() => setWaxPhase('spreading'), 250)
-      setTimeout(() => setWaxPhase('cooling'), 500)
-      setTimeout(() => setWaxPhase('idle'), 700)
-    }
-
-    setTimeout(() => setIsAnimating(false), 700)
-  }, [isBookmarked, isAnimating])
-
-  return (
-    <div className={cn(styles.physicsButtonContainer, className)} onClick={handleClick}>
-      {/* 왁스 퍼짐 */}
-      <div className={cn(
-        styles.waxSpread,
-        waxPhase === 'spreading' && styles.waxSpreadActive,
-        waxPhase === 'cooling' && styles.waxCooling
-      )} />
-
-      {/* 광택 효과 */}
-      {isBookmarked && (
-        <div className={styles.waxShine} />
-      )}
-
-      <button className={cn(
-        styles.physicsButton,
-        isAnimating && styles.waxDrip
-      )}>
-        <Bookmark
-          className={cn(
-            'w-6 h-6 transition-colors duration-200',
-            isBookmarked ? 'fill-amber-500 text-amber-500' : 'text-gray-400',
-            isAnimating && styles.waxIcon
-          )}
-        />
-      </button>
-    </div>
-  )
-}
-
-// ============================================
-// 10. Tab Punch - 탭 펀칭
-// 펀치로 뚫고 → 탭 끼우기
-// ============================================
-
-export function BookmarkTabPunch({ className }: PhysicsButtonProps) {
-  const [isBookmarked, setIsBookmarked] = useState(false)
-  const [isAnimating, setIsAnimating] = useState(false)
-  const [punchHit, setPunchHit] = useState(false)
-  const [showHole, setShowHole] = useState(false)
-
-  const handleClick = useCallback(() => {
-    if (isAnimating) return
-    setIsAnimating(true)
-    const newBookmarked = !isBookmarked
-    setIsBookmarked(newBookmarked)
-
-    if (newBookmarked) {
-      setTimeout(() => {
-        setPunchHit(true)
-        setShowHole(true)
-      }, 150)
-      setTimeout(() => setPunchHit(false), 300)
-    }
-
-    setTimeout(() => setIsAnimating(false), 450)
-  }, [isBookmarked, isAnimating])
-
-  return (
-    <div className={cn(styles.physicsButtonContainer, className)} onClick={handleClick}>
-      {/* 펀치 효과 */}
-      {punchHit && (
+      {/* 마법 입자 */}
+      {isAnimating && (
         <>
-          <div className={styles.punchImpact} />
-          <div className={cn(styles.paperChip, styles.chip1)} />
-          <div className={cn(styles.paperChip, styles.chip2)} />
+          <div className={cn(styles.magicParticle, styles.mp1)} />
+          <div className={cn(styles.magicParticle, styles.mp2)} />
+          <div className={cn(styles.magicParticle, styles.mp3)} />
+          <div className={cn(styles.magicParticle, styles.mp4)} />
         </>
       )}
 
-      {/* 뚫린 구멍 */}
-      {showHole && isBookmarked && (
-        <div className={styles.punchedHole} />
-      )}
-
       <button className={cn(
-        styles.physicsButton,
-        isAnimating && styles.punchHit
+        styles.magicButton,
+        isAnimating && styles.magicBookmarkPulse
       )}>
         <Bookmark
           className={cn(
-            'w-6 h-6 transition-colors duration-200',
-            isBookmarked ? 'fill-amber-500 text-amber-500' : 'text-gray-400',
-            isAnimating && styles.punchIcon
+            'w-6 h-6 transition-all duration-300',
+            isBookmarked ? 'fill-violet-400 text-violet-400' : 'text-gray-400',
+            isAnimating && styles.magicBookmarkIcon
+          )}
+        />
+      </button>
+    </div>
+  )
+}
+
+// ============================================
+// 2. Enchant Seal - 마법진
+// 마법진이 나타나며 빛나는 효과
+// ============================================
+
+export function BookmarkEnchantSeal({ className }: PhysicsButtonProps) {
+  const [isBookmarked, setIsBookmarked] = useState(false)
+  const [isAnimating, setIsAnimating] = useState(false)
+  const [showSeal, setShowSeal] = useState(false)
+
+  const handleClick = useCallback(() => {
+    if (isAnimating) return
+    setIsAnimating(true)
+    const newBookmarked = !isBookmarked
+    setIsBookmarked(newBookmarked)
+
+    if (newBookmarked) {
+      setShowSeal(true)
+      setTimeout(() => setShowSeal(false), 900)
+    }
+
+    setTimeout(() => setIsAnimating(false), 800)
+  }, [isBookmarked, isAnimating])
+
+  return (
+    <div className={cn(styles.magicButtonContainer, className)} onClick={handleClick}>
+      {/* 마법진 */}
+      <div className={cn(
+        styles.enchantSeal,
+        showSeal && styles.enchantSealActive
+      )}>
+        <div className={styles.sealRing} />
+        <div className={cn(styles.sealRing, styles.sealRing2)} />
+      </div>
+
+      {/* 마법 문양 */}
+      {showSeal && (
+        <div className={styles.sealRunes}>✧ ☆ ✦</div>
+      )}
+
+      <button className={cn(
+        styles.magicButton,
+        isAnimating && styles.enchantPulse
+      )}>
+        <Bookmark
+          className={cn(
+            'w-6 h-6 transition-all duration-300',
+            isBookmarked ? 'fill-violet-400 text-violet-400' : 'text-gray-400',
+            isAnimating && styles.enchantIcon
+          )}
+        />
+      </button>
+    </div>
+  )
+}
+
+// ============================================
+// 3. Fairy Wing - 요정 날개
+// 요정 날개가 펄럭이는 효과
+// ============================================
+
+export function BookmarkFairyWing({ className }: PhysicsButtonProps) {
+  const [isBookmarked, setIsBookmarked] = useState(false)
+  const [isAnimating, setIsAnimating] = useState(false)
+
+  const handleClick = useCallback(() => {
+    if (isAnimating) return
+    setIsAnimating(true)
+    setIsBookmarked(!isBookmarked)
+    setTimeout(() => setIsAnimating(false), 800)
+  }, [isBookmarked, isAnimating])
+
+  return (
+    <div className={cn(styles.magicButtonContainer, className)} onClick={handleClick}>
+      {/* 날개 */}
+      <div className={cn(
+        styles.fairyWingLeft,
+        isAnimating && styles.wingFlutter
+      )} />
+      <div className={cn(
+        styles.fairyWingRight,
+        isAnimating && styles.wingFlutter
+      )} />
+
+      {/* 반짝이는 가루 */}
+      {isBookmarked && (
+        <div className={styles.wingSparkle} />
+      )}
+
+      <button className={cn(
+        styles.magicButton,
+        isAnimating && styles.wingPulse
+      )}>
+        <Bookmark
+          className={cn(
+            'w-6 h-6 transition-all duration-300',
+            isBookmarked ? 'fill-violet-400 text-violet-400' : 'text-gray-400',
+            isAnimating && styles.wingIcon
+          )}
+        />
+      </button>
+    </div>
+  )
+}
+
+// ============================================
+// 4. Stardust Trail - 별가루 자취
+// 별가루가 흩뿌려지는 자취 효과
+// ============================================
+
+export function BookmarkStardustTrail({ className }: PhysicsButtonProps) {
+  const [isBookmarked, setIsBookmarked] = useState(false)
+  const [isAnimating, setIsAnimating] = useState(false)
+  const [showTrail, setShowTrail] = useState(false)
+
+  const handleClick = useCallback(() => {
+    if (isAnimating) return
+    setIsAnimating(true)
+    const newBookmarked = !isBookmarked
+    setIsBookmarked(newBookmarked)
+
+    if (newBookmarked) {
+      setShowTrail(true)
+      setTimeout(() => setShowTrail(false), 1000)
+    }
+
+    setTimeout(() => setIsAnimating(false), 700)
+  }, [isBookmarked, isAnimating])
+
+  return (
+    <div className={cn(styles.magicButtonContainer, className)} onClick={handleClick}>
+      {/* 별가루 자취 */}
+      {showTrail && (
+        <>
+          <div className={cn(styles.stardustDot, styles.sd1)} />
+          <div className={cn(styles.stardustDot, styles.sd2)} />
+          <div className={cn(styles.stardustDot, styles.sd3)} />
+          <div className={cn(styles.stardustDot, styles.sd4)} />
+          <div className={cn(styles.stardustDot, styles.sd5)} />
+          <div className={cn(styles.stardustDot, styles.sd6)} />
+        </>
+      )}
+
+      {/* 글로우 */}
+      <div className={cn(
+        styles.stardustGlow,
+        isBookmarked && styles.stardustGlowActive
+      )} />
+
+      <button className={cn(
+        styles.magicButton,
+        isAnimating && styles.stardustPulse
+      )}>
+        <Bookmark
+          className={cn(
+            'w-6 h-6 transition-all duration-300',
+            isBookmarked ? 'fill-violet-400 text-violet-400' : 'text-gray-400',
+            isAnimating && styles.stardustIcon
+          )}
+        />
+      </button>
+    </div>
+  )
+}
+
+// ============================================
+// 5. Light Beam - 빛줄기
+// 위에서 빛줄기가 내려오는 효과
+// ============================================
+
+export function BookmarkLightBeam({ className }: PhysicsButtonProps) {
+  const [isBookmarked, setIsBookmarked] = useState(false)
+  const [isAnimating, setIsAnimating] = useState(false)
+  const [showBeam, setShowBeam] = useState(false)
+
+  const handleClick = useCallback(() => {
+    if (isAnimating) return
+    setIsAnimating(true)
+    const newBookmarked = !isBookmarked
+    setIsBookmarked(newBookmarked)
+
+    if (newBookmarked) {
+      setShowBeam(true)
+      setTimeout(() => setShowBeam(false), 700)
+    }
+
+    setTimeout(() => setIsAnimating(false), 700)
+  }, [isBookmarked, isAnimating])
+
+  return (
+    <div className={cn(styles.magicButtonContainer, className)} onClick={handleClick}>
+      {/* 빛줄기 */}
+      {showBeam && (
+        <div className={styles.lightBeam} />
+      )}
+
+      {/* 빛 후광 */}
+      <div className={cn(
+        styles.beamGlow,
+        isBookmarked && styles.beamGlowActive
+      )} />
+
+      <button className={cn(
+        styles.magicButton,
+        isAnimating && styles.beamPulse
+      )}>
+        <Bookmark
+          className={cn(
+            'w-6 h-6 transition-all duration-300',
+            isBookmarked ? 'fill-violet-400 text-violet-400' : 'text-gray-400',
+            isAnimating && styles.beamIcon
+          )}
+        />
+      </button>
+    </div>
+  )
+}
+
+// ============================================
+// 6. Crystal Mark - 크리스탈 마크
+// 크리스탈처럼 빛나는 마크 효과
+// ============================================
+
+export function BookmarkCrystalMark({ className }: PhysicsButtonProps) {
+  const [isBookmarked, setIsBookmarked] = useState(false)
+  const [isAnimating, setIsAnimating] = useState(false)
+
+  const handleClick = useCallback(() => {
+    if (isAnimating) return
+    setIsAnimating(true)
+    setIsBookmarked(!isBookmarked)
+    setTimeout(() => setIsAnimating(false), 700)
+  }, [isBookmarked, isAnimating])
+
+  return (
+    <div className={cn(styles.magicButtonContainer, className)} onClick={handleClick}>
+      {/* 크리스탈 면 */}
+      <div className={cn(
+        styles.crystalFacets,
+        isAnimating && styles.crystalShine
+      )}>
+        <div className={styles.facet} />
+        <div className={styles.facet} />
+        <div className={styles.facet} />
+      </div>
+
+      {/* 프리즘 글로우 */}
+      <div className={cn(
+        styles.crystalMarkGlow,
+        isBookmarked && styles.crystalMarkGlowActive
+      )} />
+
+      <button className={cn(
+        styles.magicButton,
+        isAnimating && styles.crystalMarkPulse
+      )}>
+        <Bookmark
+          className={cn(
+            'w-6 h-6 transition-all duration-300',
+            isBookmarked ? 'fill-violet-400 text-violet-400' : 'text-gray-400',
+            isAnimating && styles.crystalMarkIcon
+          )}
+        />
+      </button>
+    </div>
+  )
+}
+
+// ============================================
+// 7. Glow Ribbon - 빛나는 리본
+// 부드럽게 빛나는 리본 효과
+// ============================================
+
+export function BookmarkGlowRibbon({ className }: PhysicsButtonProps) {
+  const [isBookmarked, setIsBookmarked] = useState(false)
+  const [isAnimating, setIsAnimating] = useState(false)
+
+  const handleClick = useCallback(() => {
+    if (isAnimating) return
+    setIsAnimating(true)
+    setIsBookmarked(!isBookmarked)
+    setTimeout(() => setIsAnimating(false), 700)
+  }, [isBookmarked, isAnimating])
+
+  return (
+    <div className={cn(styles.magicButtonContainer, className)} onClick={handleClick}>
+      {/* 빛나는 리본 */}
+      <div className={cn(
+        styles.glowRibbon,
+        isBookmarked && styles.glowRibbonActive,
+        isAnimating && styles.ribbonWave
+      )} />
+
+      {/* 리본 반짝임 */}
+      {isBookmarked && (
+        <div className={styles.ribbonSparkle} />
+      )}
+
+      <button className={cn(
+        styles.magicButton,
+        isAnimating && styles.glowRibbonPulse
+      )}>
+        <Bookmark
+          className={cn(
+            'w-6 h-6 transition-all duration-300',
+            isBookmarked ? 'fill-violet-400 text-violet-400' : 'text-gray-400',
+            isAnimating && styles.glowRibbonIcon
+          )}
+        />
+      </button>
+    </div>
+  )
+}
+
+// ============================================
+// 8. Magic Rune - 룬 문자
+// 마법 룬 문자가 나타나는 효과
+// ============================================
+
+export function BookmarkMagicRune({ className }: PhysicsButtonProps) {
+  const [isBookmarked, setIsBookmarked] = useState(false)
+  const [isAnimating, setIsAnimating] = useState(false)
+  const [showRunes, setShowRunes] = useState(false)
+
+  const handleClick = useCallback(() => {
+    if (isAnimating) return
+    setIsAnimating(true)
+    const newBookmarked = !isBookmarked
+    setIsBookmarked(newBookmarked)
+
+    if (newBookmarked) {
+      setShowRunes(true)
+      setTimeout(() => setShowRunes(false), 900)
+    }
+
+    setTimeout(() => setIsAnimating(false), 800)
+  }, [isBookmarked, isAnimating])
+
+  return (
+    <div className={cn(styles.magicButtonContainer, className)} onClick={handleClick}>
+      {/* 룬 문자들 */}
+      {showRunes && (
+        <>
+          <div className={cn(styles.runeChar, styles.rune1)}>ᚱ</div>
+          <div className={cn(styles.runeChar, styles.rune2)}>ᚢ</div>
+          <div className={cn(styles.runeChar, styles.rune3)}>ᚾ</div>
+          <div className={cn(styles.runeChar, styles.rune4)}>ᛖ</div>
+        </>
+      )}
+
+      {/* 마법 서클 */}
+      <div className={cn(
+        styles.runeCircle,
+        isAnimating && styles.runeCircleSpin
+      )} />
+
+      <button className={cn(
+        styles.magicButton,
+        isAnimating && styles.runePulse
+      )}>
+        <Bookmark
+          className={cn(
+            'w-6 h-6 transition-all duration-300',
+            isBookmarked ? 'fill-violet-400 text-violet-400' : 'text-gray-400',
+            isAnimating && styles.runeIcon
+          )}
+        />
+      </button>
+    </div>
+  )
+}
+
+// ============================================
+// 9. Firefly Dance - 반딧불이 춤
+// 반딧불이가 춤추는 효과
+// ============================================
+
+export function BookmarkFireflyDance({ className }: PhysicsButtonProps) {
+  const [isBookmarked, setIsBookmarked] = useState(false)
+  const [isAnimating, setIsAnimating] = useState(false)
+  const [showFireflies, setShowFireflies] = useState(false)
+
+  const handleClick = useCallback(() => {
+    if (isAnimating) return
+    setIsAnimating(true)
+    const newBookmarked = !isBookmarked
+    setIsBookmarked(newBookmarked)
+
+    if (newBookmarked) {
+      setShowFireflies(true)
+      setTimeout(() => setShowFireflies(false), 1200)
+    }
+
+    setTimeout(() => setIsAnimating(false), 800)
+  }, [isBookmarked, isAnimating])
+
+  return (
+    <div className={cn(styles.magicButtonContainer, className)} onClick={handleClick}>
+      {/* 반딧불이 */}
+      {showFireflies && (
+        <>
+          <div className={cn(styles.firefly, styles.ff1)} />
+          <div className={cn(styles.firefly, styles.ff2)} />
+          <div className={cn(styles.firefly, styles.ff3)} />
+          <div className={cn(styles.firefly, styles.ff4)} />
+          <div className={cn(styles.firefly, styles.ff5)} />
+        </>
+      )}
+
+      {/* 부드러운 글로우 */}
+      <div className={cn(
+        styles.fireflyGlow,
+        isBookmarked && styles.fireflyGlowActive
+      )} />
+
+      <button className={cn(
+        styles.magicButton,
+        isAnimating && styles.fireflyPulse
+      )}>
+        <Bookmark
+          className={cn(
+            'w-6 h-6 transition-all duration-300',
+            isBookmarked ? 'fill-violet-400 text-violet-400' : 'text-gray-400',
+            isAnimating && styles.fireflyIcon
+          )}
+        />
+      </button>
+    </div>
+  )
+}
+
+// ============================================
+// 10. Dream Catcher - 드림캐처
+// 드림캐처처럼 빛이 엮이는 효과
+// ============================================
+
+export function BookmarkDreamCatcher({ className }: PhysicsButtonProps) {
+  const [isBookmarked, setIsBookmarked] = useState(false)
+  const [isAnimating, setIsAnimating] = useState(false)
+
+  const handleClick = useCallback(() => {
+    if (isAnimating) return
+    setIsAnimating(true)
+    setIsBookmarked(!isBookmarked)
+    setTimeout(() => setIsAnimating(false), 800)
+  }, [isBookmarked, isAnimating])
+
+  return (
+    <div className={cn(styles.magicButtonContainer, className)} onClick={handleClick}>
+      {/* 드림캐처 웹 */}
+      <div className={cn(
+        styles.dreamWeb,
+        isAnimating && styles.dreamWebSpin
+      )}>
+        <div className={styles.webLine} />
+        <div className={styles.webLine} />
+        <div className={styles.webLine} />
+      </div>
+
+      {/* 깃털 */}
+      {isBookmarked && (
+        <>
+          <div className={cn(styles.dreamFeather, styles.feather1)} />
+          <div className={cn(styles.dreamFeather, styles.feather2)} />
+        </>
+      )}
+
+      {/* 중심 글로우 */}
+      <div className={cn(
+        styles.dreamGlow,
+        isBookmarked && styles.dreamGlowActive
+      )} />
+
+      <button className={cn(
+        styles.magicButton,
+        isAnimating && styles.dreamPulse
+      )}>
+        <Bookmark
+          className={cn(
+            'w-6 h-6 transition-all duration-300',
+            isBookmarked ? 'fill-violet-400 text-violet-400' : 'text-gray-400',
+            isAnimating && styles.dreamIcon
           )}
         />
       </button>
@@ -581,14 +550,14 @@ export function BookmarkTabPunch({ className }: PhysicsButtonProps) {
 
 // Export all variants
 export const PhysicsBookmarkButtons = {
-  BinderClip: BookmarkBinderClip,
-  CornerFold: BookmarkCornerFold,
-  RibbonInsert: BookmarkRibbonInsert,
-  StickyNote: BookmarkStickyNote,
-  PageTurn: BookmarkPageTurn,
-  FlagRaise: BookmarkFlagRaise,
-  PinDrop: BookmarkPinDrop,
-  DrawerSlide: BookmarkDrawerSlide,
-  WaxSeal: BookmarkWaxSeal,
-  TabPunch: BookmarkTabPunch,
+  MagicBookmark: BookmarkMagicBookmark,
+  EnchantSeal: BookmarkEnchantSeal,
+  FairyWing: BookmarkFairyWing,
+  StardustTrail: BookmarkStardustTrail,
+  LightBeam: BookmarkLightBeam,
+  CrystalMark: BookmarkCrystalMark,
+  GlowRibbon: BookmarkGlowRibbon,
+  MagicRune: BookmarkMagicRune,
+  FireflyDance: BookmarkFireflyDance,
+  DreamCatcher: BookmarkDreamCatcher,
 }

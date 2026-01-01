@@ -1,33 +1,33 @@
 'use client'
 
 import { useState } from 'react'
-import { Heart, Bookmark, Cog } from 'lucide-react'
+import { Heart, Bookmark, Sparkles } from 'lucide-react'
 
-// Physics-based button variants
+// Magic & Fairy themed button variants
 import {
-  LikeHeartPump,
-  LikeStampPress,
-  LikeToggleSwitch,
-  LikeLockClick,
-  LikeDialTurn,
-  LikeButtonDepress,
-  LikeValveRelease,
-  LikeMagnetSnap,
-  LikeGaugeFill,
-  LikeCapsulePop,
+  LikeFairyDust,
+  LikeMagicWand,
+  LikeSparkleBurst,
+  LikeHeartGlow,
+  LikeCrystalShine,
+  LikeAuroraWave,
+  LikeStarTwinkle,
+  LikeMoonPhase,
+  LikePetalFloat,
+  LikeRainbowShimmer,
 } from '@/components/interactions/PhysicsLikeButtons'
 
 import {
-  BookmarkBinderClip,
-  BookmarkCornerFold,
-  BookmarkRibbonInsert,
-  BookmarkStickyNote,
-  BookmarkPageTurn,
-  BookmarkFlagRaise,
-  BookmarkPinDrop,
-  BookmarkDrawerSlide,
-  BookmarkWaxSeal,
-  BookmarkTabPunch,
+  BookmarkMagicBookmark,
+  BookmarkEnchantSeal,
+  BookmarkFairyWing,
+  BookmarkStardustTrail,
+  BookmarkLightBeam,
+  BookmarkCrystalMark,
+  BookmarkGlowRibbon,
+  BookmarkMagicRune,
+  BookmarkFireflyDance,
+  BookmarkDreamCatcher,
 } from '@/components/interactions/PhysicsBookmarkButtons'
 
 interface ButtonCardProps {
@@ -38,7 +38,7 @@ interface ButtonCardProps {
 
 function ButtonCard({ name, mechanism, children }: ButtonCardProps) {
   return (
-    <div className="group flex flex-col items-center p-6 bg-white rounded-2xl border-2 border-gray-100 shadow-sm hover:shadow-lg hover:border-gray-200 transition-all duration-300">
+    <div className="group flex flex-col items-center p-6 bg-white rounded-2xl border-2 border-gray-100 shadow-sm hover:shadow-lg hover:border-pink-200 transition-all duration-300">
       <div className="mb-4 h-16 flex items-center justify-center">
         {children}
       </div>
@@ -49,62 +49,62 @@ function ButtonCard({ name, mechanism, children }: ButtonCardProps) {
 }
 
 const likeButtons = [
-  { name: 'Heart Pump', mechanism: '심장 수축/이완 + 혈액 충전', Component: LikeHeartPump },
-  { name: 'Stamp Press', mechanism: '도장 낙하 + 잉크 번짐', Component: LikeStampPress },
-  { name: 'Toggle Switch', mechanism: '금속 스위치 토글', Component: LikeToggleSwitch },
-  { name: 'Lock Click', mechanism: '자물쇠 걸쇠 맞물림', Component: LikeLockClick },
-  { name: 'Dial Turn', mechanism: '다이얼 회전 + 눈금 정렬', Component: LikeDialTurn },
-  { name: 'Button Depress', mechanism: '기계식 버튼 눌림 + 스프링', Component: LikeButtonDepress },
-  { name: 'Valve Release', mechanism: '밸브 열림 + 증기 분출', Component: LikeValveRelease },
-  { name: 'Magnet Snap', mechanism: '자석 끌림 + 철판 붙음', Component: LikeMagnetSnap },
-  { name: 'Gauge Fill', mechanism: '게이지 충전 + 바늘 이동', Component: LikeGaugeFill },
-  { name: 'Capsule Pop', mechanism: '캡슐 열림 + 내용물 튀어나옴', Component: LikeCapsulePop },
+  { name: 'Fairy Dust', mechanism: '요정 가루가 흩뿌려지는 반짝임', Component: LikeFairyDust },
+  { name: 'Magic Wand', mechanism: '마법 지팡이로 터치하면 별 폭발', Component: LikeMagicWand },
+  { name: 'Sparkle Burst', mechanism: '중심에서 빛이 방사형으로 퍼짐', Component: LikeSparkleBurst },
+  { name: 'Heart Glow', mechanism: '부드러운 빛 발산과 후광 효과', Component: LikeHeartGlow },
+  { name: 'Crystal Shine', mechanism: '크리스탈처럼 빛이 굴절되는 효과', Component: LikeCrystalShine },
+  { name: 'Aurora Wave', mechanism: '오로라 빛이 물결치듯 퍼짐', Component: LikeAuroraWave },
+  { name: 'Star Twinkle', mechanism: '주변에 별들이 반짝반짝 깜빡임', Component: LikeStarTwinkle },
+  { name: 'Moon Phase', mechanism: '달빛이 차오르는 효과', Component: LikeMoonPhase },
+  { name: 'Petal Float', mechanism: '꽃잎이 부드럽게 떠오름', Component: LikePetalFloat },
+  { name: 'Rainbow Shimmer', mechanism: '무지개 색이 일렁이는 효과', Component: LikeRainbowShimmer },
 ]
 
 const bookmarkButtons = [
-  { name: 'Binder Clip', mechanism: '손잡이 누름 + 클립 물림', Component: BookmarkBinderClip },
-  { name: 'Corner Fold', mechanism: '종이 모서리 접힘', Component: BookmarkCornerFold },
-  { name: 'Ribbon Insert', mechanism: '리본 삽입 + 책 사이 끼임', Component: BookmarkRibbonInsert },
-  { name: 'Sticky Note', mechanism: '포스트잇 붙임 + 모서리 말림', Component: BookmarkStickyNote },
-  { name: 'Page Turn', mechanism: '페이지 넘김 + 북마크 노출', Component: BookmarkPageTurn },
-  { name: 'Flag Raise', mechanism: '깃발 올림 + 펄럭임', Component: BookmarkFlagRaise },
-  { name: 'Pin Drop', mechanism: '핀 낙하 + 보드에 박힘', Component: BookmarkPinDrop },
-  { name: 'Drawer Slide', mechanism: '서랍 열림 + 파일 삽입', Component: BookmarkDrawerSlide },
-  { name: 'Wax Seal', mechanism: '왁스 떨어짐 + 도장 찍힘', Component: BookmarkWaxSeal },
-  { name: 'Tab Punch', mechanism: '인덱스 탭 펀칭', Component: BookmarkTabPunch },
+  { name: 'Magic Bookmark', mechanism: '마법의 빛이 감싸며 빛남', Component: BookmarkMagicBookmark },
+  { name: 'Enchant Seal', mechanism: '마법진이 나타나며 회전', Component: BookmarkEnchantSeal },
+  { name: 'Fairy Wing', mechanism: '요정 날개가 펄럭이는 효과', Component: BookmarkFairyWing },
+  { name: 'Stardust Trail', mechanism: '별가루가 흩뿌려지는 자취', Component: BookmarkStardustTrail },
+  { name: 'Light Beam', mechanism: '위에서 빛줄기가 내려옴', Component: BookmarkLightBeam },
+  { name: 'Crystal Mark', mechanism: '크리스탈처럼 빛나는 마크', Component: BookmarkCrystalMark },
+  { name: 'Glow Ribbon', mechanism: '부드럽게 빛나는 리본 효과', Component: BookmarkGlowRibbon },
+  { name: 'Magic Rune', mechanism: '마법 룬 문자가 나타남', Component: BookmarkMagicRune },
+  { name: 'Firefly Dance', mechanism: '반딧불이가 춤추는 효과', Component: BookmarkFireflyDance },
+  { name: 'Dream Catcher', mechanism: '드림캐처처럼 빛이 엮임', Component: BookmarkDreamCatcher },
 ]
 
 export default function PhysicsButtonsClient() {
   const [activeTab, setActiveTab] = useState<'like' | 'bookmark' | 'all'>('all')
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100">
+    <div className="min-h-screen bg-gradient-to-b from-pink-50 via-purple-50 to-blue-50">
       {/* 헤더 */}
-      <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-lg border-b border-slate-200">
+      <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-lg border-b border-pink-100">
         <div className="max-w-6xl mx-auto px-4 py-6">
           <div className="flex items-center gap-3 mb-4">
-            <div className="p-2.5 bg-gradient-to-br from-slate-800 to-slate-600 rounded-xl shadow-lg">
-              <Cog className="w-6 h-6 text-white" />
+            <div className="p-2.5 bg-gradient-to-br from-pink-400 to-violet-500 rounded-xl shadow-lg">
+              <Sparkles className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-slate-900">
-                Physics-Based Interactions
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-pink-500 to-violet-500 bg-clip-text text-transparent">
+                Magic & Fairy Interactions
               </h1>
-              <p className="text-sm text-slate-500">
-                Skeuomorphism 2.0 - 실제 기계처럼 작동하는 버튼
+              <p className="text-sm text-gray-500">
+                페어리, 마법, 빛, 반짝임 테마의 인터랙션
               </p>
             </div>
           </div>
 
           {/* 디자인 원칙 배너 */}
-          <div className="mb-4 p-3 bg-slate-800 rounded-xl text-white text-xs">
+          <div className="mb-4 p-3 bg-gradient-to-r from-pink-500 to-violet-500 rounded-xl text-white text-xs">
             <div className="flex items-center gap-2 mb-1">
               <span className="font-bold">Design Principles:</span>
             </div>
-            <div className="flex flex-wrap gap-3 text-slate-300">
-              <span>🔧 Materiality & Mechanism</span>
-              <span>📐 Structural Depth (SVG)</span>
-              <span>⚡ Physics Simulation (Spring, Gravity, Inertia)</span>
+            <div className="flex flex-wrap gap-3 text-pink-100">
+              <span>✨ Fairy Dust & Sparkles</span>
+              <span>🌙 Soft Glow & Light</span>
+              <span>🌈 Rainbow & Aurora Effects</span>
             </div>
           </div>
 
@@ -114,8 +114,8 @@ export default function PhysicsButtonsClient() {
               onClick={() => setActiveTab('all')}
               className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
                 activeTab === 'all'
-                  ? 'bg-slate-900 text-white shadow-lg'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  ? 'bg-gradient-to-r from-pink-500 to-violet-500 text-white shadow-lg'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
               전체 (20)
@@ -124,8 +124,8 @@ export default function PhysicsButtonsClient() {
               onClick={() => setActiveTab('like')}
               className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 flex items-center gap-1.5 ${
                 activeTab === 'like'
-                  ? 'bg-rose-500 text-white shadow-lg'
-                  : 'bg-rose-50 text-rose-600 hover:bg-rose-100'
+                  ? 'bg-pink-500 text-white shadow-lg'
+                  : 'bg-pink-50 text-pink-600 hover:bg-pink-100'
               }`}
             >
               <Heart className="w-4 h-4" />
@@ -135,8 +135,8 @@ export default function PhysicsButtonsClient() {
               onClick={() => setActiveTab('bookmark')}
               className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 flex items-center gap-1.5 ${
                 activeTab === 'bookmark'
-                  ? 'bg-amber-500 text-white shadow-lg'
-                  : 'bg-amber-50 text-amber-600 hover:bg-amber-100'
+                  ? 'bg-violet-500 text-white shadow-lg'
+                  : 'bg-violet-50 text-violet-600 hover:bg-violet-100'
               }`}
             >
               <Bookmark className="w-4 h-4" />
@@ -152,15 +152,15 @@ export default function PhysicsButtonsClient() {
         {(activeTab === 'all' || activeTab === 'like') && (
           <section className="mb-12">
             <div className="flex items-center gap-2 mb-6">
-              <div className="p-1.5 bg-rose-100 rounded-lg">
-                <Heart className="w-5 h-5 text-rose-500" />
+              <div className="p-1.5 bg-pink-100 rounded-lg">
+                <Heart className="w-5 h-5 text-pink-500" />
               </div>
-              <h2 className="text-xl font-bold text-slate-900">좋아요 버튼</h2>
-              <span className="px-2 py-0.5 bg-rose-100 text-rose-600 text-xs font-bold rounded-full">
+              <h2 className="text-xl font-bold text-gray-900">좋아요 버튼</h2>
+              <span className="px-2 py-0.5 bg-pink-100 text-pink-600 text-xs font-bold rounded-full">
                 10개
               </span>
-              <span className="text-xs text-slate-400 ml-2">
-                각 버튼을 클릭해서 메커니즘을 확인하세요
+              <span className="text-xs text-gray-400 ml-2">
+                각 버튼을 클릭해서 마법 효과를 확인하세요
               </span>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
@@ -177,15 +177,15 @@ export default function PhysicsButtonsClient() {
         {(activeTab === 'all' || activeTab === 'bookmark') && (
           <section className="mb-12">
             <div className="flex items-center gap-2 mb-6">
-              <div className="p-1.5 bg-amber-100 rounded-lg">
-                <Bookmark className="w-5 h-5 text-amber-500" />
+              <div className="p-1.5 bg-violet-100 rounded-lg">
+                <Bookmark className="w-5 h-5 text-violet-500" />
               </div>
-              <h2 className="text-xl font-bold text-slate-900">북마크 버튼</h2>
-              <span className="px-2 py-0.5 bg-amber-100 text-amber-600 text-xs font-bold rounded-full">
+              <h2 className="text-xl font-bold text-gray-900">북마크 버튼</h2>
+              <span className="px-2 py-0.5 bg-violet-100 text-violet-600 text-xs font-bold rounded-full">
                 10개
               </span>
-              <span className="text-xs text-slate-400 ml-2">
-                각 버튼을 클릭해서 메커니즘을 확인하세요
+              <span className="text-xs text-gray-400 ml-2">
+                각 버튼을 클릭해서 마법 효과를 확인하세요
               </span>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
@@ -199,71 +199,85 @@ export default function PhysicsButtonsClient() {
         )}
 
         {/* 기술 스펙 */}
-        <section className="bg-slate-800 rounded-2xl p-8 text-white">
+        <section className="bg-gradient-to-r from-pink-500 to-violet-500 rounded-2xl p-8 text-white">
           <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-            <Cog className="w-5 h-5" />
-            Technical Specifications
+            <Sparkles className="w-5 h-5" />
+            Magic Animation Specs
           </h3>
           <div className="grid md:grid-cols-3 gap-6 text-sm">
             <div>
-              <h4 className="font-semibold text-amber-400 mb-2">Physics Easing</h4>
-              <ul className="space-y-1 text-slate-300 font-mono text-xs">
-                <li>--spring-bounce: cubic-bezier(0.34, 1.56, 0.64, 1)</li>
-                <li>--gravity-fall: cubic-bezier(0.55, 0, 1, 0.45)</li>
-                <li>--inertia-slow: cubic-bezier(0.16, 1, 0.3, 1)</li>
+              <h4 className="font-semibold text-pink-200 mb-2">Magic Easing</h4>
+              <ul className="space-y-1 text-pink-100 font-mono text-xs">
+                <li>--magic-soft: 부드러운 마법</li>
+                <li>--fairy-flutter: 요정 날개짓</li>
+                <li>--glow-fade: 빛 페이드</li>
               </ul>
             </div>
             <div>
-              <h4 className="font-semibold text-rose-400 mb-2">SVG Structure</h4>
-              <ul className="space-y-1 text-slate-300 text-xs">
-                <li>• 부품별 path 분리 (Body, Chamber, Valve...)</li>
-                <li>• 개별 transform-origin 설정</li>
-                <li>• z-index 레이어링으로 입체감 표현</li>
+              <h4 className="font-semibold text-violet-200 mb-2">Effect Types</h4>
+              <ul className="space-y-1 text-pink-100 text-xs">
+                <li>• Fairy Dust - 반짝이는 입자</li>
+                <li>• Glow & Halo - 부드러운 후광</li>
+                <li>• Rainbow Shimmer - 무지개빛</li>
               </ul>
             </div>
             <div>
-              <h4 className="font-semibold text-emerald-400 mb-2">Animation Types</h4>
-              <ul className="space-y-1 text-slate-300 text-xs">
-                <li>• Spring: 탄성 튕김 효과</li>
-                <li>• Gravity: 낙하 가속 효과</li>
-                <li>• Pressure: 압력 반응 효과</li>
+              <h4 className="font-semibold text-blue-200 mb-2">Theme Colors</h4>
+              <ul className="space-y-1 text-pink-100 text-xs">
+                <li>• Pink (#f472b6) - 하트/사랑</li>
+                <li>• Violet (#a78bfa) - 마법/신비</li>
+                <li>• Gold (#fbbf24) - 별빛/반짝임</li>
               </ul>
             </div>
           </div>
         </section>
 
-        {/* 비교 섹션 */}
-        <section className="mt-8 bg-gradient-to-r from-rose-50 to-amber-50 rounded-2xl p-8">
-          <h3 className="text-lg font-bold text-slate-900 mb-4">Before vs After</h3>
+        {/* 특징 섹션 */}
+        <section className="mt-8 bg-white rounded-2xl p-8 border-2 border-pink-100">
+          <h3 className="text-lg font-bold text-gray-900 mb-4">✨ 페어리 테마 특징</h3>
           <div className="grid md:grid-cols-2 gap-6">
-            <div className="bg-white rounded-xl p-4 border-2 border-red-200">
-              <h4 className="font-semibold text-red-600 mb-2">❌ 기존 방식</h4>
-              <ul className="text-sm text-slate-600 space-y-1">
-                <li>• 이모지 텍스트로 파티클 생성</li>
-                <li>• 단순 scale/rotate 애니메이션</li>
-                <li>• linear/ease-out 이징 함수</li>
-                <li>• 물리적 근거 없는 움직임</li>
-              </ul>
+            <div className="space-y-3">
+              <div className="flex items-start gap-3">
+                <span className="text-2xl">🧚</span>
+                <div>
+                  <h4 className="font-semibold text-gray-900">Fairy Dust & Sparkles</h4>
+                  <p className="text-sm text-gray-600">요정 가루와 반짝이는 입자 효과</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="text-2xl">🌙</span>
+                <div>
+                  <h4 className="font-semibold text-gray-900">Soft Glow</h4>
+                  <p className="text-sm text-gray-600">부드럽게 빛나는 후광과 글로우</p>
+                </div>
+              </div>
             </div>
-            <div className="bg-white rounded-xl p-4 border-2 border-green-200">
-              <h4 className="font-semibold text-green-600 mb-2">✅ 새로운 방식</h4>
-              <ul className="text-sm text-slate-600 space-y-1">
-                <li>• SVG path로 구조적 애니메이션</li>
-                <li>• 실제 기계 메커니즘 시뮬레이션</li>
-                <li>• Spring/Gravity 물리 이징</li>
-                <li>• 촉각적 피드백 제공</li>
-              </ul>
+            <div className="space-y-3">
+              <div className="flex items-start gap-3">
+                <span className="text-2xl">🌈</span>
+                <div>
+                  <h4 className="font-semibold text-gray-900">Rainbow & Aurora</h4>
+                  <p className="text-sm text-gray-600">무지개와 오로라 색상 효과</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="text-2xl">🌸</span>
+                <div>
+                  <h4 className="font-semibold text-gray-900">Petal & Nature</h4>
+                  <p className="text-sm text-gray-600">꽃잎과 자연 요소 애니메이션</p>
+                </div>
+              </div>
             </div>
           </div>
         </section>
 
         {/* 푸터 */}
-        <footer className="mt-12 text-center text-sm text-slate-400">
-          <p>
-            Skeuomorphism 2.0 • Physics-Based UI Interactions
+        <footer className="mt-12 text-center text-sm text-gray-400">
+          <p className="bg-gradient-to-r from-pink-500 to-violet-500 bg-clip-text text-transparent font-semibold">
+            Magic & Fairy Theme • Pairy Platform
           </p>
           <p className="mt-1 text-xs">
-            "와, 진짜 기계가 움직이는 것 같네?" - 목표 달성 체크리스트
+            페어리, 마법, 빛, 반짝임 - 플랫폼 테마에 맞는 인터랙션
           </p>
         </footer>
       </main>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useRef, useEffect } from 'react'
+import { useState, useCallback } from 'react'
 import { Heart } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import styles from './physics.module.css'
@@ -10,15 +10,14 @@ interface PhysicsButtonProps {
 }
 
 // ============================================
-// 1. Heart Pump - 진짜 심장 펌핑
-// 수축 시 옆으로 퍼지고, 이완 시 위로 솟고, 맥박 파동 생성
+// 1. Fairy Dust - 요정 가루
+// 하트 주변에 반짝이는 가루가 흩뿌려짐
 // ============================================
 
-export function LikeHeartPump({ className }: PhysicsButtonProps) {
+export function LikeFairyDust({ className }: PhysicsButtonProps) {
   const [isLiked, setIsLiked] = useState(false)
   const [isAnimating, setIsAnimating] = useState(false)
-  const [showPulse, setShowPulse] = useState(false)
-  const containerRef = useRef<HTMLDivElement>(null)
+  const [showDust, setShowDust] = useState(false)
 
   const handleClick = useCallback(() => {
     if (isAnimating) return
@@ -27,404 +26,109 @@ export function LikeHeartPump({ className }: PhysicsButtonProps) {
     setIsLiked(newLiked)
 
     if (newLiked) {
-      // 맥박 파동 생성
-      setTimeout(() => setShowPulse(true), 150)
-      setTimeout(() => setShowPulse(false), 800)
+      setShowDust(true)
+      setTimeout(() => setShowDust(false), 1000)
     }
 
     setTimeout(() => setIsAnimating(false), 800)
   }, [isLiked, isAnimating])
 
   return (
-    <div
-      ref={containerRef}
-      className={cn(styles.physicsButtonContainer, className)}
-      onClick={handleClick}
-    >
-      {/* 맥박 파동 레이어 */}
-      <div className={cn(
-        styles.pulseRing,
-        showPulse && styles.pulseRingActive
-      )} />
-      <div className={cn(
-        styles.pulseRing,
-        styles.pulseRingDelay,
-        showPulse && styles.pulseRingActive
-      )} />
-
-      {/* 그림자 레이어 - 눌림에 반응 */}
-      <div className={cn(
-        styles.buttonShadow,
-        isAnimating && styles.shadowSquish
-      )} />
-
-      {/* 메인 버튼 */}
-      <button className={cn(
-        styles.physicsButton,
-        isAnimating && styles.heartPumpAnim
-      )}>
-        <Heart
-          className={cn(
-            'w-6 h-6 transition-colors duration-200',
-            isLiked ? 'fill-pink-500 text-pink-500' : 'text-gray-400',
-            isAnimating && styles.heartIconPump
-          )}
-        />
-      </button>
-
-      {/* 활성화 시 지속 맥박 */}
-      {isLiked && !isAnimating && (
-        <div className={styles.heartbeatGlow} />
-      )}
-    </div>
-  )
-}
-
-// ============================================
-// 2. Stamp Press - 도장 찍기
-// 낙하 가속 → 충돌 시 찌그러짐 → 잉크 퍼짐
-// ============================================
-
-export function LikeStampPress({ className }: PhysicsButtonProps) {
-  const [isLiked, setIsLiked] = useState(false)
-  const [isAnimating, setIsAnimating] = useState(false)
-  const [showInk, setShowInk] = useState(false)
-  const [impactPhase, setImpactPhase] = useState(false)
-
-  const handleClick = useCallback(() => {
-    if (isAnimating) return
-    setIsAnimating(true)
-    const newLiked = !isLiked
-    setIsLiked(newLiked)
-
-    if (newLiked) {
-      // 충돌 시점에 잉크 퍼짐
-      setTimeout(() => {
-        setImpactPhase(true)
-        setShowInk(true)
-      }, 200)
-      setTimeout(() => setImpactPhase(false), 400)
-    }
-
-    setTimeout(() => setIsAnimating(false), 700)
-  }, [isLiked, isAnimating])
-
-  return (
-    <div className={cn(styles.physicsButtonContainer, className)} onClick={handleClick}>
-      {/* 잉크 퍼짐 레이어들 */}
-      <div className={cn(
-        styles.inkSplat,
-        styles.inkSplat1,
-        showInk && styles.inkSplatActive
-      )} />
-      <div className={cn(
-        styles.inkSplat,
-        styles.inkSplat2,
-        showInk && styles.inkSplatActive
-      )} />
-      <div className={cn(
-        styles.inkSplat,
-        styles.inkSplat3,
-        showInk && styles.inkSplatActive
-      )} />
-
-      {/* 충돌 파동 */}
-      <div className={cn(
-        styles.impactRipple,
-        impactPhase && styles.impactRippleActive
-      )} />
-
-      {/* 메인 버튼 */}
-      <button className={cn(
-        styles.physicsButton,
-        isAnimating && styles.stampFallAnim
-      )}>
-        <Heart
-          className={cn(
-            'w-6 h-6 transition-colors duration-200',
-            isLiked ? 'fill-pink-500 text-pink-500' : 'text-gray-400',
-            isAnimating && styles.stampIconSquish
-          )}
-        />
-      </button>
-    </div>
-  )
-}
-
-// ============================================
-// 3. Toggle Switch - 토글 스위치
-// 저항 → 스냅 오버 → 오버슈트 정착
-// ============================================
-
-export function LikeToggleSwitch({ className }: PhysicsButtonProps) {
-  const [isLiked, setIsLiked] = useState(false)
-  const [isAnimating, setIsAnimating] = useState(false)
-  const [resistance, setResistance] = useState(false)
-
-  const handleClick = useCallback(() => {
-    if (isAnimating) return
-    setIsAnimating(true)
-
-    // 저항 페이즈
-    setResistance(true)
-    setTimeout(() => {
-      setResistance(false)
-      setIsLiked(!isLiked)
-    }, 100)
-
-    setTimeout(() => setIsAnimating(false), 500)
-  }, [isLiked, isAnimating])
-
-  return (
-    <div className={cn(styles.physicsButtonContainer, className)} onClick={handleClick}>
-      {/* 스위치 트랙 */}
-      <div className={cn(
-        styles.switchTrack,
-        isLiked && styles.switchTrackOn
-      )}>
-        {/* 스위치 노브 */}
-        <div className={cn(
-          styles.switchKnob,
-          isLiked && styles.switchKnobOn,
-          resistance && styles.switchResistance,
-          isAnimating && !resistance && styles.switchSnap
-        )} />
-      </div>
-
-      {/* 아이콘 */}
-      <button className={cn(
-        styles.physicsButton,
-        styles.switchButton,
-        isAnimating && styles.switchClickFeedback
-      )}>
-        <Heart
-          className={cn(
-            'w-5 h-5 transition-colors duration-200',
-            isLiked ? 'fill-pink-500 text-pink-500' : 'text-gray-400'
-          )}
-        />
-      </button>
-    </div>
-  )
-}
-
-// ============================================
-// 4. Lock Click - 자물쇠 잠금
-// 걸쇠 회전 → 금속 충돌 진동 → 잠금 확정
-// ============================================
-
-export function LikeLockClick({ className }: PhysicsButtonProps) {
-  const [isLiked, setIsLiked] = useState(false)
-  const [isAnimating, setIsAnimating] = useState(false)
-  const [metalVibrate, setMetalVibrate] = useState(false)
-
-  const handleClick = useCallback(() => {
-    if (isAnimating) return
-    setIsAnimating(true)
-    const newLiked = !isLiked
-    setIsLiked(newLiked)
-
-    if (newLiked) {
-      // 잠금 시 금속 진동
-      setTimeout(() => setMetalVibrate(true), 200)
-      setTimeout(() => setMetalVibrate(false), 400)
-    }
-
-    setTimeout(() => setIsAnimating(false), 500)
-  }, [isLiked, isAnimating])
-
-  return (
-    <div className={cn(styles.physicsButtonContainer, className)} onClick={handleClick}>
-      {/* 금속 광택 플래시 */}
-      <div className={cn(
-        styles.metalFlash,
-        metalVibrate && styles.metalFlashActive
-      )} />
-
-      <button className={cn(
-        styles.physicsButton,
-        isAnimating && styles.lockRotateAnim,
-        metalVibrate && styles.metalVibrate
-      )}>
-        <Heart
-          className={cn(
-            'w-6 h-6 transition-colors duration-200',
-            isLiked ? 'fill-pink-500 text-pink-500' : 'text-gray-400',
-            isAnimating && styles.lockIconClamp
-          )}
-        />
-      </button>
-
-      {/* 잠금 표시 */}
-      {isLiked && (
-        <div className={styles.lockIndicator} />
-      )}
-    </div>
-  )
-}
-
-// ============================================
-// 5. Dial Turn - 다이얼 회전
-// 노치 회전 → 관성으로 오버슈트 → 정착
-// ============================================
-
-export function LikeDialTurn({ className }: PhysicsButtonProps) {
-  const [isLiked, setIsLiked] = useState(false)
-  const [isAnimating, setIsAnimating] = useState(false)
-  const [notchClick, setNotchClick] = useState(false)
-
-  const handleClick = useCallback(() => {
-    if (isAnimating) return
-    setIsAnimating(true)
-    const newLiked = !isLiked
-    setIsLiked(newLiked)
-
-    // 노치 클릭 피드백
-    setTimeout(() => setNotchClick(true), 150)
-    setTimeout(() => setNotchClick(false), 250)
-    setTimeout(() => setNotchClick(true), 300)
-    setTimeout(() => setNotchClick(false), 400)
-
-    setTimeout(() => setIsAnimating(false), 700)
-  }, [isLiked, isAnimating])
-
-  return (
-    <div className={cn(styles.physicsButtonContainer, className)} onClick={handleClick}>
-      {/* 다이얼 틱 마크 */}
-      <div className={cn(
-        styles.dialTicks,
-        isLiked && styles.dialTicksActive
-      )}>
-        {[...Array(8)].map((_, i) => (
-          <div
-            key={i}
-            className={styles.dialTick}
-            style={{ transform: `rotate(${i * 45}deg)` }}
-          />
-        ))}
-      </div>
-
-      <button className={cn(
-        styles.physicsButton,
-        isAnimating && styles.dialSpinAnim,
-        notchClick && styles.dialNotchClick
-      )}>
-        <Heart
-          className={cn(
-            'w-6 h-6 transition-colors duration-200',
-            isLiked ? 'fill-pink-500 text-pink-500' : 'text-gray-400',
-            isAnimating && styles.dialIconSpin
-          )}
-        />
-      </button>
-    </div>
-  )
-}
-
-// ============================================
-// 6. Button Depress - 기계식 버튼
-// 눌림 저항 → 바닥 찍힘 → 스프링 반동 오버슈트
-// ============================================
-
-export function LikeButtonDepress({ className }: PhysicsButtonProps) {
-  const [isLiked, setIsLiked] = useState(false)
-  const [isAnimating, setIsAnimating] = useState(false)
-  const [isPressed, setIsPressed] = useState(false)
-
-  const handleClick = useCallback(() => {
-    if (isAnimating) return
-    setIsAnimating(true)
-    setIsPressed(true)
-
-    setTimeout(() => {
-      setIsPressed(false)
-      setIsLiked(!isLiked)
-    }, 150)
-
-    setTimeout(() => setIsAnimating(false), 550)
-  }, [isLiked, isAnimating])
-
-  return (
-    <div className={cn(styles.physicsButtonContainer, className)} onClick={handleClick}>
-      {/* 버튼 베이스 (고정) */}
-      <div className={styles.mechanicalBase} />
-
-      {/* 버튼 바디 (움직임) */}
-      <button className={cn(
-        styles.mechanicalBody,
-        isPressed && styles.mechanicalPressed,
-        isAnimating && !isPressed && styles.mechanicalSpringBack
-      )}>
-        <Heart
-          className={cn(
-            'w-6 h-6 transition-colors duration-200',
-            isLiked ? 'fill-pink-500 text-pink-500' : 'text-gray-400',
-            isAnimating && styles.mechanicalIconBounce
-          )}
-        />
-      </button>
-
-      {/* 눌림 그림자 */}
-      <div className={cn(
-        styles.pressureShadow,
-        isPressed && styles.pressureShadowPressed
-      )} />
-    </div>
-  )
-}
-
-// ============================================
-// 7. Valve Release - 밸브 해제
-// 회전 저항 → 해제 시 압력 분출 → 증기 효과
-// ============================================
-
-export function LikeValveRelease({ className }: PhysicsButtonProps) {
-  const [isLiked, setIsLiked] = useState(false)
-  const [isAnimating, setIsAnimating] = useState(false)
-  const [steamBurst, setSteamBurst] = useState(false)
-
-  const handleClick = useCallback(() => {
-    if (isAnimating) return
-    setIsAnimating(true)
-    const newLiked = !isLiked
-    setIsLiked(newLiked)
-
-    if (newLiked) {
-      setTimeout(() => setSteamBurst(true), 300)
-      setTimeout(() => setSteamBurst(false), 1000)
-    }
-
-    setTimeout(() => setIsAnimating(false), 900)
-  }, [isLiked, isAnimating])
-
-  return (
-    <div className={cn(styles.physicsButtonContainer, className)} onClick={handleClick}>
-      {/* 증기 파티클 */}
-      {steamBurst && (
+    <div className={cn(styles.magicButtonContainer, className)} onClick={handleClick}>
+      {/* 요정 가루 파티클 */}
+      {showDust && (
         <>
-          <div className={cn(styles.steamParticle, styles.steam1)} />
-          <div className={cn(styles.steamParticle, styles.steam2)} />
-          <div className={cn(styles.steamParticle, styles.steam3)} />
-          <div className={cn(styles.steamParticle, styles.steam4)} />
-          <div className={cn(styles.steamParticle, styles.steam5)} />
+          <div className={cn(styles.fairyDust, styles.dust1)} />
+          <div className={cn(styles.fairyDust, styles.dust2)} />
+          <div className={cn(styles.fairyDust, styles.dust3)} />
+          <div className={cn(styles.fairyDust, styles.dust4)} />
+          <div className={cn(styles.fairyDust, styles.dust5)} />
+          <div className={cn(styles.fairyDust, styles.dust6)} />
+          <div className={cn(styles.fairyDust, styles.dust7)} />
+          <div className={cn(styles.fairyDust, styles.dust8)} />
         </>
       )}
 
-      {/* 압력 게이지 배경 */}
+      {/* 부드러운 글로우 */}
       <div className={cn(
-        styles.pressureGauge,
-        isLiked && styles.pressureReleased
+        styles.softGlow,
+        isLiked && styles.softGlowActive
       )} />
 
       <button className={cn(
-        styles.physicsButton,
-        isAnimating && styles.valveTurnAnim
+        styles.magicButton,
+        isAnimating && styles.fairyPulse
       )}>
         <Heart
           className={cn(
-            'w-6 h-6 transition-colors duration-200',
-            isLiked ? 'fill-pink-500 text-pink-500' : 'text-gray-400',
-            steamBurst && styles.valveIconRelease
+            'w-6 h-6 transition-all duration-300',
+            isLiked ? 'fill-pink-400 text-pink-400' : 'text-gray-400',
+            isAnimating && styles.fairyHeartPop
+          )}
+        />
+      </button>
+
+      {/* 지속 반짝임 */}
+      {isLiked && !isAnimating && (
+        <div className={styles.persistentSparkle} />
+      )}
+    </div>
+  )
+}
+
+// ============================================
+// 2. Magic Wand - 마법 지팡이
+// 터치하면 별이 터져나옴
+// ============================================
+
+export function LikeMagicWand({ className }: PhysicsButtonProps) {
+  const [isLiked, setIsLiked] = useState(false)
+  const [isAnimating, setIsAnimating] = useState(false)
+  const [showStars, setShowStars] = useState(false)
+
+  const handleClick = useCallback(() => {
+    if (isAnimating) return
+    setIsAnimating(true)
+    const newLiked = !isLiked
+    setIsLiked(newLiked)
+
+    if (newLiked) {
+      setShowStars(true)
+      setTimeout(() => setShowStars(false), 800)
+    }
+
+    setTimeout(() => setIsAnimating(false), 700)
+  }, [isLiked, isAnimating])
+
+  return (
+    <div className={cn(styles.magicButtonContainer, className)} onClick={handleClick}>
+      {/* 별 폭발 */}
+      {showStars && (
+        <>
+          <div className={cn(styles.magicStar, styles.star1)}>✦</div>
+          <div className={cn(styles.magicStar, styles.star2)}>✧</div>
+          <div className={cn(styles.magicStar, styles.star3)}>✦</div>
+          <div className={cn(styles.magicStar, styles.star4)}>✧</div>
+          <div className={cn(styles.magicStar, styles.star5)}>✦</div>
+          <div className={cn(styles.magicStar, styles.star6)}>✧</div>
+        </>
+      )}
+
+      {/* 마법 원형 파동 */}
+      <div className={cn(
+        styles.magicRing,
+        isAnimating && styles.magicRingExpand
+      )} />
+
+      <button className={cn(
+        styles.magicButton,
+        isAnimating && styles.wandTouch
+      )}>
+        <Heart
+          className={cn(
+            'w-6 h-6 transition-all duration-300',
+            isLiked ? 'fill-pink-400 text-pink-400' : 'text-gray-400',
+            isAnimating && styles.wandHeartBurst
           )}
         />
       </button>
@@ -433,62 +137,59 @@ export function LikeValveRelease({ className }: PhysicsButtonProps) {
 }
 
 // ============================================
-// 8. Magnet Snap - 자석 끌림
-// 느린 시작 → 가속 끌림 → 충돌 진동 → 붙음
+// 3. Sparkle Burst - 빛 파티클 방사
+// 중심에서 빛이 방사형으로 퍼져나감
 // ============================================
 
-export function LikeMagnetSnap({ className }: PhysicsButtonProps) {
+export function LikeSparkleBurst({ className }: PhysicsButtonProps) {
   const [isLiked, setIsLiked] = useState(false)
   const [isAnimating, setIsAnimating] = useState(false)
-  const [magnetPhase, setMagnetPhase] = useState<'idle' | 'attract' | 'impact' | 'stuck'>('idle')
+  const [showBurst, setShowBurst] = useState(false)
 
   const handleClick = useCallback(() => {
     if (isAnimating) return
     setIsAnimating(true)
     const newLiked = !isLiked
+    setIsLiked(newLiked)
 
     if (newLiked) {
-      setMagnetPhase('attract')
-      setTimeout(() => setMagnetPhase('impact'), 350)
-      setTimeout(() => {
-        setMagnetPhase('stuck')
-        setIsLiked(true)
-      }, 450)
-    } else {
-      setMagnetPhase('idle')
-      setIsLiked(false)
+      setShowBurst(true)
+      setTimeout(() => setShowBurst(false), 600)
     }
 
     setTimeout(() => setIsAnimating(false), 600)
   }, [isLiked, isAnimating])
 
   return (
-    <div className={cn(styles.physicsButtonContainer, className)} onClick={handleClick}>
-      {/* 자기장 라인 */}
-      <div className={cn(
-        styles.magnetField,
-        magnetPhase === 'attract' && styles.magnetFieldActive
-      )}>
-        <div className={styles.fieldLine} />
-        <div className={styles.fieldLine} />
-        <div className={styles.fieldLine} />
-      </div>
-
-      {/* 충돌 스파크 */}
-      {magnetPhase === 'impact' && (
-        <div className={styles.magnetSpark} />
+    <div className={cn(styles.magicButtonContainer, className)} onClick={handleClick}>
+      {/* 빛 방사선 */}
+      {showBurst && (
+        <div className={styles.sparkleRays}>
+          {[...Array(8)].map((_, i) => (
+            <div
+              key={i}
+              className={styles.sparkleRay}
+              style={{ transform: `rotate(${i * 45}deg)` }}
+            />
+          ))}
+        </div>
       )}
 
+      {/* 중심 플래시 */}
+      <div className={cn(
+        styles.centerFlash,
+        showBurst && styles.centerFlashActive
+      )} />
+
       <button className={cn(
-        styles.physicsButton,
-        magnetPhase === 'attract' && styles.magnetAttract,
-        magnetPhase === 'impact' && styles.magnetImpact,
-        magnetPhase === 'stuck' && styles.magnetStuck
+        styles.magicButton,
+        isAnimating && styles.burstPulse
       )}>
         <Heart
           className={cn(
-            'w-6 h-6 transition-colors duration-200',
-            isLiked ? 'fill-pink-500 text-pink-500' : 'text-gray-400'
+            'w-6 h-6 transition-all duration-300',
+            isLiked ? 'fill-pink-400 text-pink-400' : 'text-gray-400',
+            isAnimating && styles.burstHeartGlow
           )}
         />
       </button>
@@ -497,11 +198,211 @@ export function LikeMagnetSnap({ className }: PhysicsButtonProps) {
 }
 
 // ============================================
-// 9. Gauge Fill - 게이지 충전
-// 바늘 스윙 → 관성 오버슈트 → 오실레이션 → 정착
+// 4. Heart Glow - 부드러운 빛 발산
+// 하트가 부드럽게 빛나며 후광 효과
 // ============================================
 
-export function LikeGaugeFill({ className }: PhysicsButtonProps) {
+export function LikeHeartGlow({ className }: PhysicsButtonProps) {
+  const [isLiked, setIsLiked] = useState(false)
+  const [isAnimating, setIsAnimating] = useState(false)
+
+  const handleClick = useCallback(() => {
+    if (isAnimating) return
+    setIsAnimating(true)
+    setIsLiked(!isLiked)
+    setTimeout(() => setIsAnimating(false), 700)
+  }, [isLiked, isAnimating])
+
+  return (
+    <div className={cn(styles.magicButtonContainer, className)} onClick={handleClick}>
+      {/* 다중 후광 레이어 */}
+      <div className={cn(
+        styles.haloLayer,
+        styles.haloLayer1,
+        isLiked && styles.haloActive
+      )} />
+      <div className={cn(
+        styles.haloLayer,
+        styles.haloLayer2,
+        isLiked && styles.haloActive
+      )} />
+      <div className={cn(
+        styles.haloLayer,
+        styles.haloLayer3,
+        isLiked && styles.haloActive
+      )} />
+
+      <button className={cn(
+        styles.magicButton,
+        isAnimating && styles.glowPulse
+      )}>
+        <Heart
+          className={cn(
+            'w-6 h-6 transition-all duration-500',
+            isLiked ? 'fill-pink-400 text-pink-400' : 'text-gray-400',
+            isAnimating && styles.glowHeartFloat
+          )}
+        />
+      </button>
+
+      {/* 부드러운 빛 파동 */}
+      {isAnimating && <div className={styles.glowWave} />}
+    </div>
+  )
+}
+
+// ============================================
+// 5. Crystal Shine - 크리스탈 빛 굴절
+// 다이아몬드처럼 빛이 굴절되는 효과
+// ============================================
+
+export function LikeCrystalShine({ className }: PhysicsButtonProps) {
+  const [isLiked, setIsLiked] = useState(false)
+  const [isAnimating, setIsAnimating] = useState(false)
+  const [showRefract, setShowRefract] = useState(false)
+
+  const handleClick = useCallback(() => {
+    if (isAnimating) return
+    setIsAnimating(true)
+    const newLiked = !isLiked
+    setIsLiked(newLiked)
+
+    if (newLiked) {
+      setShowRefract(true)
+      setTimeout(() => setShowRefract(false), 700)
+    }
+
+    setTimeout(() => setIsAnimating(false), 700)
+  }, [isLiked, isAnimating])
+
+  return (
+    <div className={cn(styles.magicButtonContainer, className)} onClick={handleClick}>
+      {/* 굴절된 빛 */}
+      {showRefract && (
+        <>
+          <div className={cn(styles.crystalLight, styles.refract1)} />
+          <div className={cn(styles.crystalLight, styles.refract2)} />
+          <div className={cn(styles.crystalLight, styles.refract3)} />
+        </>
+      )}
+
+      {/* 크리스탈 프리즘 효과 */}
+      <div className={cn(
+        styles.prismEffect,
+        isLiked && styles.prismActive
+      )} />
+
+      <button className={cn(
+        styles.magicButton,
+        isAnimating && styles.crystalPulse
+      )}>
+        <Heart
+          className={cn(
+            'w-6 h-6 transition-all duration-300',
+            isLiked ? 'fill-pink-400 text-pink-400' : 'text-gray-400',
+            isAnimating && styles.crystalHeartShine
+          )}
+        />
+      </button>
+    </div>
+  )
+}
+
+// ============================================
+// 6. Aurora Wave - 오로라 물결
+// 부드러운 오로라 빛이 물결치듯 퍼짐
+// ============================================
+
+export function LikeAuroraWave({ className }: PhysicsButtonProps) {
+  const [isLiked, setIsLiked] = useState(false)
+  const [isAnimating, setIsAnimating] = useState(false)
+
+  const handleClick = useCallback(() => {
+    if (isAnimating) return
+    setIsAnimating(true)
+    setIsLiked(!isLiked)
+    setTimeout(() => setIsAnimating(false), 900)
+  }, [isLiked, isAnimating])
+
+  return (
+    <div className={cn(styles.magicButtonContainer, className)} onClick={handleClick}>
+      {/* 오로라 레이어 */}
+      <div className={cn(
+        styles.auroraLayer,
+        isAnimating && styles.auroraWave
+      )} />
+
+      {/* 부드러운 그라데이션 글로우 */}
+      <div className={cn(
+        styles.auroraGlow,
+        isLiked && styles.auroraGlowActive
+      )} />
+
+      <button className={cn(
+        styles.magicButton,
+        isAnimating && styles.auroraPulse
+      )}>
+        <Heart
+          className={cn(
+            'w-6 h-6 transition-all duration-300',
+            isLiked ? 'fill-pink-400 text-pink-400' : 'text-gray-400',
+            isAnimating && styles.auroraHeartFloat
+          )}
+        />
+      </button>
+    </div>
+  )
+}
+
+// ============================================
+// 7. Star Twinkle - 별빛 깜빡임
+// 주변에 별들이 반짝반짝 깜빡임
+// ============================================
+
+export function LikeStarTwinkle({ className }: PhysicsButtonProps) {
+  const [isLiked, setIsLiked] = useState(false)
+  const [isAnimating, setIsAnimating] = useState(false)
+
+  const handleClick = useCallback(() => {
+    if (isAnimating) return
+    setIsAnimating(true)
+    setIsLiked(!isLiked)
+    setTimeout(() => setIsAnimating(false), 800)
+  }, [isLiked, isAnimating])
+
+  return (
+    <div className={cn(styles.magicButtonContainer, className)} onClick={handleClick}>
+      {/* 반짝이는 별들 */}
+      <div className={cn(styles.twinkleStar, styles.twinkle1, isAnimating && styles.twinkleActive)}>✦</div>
+      <div className={cn(styles.twinkleStar, styles.twinkle2, isAnimating && styles.twinkleActive)}>✧</div>
+      <div className={cn(styles.twinkleStar, styles.twinkle3, isAnimating && styles.twinkleActive)}>✦</div>
+      <div className={cn(styles.twinkleStar, styles.twinkle4, isAnimating && styles.twinkleActive)}>✧</div>
+
+      <button className={cn(
+        styles.magicButton,
+        isAnimating && styles.twinklePulse
+      )}>
+        <Heart
+          className={cn(
+            'w-6 h-6 transition-all duration-300',
+            isLiked ? 'fill-pink-400 text-pink-400' : 'text-gray-400',
+            isAnimating && styles.twinkleHeartGlow
+          )}
+        />
+      </button>
+
+      {/* 지속 반짝임 */}
+      {isLiked && <div className={styles.persistentTwinkle} />}
+    </div>
+  )
+}
+
+// ============================================
+// 8. Moon Phase - 달빛 차오름
+// 달처럼 빛이 차오르는 효과
+// ============================================
+
+export function LikeMoonPhase({ className }: PhysicsButtonProps) {
   const [isLiked, setIsLiked] = useState(false)
   const [isAnimating, setIsAnimating] = useState(false)
   const [fillLevel, setFillLevel] = useState(0)
@@ -513,7 +414,6 @@ export function LikeGaugeFill({ className }: PhysicsButtonProps) {
     setIsLiked(newLiked)
 
     if (newLiked) {
-      // 점진적 채움 애니메이션
       let level = 0
       const interval = setInterval(() => {
         level += 10
@@ -524,36 +424,34 @@ export function LikeGaugeFill({ className }: PhysicsButtonProps) {
       setFillLevel(0)
     }
 
-    setTimeout(() => setIsAnimating(false), 800)
+    setTimeout(() => setIsAnimating(false), 700)
   }, [isLiked, isAnimating])
 
   return (
-    <div className={cn(styles.physicsButtonContainer, className)} onClick={handleClick}>
-      {/* 게이지 배경 */}
-      <div className={styles.gaugeBackground}>
+    <div className={cn(styles.magicButtonContainer, className)} onClick={handleClick}>
+      {/* 달빛 차오름 */}
+      <div className={styles.moonFillContainer}>
         <div
-          className={styles.gaugeFillBar}
-          style={{ width: `${fillLevel}%` }}
+          className={styles.moonFill}
+          style={{ height: `${fillLevel}%` }}
         />
       </div>
 
-      {/* 게이지 바늘 */}
+      {/* 달빛 후광 */}
       <div className={cn(
-        styles.gaugeNeedle,
-        isAnimating && styles.needleSwing
-      )} style={{
-        transform: `rotate(${isLiked ? 90 : -90}deg)`
-      }} />
+        styles.moonGlow,
+        isLiked && styles.moonGlowActive
+      )} />
 
       <button className={cn(
-        styles.physicsButton,
-        isAnimating && styles.gaugePulse
+        styles.magicButton,
+        isAnimating && styles.moonPulse
       )}>
         <Heart
           className={cn(
-            'w-6 h-6 transition-colors duration-200',
-            isLiked ? 'fill-pink-500 text-pink-500' : 'text-gray-400',
-            isAnimating && styles.gaugeIconFill
+            'w-6 h-6 transition-all duration-300',
+            isLiked ? 'fill-pink-400 text-pink-400' : 'text-gray-400',
+            isAnimating && styles.moonHeartRise
           )}
         />
       </button>
@@ -562,15 +460,14 @@ export function LikeGaugeFill({ className }: PhysicsButtonProps) {
 }
 
 // ============================================
-// 10. Capsule Pop - 캡슐 열림
-// 압력 빌드업 → 팝 폭발 → 내용물 분출
+// 9. Petal Float - 꽃잎 떠오름
+// 부드럽게 꽃잎이 떠오르는 효과
 // ============================================
 
-export function LikeCapsulePop({ className }: PhysicsButtonProps) {
+export function LikePetalFloat({ className }: PhysicsButtonProps) {
   const [isLiked, setIsLiked] = useState(false)
   const [isAnimating, setIsAnimating] = useState(false)
-  const [pressure, setPressure] = useState(0)
-  const [popped, setPopped] = useState(false)
+  const [showPetals, setShowPetals] = useState(false)
 
   const handleClick = useCallback(() => {
     if (isAnimating) return
@@ -579,57 +476,41 @@ export function LikeCapsulePop({ className }: PhysicsButtonProps) {
     setIsLiked(newLiked)
 
     if (newLiked) {
-      // 압력 빌드업
-      let p = 0
-      const interval = setInterval(() => {
-        p += 20
-        setPressure(p)
-        if (p >= 100) {
-          clearInterval(interval)
-          setPopped(true)
-          setTimeout(() => setPopped(false), 500)
-        }
-      }, 40)
-    } else {
-      setPressure(0)
+      setShowPetals(true)
+      setTimeout(() => setShowPetals(false), 1200)
     }
 
-    setTimeout(() => setIsAnimating(false), 700)
+    setTimeout(() => setIsAnimating(false), 800)
   }, [isLiked, isAnimating])
 
   return (
-    <div className={cn(styles.physicsButtonContainer, className)} onClick={handleClick}>
-      {/* 폭발 파티클 */}
-      {popped && (
+    <div className={cn(styles.magicButtonContainer, className)} onClick={handleClick}>
+      {/* 떠오르는 꽃잎 */}
+      {showPetals && (
         <>
-          <div className={cn(styles.popParticle, styles.pop1)} />
-          <div className={cn(styles.popParticle, styles.pop2)} />
-          <div className={cn(styles.popParticle, styles.pop3)} />
-          <div className={cn(styles.popParticle, styles.pop4)} />
-          <div className={cn(styles.popParticle, styles.pop5)} />
-          <div className={cn(styles.popParticle, styles.pop6)} />
+          <div className={cn(styles.petal, styles.petal1)}>🌸</div>
+          <div className={cn(styles.petal, styles.petal2)}>🌸</div>
+          <div className={cn(styles.petal, styles.petal3)}>🌸</div>
+          <div className={cn(styles.petal, styles.petal4)}>🌸</div>
+          <div className={cn(styles.petal, styles.petal5)}>🌸</div>
         </>
       )}
 
-      {/* 압력 표시 링 */}
-      <div
-        className={styles.pressureRing}
-        style={{
-          transform: `scale(${1 + pressure * 0.003})`,
-          opacity: pressure > 0 ? 0.5 + pressure * 0.005 : 0
-        }}
-      />
+      {/* 부드러운 핑크 글로우 */}
+      <div className={cn(
+        styles.petalGlow,
+        isLiked && styles.petalGlowActive
+      )} />
 
       <button className={cn(
-        styles.physicsButton,
-        isAnimating && styles.capsulePressure,
-        popped && styles.capsuleExplode
+        styles.magicButton,
+        isAnimating && styles.petalPulse
       )}>
         <Heart
           className={cn(
-            'w-6 h-6 transition-colors duration-200',
-            isLiked ? 'fill-pink-500 text-pink-500' : 'text-gray-400',
-            popped && styles.capsuleIconPop
+            'w-6 h-6 transition-all duration-300',
+            isLiked ? 'fill-pink-400 text-pink-400' : 'text-gray-400',
+            isAnimating && styles.petalHeartBloom
           )}
         />
       </button>
@@ -637,16 +518,65 @@ export function LikeCapsulePop({ className }: PhysicsButtonProps) {
   )
 }
 
+// ============================================
+// 10. Rainbow Shimmer - 무지개빛 일렁임
+// 무지개 색이 일렁이는 효과
+// ============================================
+
+export function LikeRainbowShimmer({ className }: PhysicsButtonProps) {
+  const [isLiked, setIsLiked] = useState(false)
+  const [isAnimating, setIsAnimating] = useState(false)
+
+  const handleClick = useCallback(() => {
+    if (isAnimating) return
+    setIsAnimating(true)
+    setIsLiked(!isLiked)
+    setTimeout(() => setIsAnimating(false), 800)
+  }, [isLiked, isAnimating])
+
+  return (
+    <div className={cn(styles.magicButtonContainer, className)} onClick={handleClick}>
+      {/* 무지개 링 */}
+      <div className={cn(
+        styles.rainbowRing,
+        isAnimating && styles.rainbowShimmer
+      )} />
+
+      {/* 무지개 글로우 */}
+      <div className={cn(
+        styles.rainbowGlow,
+        isLiked && styles.rainbowGlowActive
+      )} />
+
+      <button className={cn(
+        styles.magicButton,
+        isAnimating && styles.rainbowPulse
+      )}>
+        <Heart
+          className={cn(
+            'w-6 h-6 transition-all duration-300',
+            isLiked ? 'fill-pink-400 text-pink-400' : 'text-gray-400',
+            isAnimating && styles.rainbowHeartShine
+          )}
+        />
+      </button>
+
+      {/* 지속 무지개 효과 */}
+      {isLiked && <div className={styles.persistentRainbow} />}
+    </div>
+  )
+}
+
 // Export all variants
 export const PhysicsLikeButtons = {
-  HeartPump: LikeHeartPump,
-  StampPress: LikeStampPress,
-  ToggleSwitch: LikeToggleSwitch,
-  LockClick: LikeLockClick,
-  DialTurn: LikeDialTurn,
-  ButtonDepress: LikeButtonDepress,
-  ValveRelease: LikeValveRelease,
-  MagnetSnap: LikeMagnetSnap,
-  GaugeFill: LikeGaugeFill,
-  CapsulePop: LikeCapsulePop,
+  FairyDust: LikeFairyDust,
+  MagicWand: LikeMagicWand,
+  SparkleBurst: LikeSparkleBurst,
+  HeartGlow: LikeHeartGlow,
+  CrystalShine: LikeCrystalShine,
+  AuroraWave: LikeAuroraWave,
+  StarTwinkle: LikeStarTwinkle,
+  MoonPhase: LikeMoonPhase,
+  PetalFloat: LikePetalFloat,
+  RainbowShimmer: LikeRainbowShimmer,
 }
