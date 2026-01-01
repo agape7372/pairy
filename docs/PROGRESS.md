@@ -10,6 +10,7 @@ Phase 2 ████████████████████ 100% 완료
 Phase 3 ████████████████████ 100% 완료
 Phase 4 ████████████████████ 100% 완료
 Phase 5 ████████████████████ 100% 완료
+Phase 6 ████████████████████ 100% 완료
 ```
 
 
@@ -509,10 +510,91 @@ Canvas 기반 에디터 재구축 (react-konva)
 
 ---
 
+## Phase 6: 협업 기능 심화 (완료)
+
+협업 훅 및 세션 관리 시스템
+
+| Sprint | 작업 | 상태 | 완료일 |
+|--------|------|:----:|--------|
+| Sprint 35 | 협업 UI 가시성 개선 | ✅ | 2026-01-01 |
+| Sprint 36 | 협업 세션 관리 훅 (useCollabSession) | ✅ | 2026-01-01 |
+| Sprint 37 | 실시간 채팅 훅 (useCollabChat) | ✅ | 2026-01-01 |
+| Sprint 38 | 재연결 로직 (useReconnect) | ✅ | 2026-01-01 |
+| Sprint 39 | 사용자 활동 상태 (useUserActivity) | ✅ | 2026-01-01 |
+
+### Phase 6 Sprint 35 완료 (협업 UI 가시성 개선)
+- [x] sessionId 기준으로 협업 UI 표시 (연결 전에도 보이도록)
+- [x] ParticipantList "연결 중..." 상태 표시
+- [x] CollabChat "연결 대기 중..." placeholder
+
+### Phase 6 Sprint 36 완료 (협업 세션 관리 훅)
+- [x] useCollabSession 훅 (hooks/useCollabSession.ts)
+  - 세션 생성 (createSession)
+  - 세션 참가 (joinSession)
+  - 세션 나가기/종료 (leaveSession, endSession)
+  - 6자리 초대 코드 생성 (읽기 쉬운 문자만 사용)
+  - 초대 링크 복사/공유 (getInviteLink, copyInviteLink)
+  - 참가자 추방 (kickParticipant)
+  - 24시간 세션 만료
+  - localStorage 기반 데모 모드
+
+### Phase 6 Sprint 37 완료 (실시간 채팅 훅)
+- [x] useCollabChat 훅 (hooks/useCollabChat.ts)
+  - Supabase Realtime 채널 연결
+  - 메시지 브로드캐스트 (chat-message 이벤트)
+  - 타이핑 상태 브로드캐스트 (typing-start/stop)
+  - 시스템 메시지 (참가/퇴장 알림)
+  - 읽지 않은 메시지 카운트
+  - 최대 메시지 수 제한 (100개)
+- [x] TypingIndicator 컴포넌트 (components/editor/collab/TypingIndicator.tsx)
+  - 3가지 변형 (inline, bubble, dots)
+  - 다중 사용자 타이핑 표시
+  - 애니메이션 점 효과
+
+### Phase 6 Sprint 38 완료 (재연결 로직)
+- [x] useReconnect 훅 (hooks/useReconnect.ts)
+  - 자동 재연결 (autoReconnect)
+  - 지수 백오프 (1초 → 2초 → 4초 → 8초)
+  - 최대 5회 재시도
+  - 카운트다운 타이머 표시
+  - 온라인/오프라인 이벤트 감지
+  - 페이지 가시성 변경 시 재연결
+  - 수동 재연결/취소 함수
+
+### Phase 6 Sprint 39 완료 (사용자 활동 상태)
+- [x] useUserActivity 훅 (hooks/useUserActivity.ts)
+  - 활동 상태 추적 (active/idle/away)
+  - 마우스, 키보드, 터치, 스크롤 이벤트 감지
+  - 30초 비활동 → idle
+  - 5분 비활동 → away
+  - 페이지 가시성 연동 (탭 전환 시 away)
+  - 스로틀링된 이벤트 처리 (100ms)
+  - 상태 유틸리티 함수 (getActivityStatusLabel, getActivityStatusColor)
+
+### Phase 6 타입 호환성 개선
+- [x] Participant 타입 추가 (CollabPanel 호환용 snake_case)
+- [x] CollabSession에 호환성 속성 추가 (invite_code, max_participants)
+- [x] toParticipant 변환 함수
+- [x] ensureCompatibility 세션 호환성 보장 함수
+- [x] CollabJoinClient 업데이트 (새 훅 API 적용)
+
+### Phase 6 목표 달성
+- [x] 협업 세션 생성/참가/관리
+- [x] 초대 코드 및 링크 공유
+- [x] 실시간 채팅 브로드캐스트
+- [x] 타이핑 인디케이터
+- [x] 자동 재연결 (지수 백오프)
+- [x] 사용자 활동 상태 추적
+
+---
+
 ## 커밋 히스토리
 
 | 날짜 | 커밋 | 설명 |
 |------|------|------|
+| 2026-01-01 | 6a66d72 | feat: 협업 기능 확장 (Phase 6) |
+| 2026-01-01 | b3a80e8 | fix: 협업 UI 가시성 개선 |
+| 2026-01-01 | c4cfdbd | feat: 에디터 협업 기능 확장 (Phase 5) |
 | 2025-12-29 | 0b80db8 | refactor: Demo Mode localStorage 유틸리티 통합 |
 | 2025-12-29 | 8c6b473 | refactor: TemplateRenderer 모듈화 및 타입 통합 |
 | 2025-12-29 | 6843d01 | fix: 애니메이션 시스템 코드 품질 개선 및 버그 수정 |
