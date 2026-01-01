@@ -27,6 +27,7 @@ import { cn } from '@/lib/utils/cn'
 import { useCanvasEditorStore } from '@/stores/canvasEditorStore'
 import type { InputFieldConfig, ImageSlot, ColorConfig, SlotImageTransform, ImageFilters, TextEffects, TextField, StickerLayer } from '@/types/template'
 import { ALL_STICKER_PACKS, searchStickers, type Sticker as StickerType, type StickerPack } from '@/types/sticker'
+import { processImageFile, formatFileSize, isSupportedImageType } from '@/lib/utils/imageCompressor'
 
 // ============================================
 // 서브 컴포넌트
@@ -1094,13 +1095,36 @@ export default function EditorSidebar({ isOpen = true, onClose }: EditorSidebarP
   }
 
   const handleImageUpload = (dataKey: string) => async (file: File) => {
+    // 지원되는 형식인지 확인
+    if (!isSupportedImageType(file)) {
+      console.warn('지원되지 않는 이미지 형식:', file.type)
+      return
+    }
+
     // 버그 수정: 기존 Object URL 해제 후 새로 생성 (메모리 누수 방지)
     const existingUrl = images[dataKey]
     if (existingUrl && existingUrl.startsWith('blob:')) {
       URL.revokeObjectURL(existingUrl)
     }
-    const url = URL.createObjectURL(file)
-    updateImage(dataKey, url)
+
+    try {
+      // Sprint 34: 이미지 압축 적용 (최대 2000px, 5MB)
+      const result = await processImageFile(file)
+
+      // 압축 결과 로깅 (개발용)
+      if (result.compressionRatio < 1) {
+        console.log(
+          `이미지 압축: ${formatFileSize(result.originalSize)} → ${formatFileSize(result.compressedSize)} (${Math.round(result.compressionRatio * 100)}%)`
+        )
+      }
+
+      updateImage(dataKey, result.url)
+    } catch (error) {
+      console.error('이미지 처리 실패:', error)
+      // 압축 실패 시 원본 사용
+      const url = URL.createObjectURL(file)
+      updateImage(dataKey, url)
+    }
   }
 
   const handleImageRemove = (dataKey: string) => () => {

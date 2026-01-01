@@ -30,6 +30,7 @@ import { ZoneSelector } from './ZoneSelector'
 import { OnboardingTour, useOnboarding, DEFAULT_TOUR_STEPS } from './OnboardingTour'
 import { ContextMenu, useContextMenu, createContextMenuItems } from './ContextMenu'
 import { useCollabOptional } from '@/lib/collab'
+import { useReducedMotion, useAnnounce } from '@/hooks/useAccessibility'
 import type { TemplateConfig, TemplateRendererRef } from '@/types/template'
 import {
   safeGetAutoSaveData,
@@ -133,6 +134,10 @@ export default function CanvasEditor({
 
   // Toast
   const toast = useToast()
+
+  // Sprint 34: 접근성 훅
+  const reducedMotion = useReducedMotion()
+  const announce = useAnnounce()
 
   // Local state
   const [title, setTitle] = useState(initialTitle || '새 작업')
@@ -743,6 +748,8 @@ export default function CanvasEditor({
       toast.success('이미지가 저장되었습니다', {
         title: '내보내기 완료',
       })
+      // Sprint 34: 스크린 리더 알림
+      announce('이미지 내보내기가 완료되었습니다')
     } catch (err) {
       console.error('Export failed:', err)
       setExportError(err instanceof Error ? err.message : '내보내기 중 오류가 발생했습니다')

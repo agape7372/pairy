@@ -9,7 +9,7 @@ Phase 1 ████████████████████ 100% 완료
 Phase 2 ████████████████████ 100% 완료
 Phase 3 ████████████████████ 100% 완료
 Phase 4 ████████████████████ 100% 완료
-Phase 5 █████████████████░░░  85% 진행 중
+Phase 5 ████████████████████ 100% 완료
 ```
 
 
@@ -322,7 +322,7 @@ Canvas 기반 에디터 재구축 (react-konva)
 | Sprint 31 | 스티커 시스템 (이미지 스티커, 검색, 배치/삭제) | ✅ | 2026-01-01 |
 | Sprint 32 | 실시간 협업 (Yjs 통합) | ✅ | 2026-01-01 |
 | Sprint 33 | UX 고도화 (온보딩, 레이어 패널, 프리셋) | ✅ | 2026-01-01 |
-| Sprint 34 | 성능 & 접근성 | ⏳ | - |
+| Sprint 34 | 성능 & 접근성 | ✅ | 2026-01-01 |
 
 ### Phase 5 Sprint 29 완료 (이미지 편집 강화)
 - [x] 클립보드 붙여넣기 (Ctrl+V) - 선택된 슬롯에 이미지 붙여넣기
@@ -431,6 +431,40 @@ Canvas 기반 에디터 재구축 (react-konva)
   - data-tour 속성 추가 (캔버스, 패널, 버튼)
   - OnboardingTour/ContextMenu 렌더링
   - 클립보드 붙여넣기 메뉴 연결
+
+### Phase 5 Sprint 34 완료 (성능 & 접근성)
+- [x] 이미지 압축 유틸리티 (lib/utils/imageCompressor.ts)
+  - 최대 크기 제한 (2000px)
+  - 파일 크기 제한 (5MB)
+  - 품질 자동 조정 (0.9 → 0.5)
+  - OffscreenCanvas 활용 (메인 스레드 블로킹 최소화)
+  - ImageManager 클래스 (참조 카운트 기반 메모리 관리)
+- [x] 접근성 훅 (hooks/useAccessibility.ts)
+  - useReducedMotion / usePrefersReducedMotion
+  - usePrefersContrast (고대비 모드 감지)
+  - useAnnounce (스크린 리더 라이브 알림)
+  - srOnlyStyles (스크린 리더 전용 스타일)
+- [x] 모션 감소 설정 (prefers-reduced-motion)
+  - 전역 CSS 적용 완료 (globals.css)
+  - 애니메이션/트랜지션 0.01ms로 감소
+  - 스켈레톤 shimmer, blob 애니메이션 비활성화
+- [x] 고대비 모드 지원 (prefers-contrast: more)
+  - 버튼/입력 필드 테두리 강화
+  - 포커스 링 강화 (3px solid black)
+  - 그림자 제거 및 테두리로 대체
+  - 링크 밑줄 강화
+- [x] ARIA 라벨 개선
+  - 기존 ARIA 라벨 유지 (20+ 라벨 적용됨)
+  - 스크린 리더 알림 (내보내기 완료 등)
+
+### Phase 5 목표 달성
+- [x] 이미지 편집 강화 (반전, 투명도, 필터)
+- [x] 텍스트 편집 고도화 (효과, 인라인 편집)
+- [x] 스티커 시스템
+- [x] 실시간 협업 (Yjs + Supabase Realtime)
+- [x] UX 고도화 (온보딩, 컨텍스트 메뉴, 레이어 패널, 색상 프리셋)
+- [x] 성능 최적화 (이미지 압축)
+- [x] 접근성 준수 (모션 감소, 고대비, ARIA)
 
 ---
 

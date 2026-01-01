@@ -2438,3 +2438,68 @@ body {
     transition: none;
   }
 }
+
+/* Sprint 34: 고대비 모드 지원 */
+@media (prefers-contrast: more) {
+  :root {
+    /* 더 높은 대비 색상 */
+    --gray-100: #ffffff;
+    --gray-200: #e5e5e5;
+    --gray-300: #a3a3a3;
+    --gray-400: #737373;
+    --gray-500: #525252;
+    --gray-600: #404040;
+    --gray-700: #262626;
+    --gray-800: #171717;
+    --gray-900: #0a0a0a;
+  }
+
+  /* 버튼 테두리 강화 */
+  button,
+  [role="button"] {
+    border: 2px solid currentColor !important;
+  }
+
+  /* 입력 필드 테두리 강화 */
+  input,
+  textarea,
+  select {
+    border: 2px solid #404040 !important;
+  }
+
+  input:focus,
+  textarea:focus,
+  select:focus {
+    border-color: #000000 !important;
+    outline: 3px solid #000000 !important;
+    outline-offset: 2px !important;
+  }
+
+  /* 링크 밑줄 강화 */
+  a {
+    text-decoration: underline !important;
+    text-underline-offset: 2px !important;
+  }
+
+  /* 포커스 링 강화 */
+  :focus-visible {
+    outline: 3px solid #000000 !important;
+    outline-offset: 2px !important;
+  }
+
+  /* 그림자 제거 (대비 향상) */
+  .shadow,
+  .shadow-sm,
+  .shadow-md,
+  .shadow-lg,
+  .shadow-xl {
+    box-shadow: none !important;
+    border: 2px solid #404040 !important;
+  }
+
+  /* 카드 테두리 강화 */
+  .card,
+  [class*="rounded"] {
+    border: 2px solid #404040 !important;
+  }
+}
