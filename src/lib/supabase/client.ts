@@ -17,7 +17,6 @@ let supabaseClient: ReturnType<typeof createSupabaseClient<Database>> | null = n
 
 export function createClient() {
   if (IS_DEMO_MODE) {
-    // 데모 모드: 더미 클라이언트 반환 (실제 호출 시 에러 발생 방지)
     console.warn('[Pairy] 데모 모드로 실행 중입니다. Supabase 기능이 비활성화됩니다.')
     return null as unknown as ReturnType<typeof createSupabaseClient<Database>>
   }
@@ -28,19 +27,15 @@ export function createClient() {
       SUPABASE_ANON_KEY!,
       {
         auth: {
-          // 정적 사이트에서 세션 지속성을 위해 localStorage 사용
+          // 기본 설정 사용 - Supabase가 자동으로 localStorage에 저장
           persistSession: true,
-          storageKey: 'pairy-auth',
-          storage: typeof window !== 'undefined' ? window.localStorage : undefined,
           autoRefreshToken: true,
           detectSessionInUrl: true,
-          // PKCE 플로우 사용 (OAuth에 필요)
-          flowType: 'pkce',
         },
       }
     )
 
-    console.log('[Supabase] Client initialized with localStorage persistence')
+    console.log('[Supabase] Client initialized')
   }
 
   return supabaseClient

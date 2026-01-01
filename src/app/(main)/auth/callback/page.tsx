@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useEffect, useState, useRef } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 
@@ -8,118 +8,95 @@ function AuthCallbackContent() {
   const searchParams = useSearchParams()
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
   const [message, setMessage] = useState('로그인 처리 중...')
-  const processedRef = useRef(false)
 
   useEffect(() => {
-    // 이미 처리했으면 무시 (React Strict Mode 대응)
-    if (processedRef.current) {
-      console.log('[Auth Callback] Already processed, skipping')
-      return
-    }
-    processedRef.current = true
-
-    const handleCallback = async () => {
-      const code = searchParams.get('code')
+    const handleAuth = async () => {
       const redirectTo = searchParams.get('redirectTo') || '/'
       const basePath = process.env.NEXT_PUBLIC_BASE_PATH || ''
+      const error = searchParams.get('error')
+      const errorDescription = searchParams.get('error_description')
 
-      console.log('[Auth Callback] Step 1: Starting...', {
-        code: code ? 'exists' : 'missing',
-        redirectTo,
-        basePath,
-        supabaseConfigured: isSupabaseConfigured()
-      })
+      console.log('[Auth Callback] Starting...', { redirectTo, basePath, error })
 
-      // Supabase가 설정되지 않은 경우
+      // URL에 에러가 있는 경우
+      if (error) {
+        console.error('[Auth Callback] OAuth error:', error, errorDescription)
+        setStatus('error')
+        setMessage(errorDescription || error || '인증 오류가 발생했습니다.')
+        setTimeout(() => {
+          window.location.href = `${basePath}/login?error=${error}`
+        }, 2000)
+        return
+      }
+
       if (!isSupabaseConfigured()) {
-        console.log('[Auth Callback] Supabase not configured')
-        redirectWithDelay(`${basePath}/`, '데모 모드입니다.')
+        console.log('[Auth Callback] Demo mode')
+        window.location.href = `${basePath}/`
         return
       }
-
-      // 코드가 없으면 에러
-      if (!code) {
-        console.error('[Auth Callback] No code provided')
-        redirectWithDelay(`${basePath}/login?error=no_code`, '인증 코드가 없습니다.')
-        return
-      }
-
-      const supabase = createClient()
 
       try {
-        // Step 2: 세션 교환 시도
-        console.log('[Auth Callback] Step 2: Calling exchangeCodeForSession...')
+        const supabase = createClient()
 
-        const exchangeResult = await Promise.race([
-          supabase.auth.exchangeCodeForSession(code),
-          new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Session exchange timeout (10s)')), 10000)
-          )
-        ]) as { data: any; error: any }
+        // Supabase가 detectSessionInUrl로 자동 처리하므로 세션만 확인
+        // 약간의 지연을 두고 세션 확인 (자동 처리 시간 확보)
+        await new Promise(resolve => setTimeout(resolve, 500))
 
-        console.log('[Auth Callback] Step 3: Exchange result received')
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
 
-        if (exchangeResult.error) {
-          console.error('[Auth Callback] Exchange error:', exchangeResult.error.message)
+        console.log('[Auth Callback] Session check:', session?.user?.email || 'no session', sessionError?.message)
 
-          // 코드가 이미 사용됐을 수 있음 - 세션 확인
-          console.log('[Auth Callback] Step 3b: Checking existing session...')
-          const { data: { session } } = await supabase.auth.getSession()
+        if (session) {
+          // 프로필 확인/생성 (비동기, 기다리지 않음)
+          ensureProfile(supabase, session.user)
 
-          if (session) {
-            console.log('[Auth Callback] Step 3c: Found existing session for:', session.user?.email)
-            doRedirect(basePath, redirectTo)
-            return
+          setStatus('success')
+          setMessage('로그인 완료!')
+
+          const finalUrl = redirectTo.startsWith('/') ? `${basePath}${redirectTo}` : redirectTo
+          console.log('[Auth Callback] Redirecting to:', finalUrl)
+
+          setTimeout(() => {
+            window.location.href = finalUrl
+          }, 300)
+        } else {
+          // 세션이 없으면 수동으로 코드 교환 시도
+          const code = searchParams.get('code')
+          if (code) {
+            console.log('[Auth Callback] No session, trying manual exchange...')
+            const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
+
+            if (exchangeError) {
+              throw exchangeError
+            }
+
+            if (data.session) {
+              ensureProfile(supabase, data.session.user)
+              setStatus('success')
+              setMessage('로그인 완료!')
+
+              const finalUrl = redirectTo.startsWith('/') ? `${basePath}${redirectTo}` : redirectTo
+              setTimeout(() => {
+                window.location.href = finalUrl
+              }, 300)
+              return
+            }
           }
 
-          throw exchangeResult.error
+          throw new Error('세션을 가져올 수 없습니다.')
         }
-
-        const { data } = exchangeResult
-        console.log('[Auth Callback] Step 4: Session obtained for:', data.user?.email)
-
-        // Step 5: 프로필 처리 (비동기로 처리하고 기다리지 않음)
-        if (data.user) {
-          console.log('[Auth Callback] Step 5: Starting profile check (non-blocking)...')
-          handleProfileCreation(supabase, data.user).catch(err => {
-            console.error('[Auth Callback] Profile error (non-blocking):', err)
-          })
-        }
-
-        // Step 6: 즉시 리다이렉트
-        console.log('[Auth Callback] Step 6: Redirecting...')
-        doRedirect(basePath, redirectTo)
-
       } catch (err: any) {
         console.error('[Auth Callback] Error:', err)
-        redirectWithDelay(`${basePath}/login?error=auth_failed`, err.message || '인증에 실패했습니다.')
+        setStatus('error')
+        setMessage(err.message || '인증에 실패했습니다.')
+
+        setTimeout(() => {
+          window.location.href = `${basePath}/login?error=auth_failed`
+        }, 2000)
       }
     }
 
-    // 리다이렉트 헬퍼 함수
-    const doRedirect = (basePath: string, redirectTo: string) => {
-      setStatus('success')
-      setMessage('로그인 완료! 이동 중...')
-
-      const finalUrl = redirectTo.startsWith('/')
-        ? `${basePath}${redirectTo}`
-        : redirectTo
-
-      console.log('[Auth Callback] Final redirect to:', finalUrl)
-
-      // 즉시 리다이렉트 시도
-      window.location.replace(finalUrl)
-    }
-
-    const redirectWithDelay = (url: string, msg: string) => {
-      setStatus('error')
-      setMessage(msg)
-      setTimeout(() => {
-        window.location.replace(url)
-      }, 2000)
-    }
-
-    handleCallback()
+    handleAuth()
   }, [searchParams])
 
   return (
@@ -129,7 +106,7 @@ function AuthCallbackContent() {
           <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#FFD9D9] border-t-transparent mx-auto mb-4" />
         )}
         {status === 'success' && (
-          <div className="text-4xl mb-4">✓</div>
+          <div className="text-4xl mb-4 text-green-500">✓</div>
         )}
         {status === 'error' && (
           <div className="text-4xl mb-4">⚠️</div>
@@ -137,43 +114,34 @@ function AuthCallbackContent() {
         <p className={status === 'error' ? 'text-red-500' : 'text-gray-600'}>
           {message}
         </p>
-        {status === 'loading' && (
-          <p className="text-xs text-gray-400 mt-2">잠시만 기다려주세요...</p>
-        )}
       </div>
     </div>
   )
 }
 
-// 프로필 생성 (별도 함수로 분리)
-async function handleProfileCreation(supabase: any, user: any) {
+// 프로필 확인/생성 함수
+async function ensureProfile(supabase: any, user: any) {
+  if (!user) return
+
   try {
-    const { data: profile, error: profileError } = await supabase
+    const { data: profile } = await supabase
       .from('profiles')
       .select('id')
       .eq('id', user.id)
       .single()
 
-    if (profileError && profileError.code === 'PGRST116') {
-      console.log('[Auth Callback] Creating new profile...')
-      const { error: insertError } = await supabase.from('profiles').insert({
+    if (!profile) {
+      console.log('[Auth Callback] Creating profile for:', user.email)
+      await supabase.from('profiles').insert({
         id: user.id,
         username: user.email?.split('@')[0] || null,
         display_name: user.user_metadata?.full_name || user.user_metadata?.name || '새로운 사용자',
         avatar_url: user.user_metadata?.avatar_url || user.user_metadata?.picture,
         role: 'user',
       })
-
-      if (insertError) {
-        console.error('[Auth Callback] Profile insert error:', insertError)
-      } else {
-        console.log('[Auth Callback] Profile created successfully')
-      }
-    } else if (profile) {
-      console.log('[Auth Callback] Profile already exists')
     }
   } catch (err) {
-    console.error('[Auth Callback] Profile creation error:', err)
+    console.error('[Auth Callback] Profile error:', err)
   }
 }
 
