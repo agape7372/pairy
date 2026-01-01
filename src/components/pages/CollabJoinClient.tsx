@@ -3,8 +3,10 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Users, Loader2, AlertCircle, ArrowRight } from 'lucide-react'
+import { nanoid } from 'nanoid'
 import { Button } from '@/components/ui'
 import { useCollabSession } from '@/hooks/useCollabSession'
+import type { CollabUser } from '@/lib/collab/types'
 
 interface CollabJoinClientProps {
   code: string
@@ -16,7 +18,7 @@ export default function CollabJoinClient({ code }: CollabJoinClientProps) {
 
   const {
     session,
-    isLoading,
+    isJoining,
     error,
     joinSession,
   } = useCollabSession()
@@ -27,13 +29,21 @@ export default function CollabJoinClient({ code }: CollabJoinClientProps) {
   useEffect(() => {
     // 세션이 활성화되면 에디터로 이동
     if (session && session.status === 'active' && joined) {
-      router.push(`/editor/${session.work_id}?session=${session.id}`)
+      router.push(`/editor/${session.workId}?session=${session.id}`)
     }
   }, [session, joined, router])
 
   const handleJoin = async () => {
     setJoining(true)
-    const success = await joinSession(upperCode)
+
+    // TODO: 실제로는 로그인된 사용자 정보를 사용
+    const guestUser: CollabUser = {
+      id: nanoid(8),
+      name: `게스트_${Math.floor(Math.random() * 1000)}`,
+      color: '#4ECDC4',
+    }
+
+    const success = await joinSession(upperCode, guestUser)
     if (success) {
       setJoined(true)
     }
@@ -41,7 +51,7 @@ export default function CollabJoinClient({ code }: CollabJoinClientProps) {
   }
 
   // 로딩 상태
-  if (isLoading && !error) {
+  if (isJoining && !error) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-primary-50 to-accent-50">
         <div className="text-center">
@@ -66,7 +76,7 @@ export default function CollabJoinClient({ code }: CollabJoinClientProps) {
           </h1>
 
           <p className="text-gray-600 mb-6">
-            {error.message}
+            {error}
           </p>
 
           <div className="space-y-3">
