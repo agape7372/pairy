@@ -1,6 +1,11 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+/**
+ * 북마크 관련 훅
+ * [FIXED: useRef로 race condition 방지 - 빠른 더블클릭 시 중복 요청 방지]
+ */
+
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { Template, Tag } from '@/types/database.types'
 
@@ -36,6 +41,9 @@ export function useBookmarks(): UseBookmarksReturn {
   const [bookmarks, setBookmarks] = useState<BookmarkedTemplate[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
+
+  // [FIXED: useRef로 동기적 체크 - 상태는 비동기라 race condition 발생 가능]
+  const isProcessingRef = useRef(false)
 
   const fetchBookmarks = useCallback(async () => {
     try {
@@ -91,11 +99,18 @@ export function useBookmarks(): UseBookmarksReturn {
 
   // 북마크 추가
   const addBookmark = async (templateId: string): Promise<boolean> => {
+    // [FIXED: ref 기반 동기적 체크로 race condition 완전 방지]
+    if (isProcessingRef.current) return false
+    isProcessingRef.current = true
+
     try {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
 
-      if (!user) throw new Error('Not authenticated')
+      if (!user) {
+        isProcessingRef.current = false
+        throw new Error('Not authenticated')
+      }
 
       const { error } = await supabase
         .from('bookmarks')
@@ -111,16 +126,25 @@ export function useBookmarks(): UseBookmarksReturn {
     } catch (err) {
       console.error('Failed to add bookmark:', err)
       return false
+    } finally {
+      isProcessingRef.current = false  // [FIXED: 반드시 해제]
     }
   }
 
   // 북마크 제거
   const removeBookmark = async (templateId: string): Promise<boolean> => {
+    // [FIXED: ref 기반 동기적 체크로 race condition 완전 방지]
+    if (isProcessingRef.current) return false
+    isProcessingRef.current = true
+
     try {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
 
-      if (!user) throw new Error('Not authenticated')
+      if (!user) {
+        isProcessingRef.current = false
+        throw new Error('Not authenticated')
+      }
 
       const { error } = await supabase
         .from('bookmarks')
@@ -135,6 +159,8 @@ export function useBookmarks(): UseBookmarksReturn {
     } catch (err) {
       console.error('Failed to remove bookmark:', err)
       return false
+    } finally {
+      isProcessingRef.current = false  // [FIXED: 반드시 해제]
     }
   }
 

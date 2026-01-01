@@ -1,6 +1,11 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+/**
+ * 작업 관리 훅
+ * [FIXED: useRef로 race condition 방지 - 빠른 더블클릭 시 중복 요청 방지]
+ */
+
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { Work, Json } from '@/types/database.types'
 
@@ -31,6 +36,9 @@ export function useWorks(options: UseWorksOptions = {}): UseWorksReturn {
   const [works, setWorks] = useState<WorkWithTemplate[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
+
+  // [FIXED: useRef로 동기적 체크 - 상태는 비동기라 race condition 발생 가능]
+  const isProcessingRef = useRef(false)
 
   const fetchWorks = useCallback(async () => {
     try {
@@ -83,11 +91,18 @@ export function useWorks(options: UseWorksOptions = {}): UseWorksReturn {
 
   // 새 작업 생성
   const createWork = async (templateId: string, title: string): Promise<string | null> => {
+    // [FIXED: ref 기반 동기적 체크로 race condition 완전 방지]
+    if (isProcessingRef.current) return null
+    isProcessingRef.current = true
+
     try {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
 
-      if (!user) throw new Error('Not authenticated')
+      if (!user) {
+        isProcessingRef.current = false
+        throw new Error('Not authenticated')
+      }
 
       const { data, error } = await supabase
         .from('works')
@@ -108,11 +123,17 @@ export function useWorks(options: UseWorksOptions = {}): UseWorksReturn {
     } catch (err) {
       console.error('Failed to create work:', err)
       return null
+    } finally {
+      isProcessingRef.current = false  // [FIXED: 반드시 해제]
     }
   }
 
   // 작업 업데이트
   const updateWork = async (id: string, updateData: Partial<Work>): Promise<boolean> => {
+    // [FIXED: ref 기반 동기적 체크로 race condition 완전 방지]
+    if (isProcessingRef.current) return false
+    isProcessingRef.current = true
+
     try {
       const supabase = createClient()
       const { error } = await supabase
@@ -130,11 +151,17 @@ export function useWorks(options: UseWorksOptions = {}): UseWorksReturn {
     } catch (err) {
       console.error('Failed to update work:', err)
       return false
+    } finally {
+      isProcessingRef.current = false  // [FIXED: 반드시 해제]
     }
   }
 
   // 작업 삭제
   const deleteWork = async (id: string): Promise<boolean> => {
+    // [FIXED: ref 기반 동기적 체크로 race condition 완전 방지]
+    if (isProcessingRef.current) return false
+    isProcessingRef.current = true
+
     try {
       const supabase = createClient()
       const { error } = await supabase
@@ -149,6 +176,8 @@ export function useWorks(options: UseWorksOptions = {}): UseWorksReturn {
     } catch (err) {
       console.error('Failed to delete work:', err)
       return false
+    } finally {
+      isProcessingRef.current = false  // [FIXED: 반드시 해제]
     }
   }
 
@@ -168,6 +197,9 @@ export function useWork(id: string) {
   const [work, setWork] = useState<WorkWithTemplate | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
+
+  // [FIXED: useRef로 동기적 체크 - 상태는 비동기라 race condition 발생 가능]
+  const isProcessingRef = useRef(false)
 
   const fetchWork = useCallback(async () => {
     if (!id) return
@@ -207,6 +239,10 @@ export function useWork(id: string) {
   const saveWork = async (editorData: Json, options?: { isComplete?: boolean }) => {
     if (!id) return false
 
+    // [FIXED: ref 기반 동기적 체크로 race condition 완전 방지]
+    if (isProcessingRef.current) return false
+    isProcessingRef.current = true
+
     try {
       const supabase = createClient()
       const { error } = await supabase
@@ -225,6 +261,8 @@ export function useWork(id: string) {
     } catch (err) {
       console.error('Failed to save work:', err)
       return false
+    } finally {
+      isProcessingRef.current = false  // [FIXED: 반드시 해제]
     }
   }
 
