@@ -36,7 +36,7 @@ import {
   type Resource,
 } from '@/types/resources'
 import { useSubscriptionStore } from '@/stores/subscriptionStore'
-import styles from '@/components/interactions/interactions.module.css'
+import styles from '@/styles/particles.module.css'
 
 // 라이선스를 가격 타입으로 변환
 function licenseToPricingType(license: LicenseType, price?: number): PricingType {

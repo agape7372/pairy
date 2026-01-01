@@ -3,7 +3,15 @@
 import { motion, Variants, useInView } from 'framer-motion'
 import { useRef } from 'react'
 import { cn } from '@/lib/utils/cn'
-import { springPresets, easingPresets } from '@/hooks/useAdvancedInteractions'
+
+// 애니메이션 프리셋
+const springPresets = {
+  gentle: { stiffness: 120, damping: 14, mass: 0.5 },
+}
+
+const easingPresets = {
+  quarticOut: [0.16, 1, 0.3, 1] as const,
+}
 
 /**
  * TextReveal - 글자 단위 애니메이션 텍스트 컴포넌트

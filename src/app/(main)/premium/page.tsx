@@ -7,7 +7,7 @@ import { Button, useToast } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
 import { useSubscriptionStore, PRICING, type SubscriptionTier } from '@/stores/subscriptionStore'
 import { UpgradeModal } from '@/components/premium/UpgradeModal'
-import styles from '@/components/interactions/interactions.module.css'
+import styles from '@/styles/particles.module.css'
 
 /**
  * 프라이싱 페이지 - UX 심리학 적용

@@ -1,6 +1,7 @@
 # Pairy 코드베이스 vs 마스터 프롬프트 분석 보고서
 
 > 작성일: 2025-12-30
+> 마지막 업데이트: 2025-12-30 (갭 수정 완료)
 
 ---
 
@@ -149,12 +150,13 @@ src/app/
 | 배포 | Vercel + Supabase | GitHub Pages 정적 | API 라우트 불가 |
 | 폰트 | 10개 내장 폰트 지정 | 시스템 폰트만 | 디자인 일관성 저하 |
 
-### 2. 데드 코드 / 미사용 파일
+### 2. 데드 코드 / 미사용 파일 - ✅ 정리 완료
 
-| 파일 | 상태 | 권장 조치 |
-|------|------|----------|
-| `stores/editorStore.ts` | `canvasEditorStore.ts`로 대체됨 | 삭제 검토 |
-| `components/pages/EditorClient.tsx` | 레거시 에디터 | 삭제 검토 |
+| 파일 | 상태 | 조치 |
+|------|------|------|
+| ~~`stores/editorStore.ts`~~ | 삭제됨 | ✅ 완료 |
+| ~~`hooks/useAutoSave.ts`~~ | 삭제됨 | ✅ 완료 |
+| ~~`components/pages/EditorClient.tsx`~~ | 삭제됨 | ✅ 완료 |
 | `app/(editor)/editor/` 전체 | canvas-editor로 대체 | 리다이렉트만 유지 |
 
 ### 3. Demo Mode 의존성
@@ -201,16 +203,17 @@ export const IS_DEMO_MODE = !process.env.NEXT_PUBLIC_SUPABASE_URL;
 
 ## 권장 작업 순서
 
-### 즉시 필요 (문서 정합성)
+### 즉시 필요 (문서 정합성) - ✅ 완료
 
-1. **마스터 프롬프트 업데이트**
-   - `05-tech-stack.md`: Fabric.js -> react-konva
-   - `08-folder-structure.md`: 실제 구조 반영
-   - `09-deployment.md`: GitHub Pages 정적 배포 추가
+1. **마스터 프롬프트 업데이트** - ✅ 완료
+   - `05-tech-stack.md`: Fabric.js -> react-konva ✅
+   - `08-folder-structure.md`: 실제 구조 반영 ✅
+   - `09-deployment.md`: GitHub Pages 정적 배포 추가 ✅
 
-2. **레거시 코드 정리**
-   - `stores/editorStore.ts` 삭제
-   - `app/(editor)/editor/` 정리 (리다이렉트만 유지)
+2. **레거시 코드 정리** - ✅ 완료
+   - `stores/editorStore.ts` 삭제 ✅
+   - `hooks/useAutoSave.ts` 삭제 ✅
+   - `components/pages/EditorClient.tsx` 삭제 ✅
 
 ### 프로덕션 전환 시 필요
 
@@ -245,11 +248,19 @@ Pairy 프로젝트는 **UI/UX 완성도는 높으나**, 대부분의 기능이 *
 - 코드 품질 (모듈화, 타입 안전성)
 
 ### 개선 필요
-- 마스터 프롬프트 문서 현행화 필요
+- ~~마스터 프롬프트 문서 현행화 필요~~ ✅ 완료
 - 실제 백엔드 연동 (Supabase, 결제)
 - 협업 기능 고도화 (Yjs CRDT)
-- 레거시 코드 정리
+- ~~레거시 코드 정리~~ ✅ 완료
 
 ---
 
-*이 보고서는 2025-12-30 기준 코드베이스와 마스터 프롬프트를 비교 분석한 결과입니다.*
+## 수정 이력
+
+| 날짜 | 변경 사항 |
+|------|----------|
+| 2025-12-30 | 초기 분석 보고서 작성 |
+| 2025-12-30 | 문서 갭 수정: 05-tech-stack.md, 08-folder-structure.md, 09-deployment.md |
+| 2025-12-30 | 레거시 코드 삭제: editorStore.ts, useAutoSave.ts, EditorClient.tsx |
+
+*이 보고서는 코드베이스와 마스터 프롬프트를 비교 분석한 결과입니다.*

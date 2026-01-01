@@ -4,7 +4,7 @@ import { useState, useRef, useCallback } from 'react'
 import { Heart, Loader2 } from 'lucide-react'
 import { useLikes } from '@/hooks/useLikes'
 import { cn } from '@/lib/utils/cn'
-import styles from '@/components/interactions/interactions.module.css'
+import styles from '@/styles/particles.module.css'
 
 interface LikeButtonProps {
   templateId: string
