@@ -95,9 +95,30 @@ export function generateStaticParams() {
 
 ## Documentation
 
-- `/docs/master-prompt/` - Detailed specifications (design system, API, database schema)
-- `/PROGRESS.md` - Development progress tracking
-- `/OPERATIONS.md` - Revenue model and operations
+```
+docs/
+├── PROGRESS.md                    # 개발 진행 상황 추적
+├── ANALYSIS-REPORT-2025-12-30.md  # 문서-구현 갭 분석
+│
+├── master-prompt/                 # 핵심 기획/설계 문서
+│   ├── 00-overview.md             # 프로젝트 개요
+│   ├── 01-functional-spec.md      # 기능 명세
+│   ├── 02-user-flow.md            # 사용자 흐름
+│   ├── 03-design-system.md        # 디자인 시스템
+│   ├── 04-page-layouts.md         # 페이지 레이아웃
+│   ├── 05-tech-stack.md           # 기술 스택 (react-konva)
+│   ├── 06-database-schema.md      # DB 스키마
+│   ├── 07-api-design.md           # API 설계
+│   ├── 08-folder-structure.md     # 폴더 구조/컨벤션
+│   ├── 09-deployment.md           # 배포 가이드
+│   ├── 10-roadmap.md              # 개발 로드맵
+│   ├── 12-fairy-motion-principles.md  # 모션 디자인 원칙
+│   └── 13-operations.md           # 운영/수익 모델
+│
+└── research/                      # 리서치 자료
+    ├── competitor-analysis.md     # 경쟁사 분석
+    └── ui-ux-animation-research-2025.md  # UI/UX 트렌드
+```
 
 ## Quality Settings
 
