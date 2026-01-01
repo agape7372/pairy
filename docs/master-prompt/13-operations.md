@@ -1,4 +1,4 @@
-# Pairy 운영비 및 수익 모델
+# 🧚 Pairy - 운영비 및 수익 모델 (Operations & Revenue)
 
 > 마지막 업데이트: 2025-01-28
 
