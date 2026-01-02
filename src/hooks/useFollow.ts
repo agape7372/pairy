@@ -4,6 +4,7 @@
  * 팔로우 관련 훅
  * 변경 이유: 데모 모드 localStorage 로직을 demoStorage 유틸리티로 통합
  * [FIXED: useRef로 race condition 방지 - 빠른 더블클릭 시 중복 요청 방지]
+ * [FIXED: 무한루프 방지 - 상태값을 useCallback 의존성에서 제거, ref 패턴 사용]
  */
 
 import { useEffect, useState, useCallback, useRef } from 'react'
@@ -63,6 +64,19 @@ export function useFollow(targetUserId: string): UseFollowReturn {
 
   // [FIXED: useRef로 동기적 체크 - 상태는 비동기라 race condition 발생 가능]
   const isProcessingRef = useRef(false)
+
+  // [FIXED: 무한루프 방지 - 상태값을 ref로 추적하여 콜백 의존성에서 제거]
+  const isFollowingRef = useRef(isFollowing)
+  const followerCountRef = useRef(followerCount)
+
+  // 상태 변경 시 ref 동기화
+  useEffect(() => {
+    isFollowingRef.current = isFollowing
+  }, [isFollowing])
+
+  useEffect(() => {
+    followerCountRef.current = followerCount
+  }, [followerCount])
 
   // 초기 상태 로드
   useEffect(() => {
@@ -128,6 +142,7 @@ export function useFollow(targetUserId: string): UseFollowReturn {
   }, [targetUserId])
 
   // 팔로우 (낙관적 업데이트 + 실패 시 롤백)
+  // [FIXED: 무한루프 방지 - 상태값(isFollowing, followerCount)을 의존성에서 제거, ref 사용]
   const follow = useCallback(async (): Promise<boolean> => {
     // [FIXED: ref 기반 동기적 체크로 race condition 완전 방지]
     if (isProcessingRef.current) return false
@@ -148,9 +163,11 @@ export function useFollow(targetUserId: string): UseFollowReturn {
       return false
     }
 
+    // [FIXED: ref에서 현재 값을 읽어 롤백용으로 저장]
+    const previousIsFollowing = isFollowingRef.current
+    const previousCount = followerCountRef.current
+
     // 낙관적 업데이트: UI 먼저 변경
-    const previousIsFollowing = isFollowing
-    const previousCount = followerCount
     setIsFollowing(true)
     setFollowerCount(prev => prev + 1)
 
@@ -182,9 +199,10 @@ export function useFollow(targetUserId: string): UseFollowReturn {
     } finally {
       isProcessingRef.current = false  // [FIXED: 반드시 해제]
     }
-  }, [targetUserId, currentUserId, isFollowing, followerCount])
+  }, [targetUserId, currentUserId])  // [FIXED: isFollowing, followerCount 제거]
 
   // 언팔로우 (낙관적 업데이트 + 실패 시 롤백)
+  // [FIXED: 무한루프 방지 - 상태값(isFollowing, followerCount)을 의존성에서 제거, ref 사용]
   const unfollow = useCallback(async (): Promise<boolean> => {
     // [FIXED: ref 기반 동기적 체크로 race condition 완전 방지]
     if (isProcessingRef.current) return false
@@ -205,9 +223,11 @@ export function useFollow(targetUserId: string): UseFollowReturn {
       return false
     }
 
+    // [FIXED: ref에서 현재 값을 읽어 롤백용으로 저장]
+    const previousIsFollowing = isFollowingRef.current
+    const previousCount = followerCountRef.current
+
     // 낙관적 업데이트: UI 먼저 변경
-    const previousIsFollowing = isFollowing
-    const previousCount = followerCount
     setIsFollowing(false)
     setFollowerCount(prev => Math.max(0, prev - 1))
 
@@ -238,12 +258,13 @@ export function useFollow(targetUserId: string): UseFollowReturn {
     } finally {
       isProcessingRef.current = false  // [FIXED: 반드시 해제]
     }
-  }, [targetUserId, currentUserId, isFollowing, followerCount])
+  }, [targetUserId, currentUserId])  // [FIXED: isFollowing, followerCount 제거]
 
   // 토글
+  // [FIXED: 무한루프 방지 - isFollowingRef 사용으로 콜백 안정성 확보]
   const toggle = useCallback(async (): Promise<boolean> => {
-    return isFollowing ? unfollow() : follow()
-  }, [isFollowing, follow, unfollow])
+    return isFollowingRef.current ? unfollow() : follow()
+  }, [follow, unfollow])  // [FIXED: isFollowing 제거, ref 사용]
 
   return {
     isFollowing,

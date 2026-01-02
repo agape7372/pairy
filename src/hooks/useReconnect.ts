@@ -3,6 +3,7 @@
 /**
  * 재연결 로직 훅
  * 네트워크 연결이 끊겼을 때 자동 재연결 및 상태 복구
+ * [FIXED: 무한루프 방지 - status를 ref로 추적하여 이벤트 핸들러에서 안전하게 접근]
  */
 
 import { useState, useCallback, useEffect, useRef } from 'react'
@@ -84,6 +85,19 @@ export function useReconnect(options: UseReconnectOptions): UseReconnectReturn {
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const isMountedRef = useRef(true)
+
+  // [FIXED: 무한루프 방지 - status를 ref로 추적하여 이벤트 핸들러에서 안전하게 접근]
+  const statusRef = useRef(status)
+  const isOnlineRef = useRef(isOnline)
+
+  // 상태 변경 시 ref 동기화
+  useEffect(() => {
+    statusRef.current = status
+  }, [status])
+
+  useEffect(() => {
+    isOnlineRef.current = isOnline
+  }, [isOnline])
 
   // 변경 이유: 타이머 정리 함수를 먼저 정의
   const clearTimers = useCallback(() => {
@@ -205,10 +219,12 @@ export function useReconnect(options: UseReconnectOptions): UseReconnectReturn {
   }, [clearTimers, onDisconnect])
 
   // 온라인/오프라인 감지
+  // [FIXED: 무한루프 방지 - statusRef 사용으로 의존성 최소화]
   useEffect(() => {
     const handleOnline = () => {
       setIsOnline(true)
-      if (status === 'offline' && autoReconnect) {
+      // [FIXED: ref를 사용하여 이벤트 발생 시점의 status 확인]
+      if (statusRef.current === 'offline' && autoReconnect) {
         attemptReconnect(0)
       }
     }
@@ -226,16 +242,18 @@ export function useReconnect(options: UseReconnectOptions): UseReconnectReturn {
       window.removeEventListener('online', handleOnline)
       window.removeEventListener('offline', handleOffline)
     }
-  }, [status, autoReconnect, attemptReconnect, clearTimers])
+  }, [autoReconnect, attemptReconnect, clearTimers])  // [FIXED: status 제거]
 
   // 페이지 가시성 변경 감지 (탭 전환 시 재연결)
+  // [FIXED: 무한루프 방지 - ref 사용으로 의존성 최소화]
   useEffect(() => {
     const handleVisibilityChange = () => {
+      // [FIXED: ref를 사용하여 이벤트 발생 시점의 status와 isOnline 확인]
       if (
         document.visibilityState === 'visible' &&
-        status === 'disconnected' &&
+        statusRef.current === 'disconnected' &&
         autoReconnect &&
-        isOnline
+        isOnlineRef.current
       ) {
         attemptReconnect(0)
       }
@@ -246,7 +264,7 @@ export function useReconnect(options: UseReconnectOptions): UseReconnectReturn {
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
-  }, [status, autoReconnect, isOnline, attemptReconnect])
+  }, [autoReconnect, attemptReconnect])  // [FIXED: status, isOnline 제거]
 
   return {
     status,

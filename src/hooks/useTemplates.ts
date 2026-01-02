@@ -1,6 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+/**
+ * 템플릿 목록 조회 훅
+ * [FIXED: 무한루프 방지 - fetchTemplates를 useCallback으로 래핑하여 안정적인 참조 보장]
+ */
+
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { Template, Tag } from '@/types/database.types'
 
@@ -37,8 +42,15 @@ export function useTemplates(options: UseTemplatesOptions = {}): UseTemplatesRet
   const [offset, setOffset] = useState(0)
   const [hasMore, setHasMore] = useState(true)
 
-  const fetchTemplates = async (reset = false) => {
-    const currentOffset = reset ? 0 : offset
+  // [FIXED: 무한루프 방지 - offset을 ref로 추적하여 useCallback 의존성에서 제거]
+  const offsetRef = useRef(offset)
+  useEffect(() => {
+    offsetRef.current = offset
+  }, [offset])
+
+  // [FIXED: useCallback으로 래핑하여 안정적인 참조 보장]
+  const fetchTemplates = useCallback(async (reset = false) => {
+    const currentOffset = reset ? 0 : offsetRef.current
 
     try {
       setIsLoading(true)
@@ -97,18 +109,19 @@ export function useTemplates(options: UseTemplatesOptions = {}): UseTemplatesRet
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [tag, search, sortBy, limit])
 
+  // [FIXED: fetchTemplates가 안정적이므로 ESLint 경고 없음]
   useEffect(() => {
     fetchTemplates(true)
-  }, [tag, search, sortBy])
+  }, [fetchTemplates])
 
-  const refetch = () => fetchTemplates(true)
-  const loadMore = () => {
+  const refetch = useCallback(() => fetchTemplates(true), [fetchTemplates])
+  const loadMore = useCallback(() => {
     if (!isLoading && hasMore) {
       fetchTemplates(false)
     }
-  }
+  }, [isLoading, hasMore, fetchTemplates])
 
   return { templates, isLoading, error, refetch, hasMore, loadMore }
 }
