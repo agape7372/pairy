@@ -1,11 +1,36 @@
 'use client'
 
+/**
+ * 사용자 인증 상태 훅
+ * [FIXED: getSession 타임아웃 추가 - 네트워크 지연 시 무한로딩 방지]
+ */
+
 import { useEffect, useState } from 'react'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import type { User } from '@supabase/supabase-js'
 import type { UserRole } from '@/types/database.types'
 
 export type { UserRole }
+
+// [FIXED: 세션 조회 타임아웃 - hang 방지]
+const SESSION_TIMEOUT_MS = 5000
+
+/**
+ * Promise에 타임아웃을 추가하는 유틸리티
+ * getSession()이 네트워크 문제로 hang되는 것을 방지
+ */
+function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  fallback: T
+): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((resolve) =>
+      setTimeout(() => resolve(fallback), timeoutMs)
+    ),
+  ])
+}
 
 interface Profile {
   id: string
@@ -40,11 +65,23 @@ export function useUser(): UseUserReturn {
 
     const supabase = createClient()
 
+    // [FIXED: 마운트 상태 추적 - 언마운트 후 상태 업데이트 방지]
+    let isMounted = true
+
     // Get initial session from localStorage (no network call - faster!)
     const initSession = async () => {
       try {
-        // getSession()은 localStorage에서 바로 읽음 (네트워크 호출 없음)
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+        // [FIXED: 타임아웃 추가 - getSession()이 hang되면 5초 후 세션 없음으로 처리]
+        const sessionResult = await withTimeout(
+          supabase.auth.getSession(),
+          SESSION_TIMEOUT_MS,
+          { data: { session: null }, error: null }
+        )
+
+        const { data: { session }, error: sessionError } = sessionResult
+
+        // [FIXED: 언마운트 체크]
+        if (!isMounted) return
 
         if (sessionError) {
           setUser(null)
@@ -71,11 +108,16 @@ export function useUser(): UseUserReturn {
             .eq('id', session.user.id)
             .single()
 
+          // [FIXED: 언마운트 체크]
+          if (!isMounted) return
+
           if (!profileError) {
             setProfile(profileData as Profile)
           }
         }
       } catch {
+        // [FIXED: 언마운트 체크]
+        if (!isMounted) return
         setUser(null)
         setProfile(null)
         setIsLoading(false)
@@ -87,6 +129,9 @@ export function useUser(): UseUserReturn {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        // [FIXED: 언마운트 체크]
+        if (!isMounted) return
+
         if (event === 'SIGNED_OUT') {
           setUser(null)
           setProfile(null)
@@ -107,6 +152,9 @@ export function useUser(): UseUserReturn {
               .eq('id', session.user.id)
               .single()
 
+            // [FIXED: 언마운트 체크]
+            if (!isMounted) return
+
             if (!error) {
               setProfile(profileData as Profile)
             }
@@ -120,6 +168,8 @@ export function useUser(): UseUserReturn {
     )
 
     return () => {
+      // [FIXED: 언마운트 플래그 설정 - 비동기 작업 후 상태 업데이트 방지]
+      isMounted = false
       subscription.unsubscribe()
     }
   }, [])
