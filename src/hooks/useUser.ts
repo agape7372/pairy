@@ -1,17 +1,19 @@
 'use client'
 
 /**
- * 사용자 인증 상태 훅 - 완전 재작성
+ * 사용자 인증 상태 훅
  *
- * 핵심 원칙:
- * 1. getSession()을 먼저 호출하여 즉시 세션 확인
- * 2. onAuthStateChange로 후속 변경 감지
- * 3. 모든 에러를 잡아서 isLoading이 true로 stuck되지 않도록 함
+ * onAuthStateChange만 사용 - INITIAL_SESSION 이벤트는 localStorage에서
+ * 직접 읽어오므로 네트워크 요청 없이 즉시 발생함.
+ * getSession()은 토큰 갱신 시 네트워크를 기다릴 수 있어 hang 위험이 있음.
+ *
+ * timeout 없음 - timeout은 user=null 상태에서 isLoading=false가 되어
+ * 로그인 페이지로 잘못 리다이렉트되는 원인이었음.
  */
 
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
-import type { User, Session } from '@supabase/supabase-js'
+import type { User } from '@supabase/supabase-js'
 import type { UserRole } from '@/types/database.types'
 
 export type { UserRole }
@@ -40,11 +42,8 @@ export function useUser(): UseUserReturn {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
-  // 초기화 완료 여부 추적 (클로저 문제 해결)
-  const initializedRef = useRef(false)
-
-  // 프로필 로드 함수 (재사용)
-  const loadProfile = useCallback(async (userId: string) => {
+  // 프로필 로드 함수
+  const loadProfile = useCallback(async (userId: string, isMounted: () => boolean) => {
     if (!isSupabaseConfigured()) return
 
     try {
@@ -55,29 +54,13 @@ export function useUser(): UseUserReturn {
         .eq('id', userId)
         .single()
 
-      if (!error && data) {
+      if (!error && data && isMounted()) {
         setProfile(data as Profile)
       }
     } catch (err) {
       console.error('[useUser] Profile load error:', err)
     }
   }, [])
-
-  // 세션 처리 함수 (재사용)
-  const handleSession = useCallback((session: Session | null) => {
-    console.log('[useUser] Handling session:', session?.user?.email ?? 'no session')
-
-    initializedRef.current = true
-
-    if (session?.user) {
-      setUser(session.user)
-      loadProfile(session.user.id)
-    } else {
-      setUser(null)
-      setProfile(null)
-    }
-    setIsLoading(false)
-  }, [loadProfile])
 
   useEffect(() => {
     // 데모 모드 체크
@@ -88,66 +71,38 @@ export function useUser(): UseUserReturn {
     }
 
     let isMounted = true
+    const checkMounted = () => isMounted
     const supabase = createClient()
 
-    // 1단계: 즉시 현재 세션 확인 (getSession은 localStorage에서 읽음)
-    const initializeAuth = async () => {
-      try {
-        console.log('[useUser] Initializing auth...')
+    console.log('[useUser] Setting up auth listener...')
 
-        // getSession()은 localStorage에서 세션을 읽고 필요시 토큰 갱신
-        const { data: { session }, error } = await supabase.auth.getSession()
-
-        if (error) {
-          console.error('[useUser] getSession error:', error)
-        }
-
-        if (isMounted) {
-          handleSession(session)
-        }
-      } catch (err) {
-        console.error('[useUser] Init error:', err)
-        if (isMounted) {
-          setIsLoading(false)
-        }
-      }
-    }
-
-    // 2단계: 인증 상태 변경 리스너 설정
+    // onAuthStateChange만 사용
+    // INITIAL_SESSION은 localStorage에서 즉시 읽어오므로 네트워크 hang 없음
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        console.log('[useUser] Auth event:', event)
+        console.log('[useUser] Auth event:', event, session?.user?.email ?? 'no user')
 
         if (!isMounted) return
 
-        // INITIAL_SESSION은 이미 initializeAuth에서 처리했으므로 스킵
-        if (event === 'INITIAL_SESSION') {
-          return
+        // 세션 상태 업데이트
+        if (session?.user) {
+          setUser(session.user)
+          loadProfile(session.user.id, checkMounted)
+        } else {
+          setUser(null)
+          setProfile(null)
         }
 
-        // 다른 이벤트는 처리
-        handleSession(session)
-      }
-    )
-
-    // 초기화 실행
-    initializeAuth()
-
-    // 안전장치: 5초 후에도 초기화 안됐으면 강제 종료
-    const safetyTimer = setTimeout(() => {
-      if (isMounted && !initializedRef.current) {
-        console.warn('[useUser] Safety timeout - forcing isLoading to false')
-        initializedRef.current = true
+        // 모든 이벤트에서 로딩 완료
         setIsLoading(false)
       }
-    }, 5000)
+    )
 
     return () => {
       isMounted = false
       subscription.unsubscribe()
-      clearTimeout(safetyTimer)
     }
-  }, [handleSession])
+  }, [loadProfile])
 
   // 로그아웃
   const signOut = useCallback(async () => {
