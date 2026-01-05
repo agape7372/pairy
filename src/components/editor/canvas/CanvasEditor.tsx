@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import {
   ArrowLeft,
   Download,
@@ -34,11 +35,12 @@ import {
   ParticipantList,
   ConnectionIndicator,
   ConnectionBanner,
-  CollabChat,
   InviteShareModal,
 } from '@/components/editor/collab'
 import { useCollabSession } from '@/hooks/useCollabSession'
+import { CollabProvider, useCollabOptional } from '@/lib/collab'
 import type { CollabUser, EditingZone } from '@/lib/collab/types'
+import { useUser } from '@/hooks/useUser'
 import { useReducedMotion, useAnnounce } from '@/hooks/useAccessibility'
 import type { TemplateConfig, TemplateRendererRef } from '@/types/template'
 import {
@@ -96,7 +98,68 @@ interface CanvasEditorProps {
 // basePath for GitHub Pages (static export)
 const BASE_PATH = process.env.NODE_ENV === 'production' ? '/pairy' : ''
 
+// 사용자 색상 생성
+function generateUserColor(userId: string): string {
+  const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD']
+  let hash = 0
+  for (let i = 0; i < userId.length; i++) {
+    hash = ((hash << 5) - hash) + userId.charCodeAt(i)
+  }
+  return colors[Math.abs(hash) % colors.length]
+}
+
 export default function CanvasEditor({
+  templateId,
+  initialTitle,
+  sessionId: propSessionId,
+}: CanvasEditorProps) {
+  // URL에서 session 파라미터 읽기
+  const searchParams = useSearchParams()
+  const sessionId = propSessionId || searchParams.get('session') || undefined
+
+  // 사용자 정보 가져오기
+  const { user, profile } = useUser()
+
+  // 협업 사용자 정보 생성
+  const collabUser: CollabUser | undefined = user ? {
+    id: user.id,
+    name: profile?.display_name || user.email?.split('@')[0] || '사용자',
+    color: generateUserColor(user.id),
+    avatar: profile?.avatar_url || undefined,
+  } : undefined
+
+  // sessionId가 있으면 CollabProvider로 감싸기
+  if (sessionId && collabUser) {
+    return (
+      <CollabProvider
+        sessionId={sessionId}
+        user={collabUser}
+        autoConnect
+      >
+        <CanvasEditorContent
+          templateId={templateId}
+          initialTitle={initialTitle}
+          sessionId={sessionId}
+        />
+      </CollabProvider>
+    )
+  }
+
+  // 일반 모드 (협업 없음)
+  return (
+    <CanvasEditorContent
+      templateId={templateId}
+      initialTitle={initialTitle}
+      sessionId={sessionId}
+    />
+  )
+}
+
+// ============================================
+// 에디터 컨텐츠 (CollabProvider 내부에서 사용)
+// ============================================
+
+function CanvasEditorContent({
   templateId,
   initialTitle,
   sessionId,
@@ -104,39 +167,17 @@ export default function CanvasEditor({
   const rendererRef = useRef<TemplateRendererRef>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
+  // 협업 상태 (CollabProvider 내부에서만 사용 가능)
+  const collab = useCollabOptional()
+
   // Sprint 35+: 협업 세션 훅 사용
   const {
     session: collabSession,
     isHost,
-    participants,
-    createSession,
-    joinSession,
-    leaveSession,
-    getInviteLink,
-    copyInviteLink,
   } = useCollabSession({
     templateId,
     workId: sessionId,
   })
-
-  // 협업 상태 (데모용 - 실제로는 Supabase Realtime 사용)
-  const [collabUser, setCollabUser] = useState<CollabUser | null>(null)
-  const [isCollabConnected, setIsCollabConnected] = useState(false)
-  const [myZone, setMyZone] = useState<EditingZone>(null)
-  const [remoteUsers] = useState<Map<string, { id: string; name: string; color: string; zone: EditingZone; lastActivity: number; isOnline: boolean }>>(new Map())
-
-  // 세션 ID가 있으면 데모 사용자 설정
-  useEffect(() => {
-    if (sessionId && !collabUser) {
-      const demoUser: CollabUser = {
-        id: `user_${Math.random().toString(36).substr(2, 8)}`,
-        name: `사용자_${Math.floor(Math.random() * 1000)}`,
-        color: '#FF6B6B',
-      }
-      setCollabUser(demoUser)
-      setIsCollabConnected(true)
-    }
-  }, [sessionId, collabUser])
 
   // Store
   const {
@@ -237,20 +278,24 @@ export default function CanvasEditor({
   // 슬롯 클릭 핸들러 (모바일에서 사이드바 자동 열기)
   const handleSlotClick = useCallback((slotId: string | null) => {
     selectSlot(slotId)
+    // 협업 상태 업데이트
+    collab?.updateSelection(slotId, null)
     // 모바일에서 슬롯 선택 시 사이드바 열기
     if (slotId && window.innerWidth < 768) {
       setIsSidebarOpen(true)
     }
-  }, [selectSlot])
+  }, [selectSlot, collab])
 
   // 텍스트 클릭 핸들러 (모바일에서 사이드바 자동 열기)
   const handleTextClick = useCallback((textId: string | null) => {
     selectText(textId)
+    // 협업 상태 업데이트
+    collab?.updateSelection(null, textId)
     // 모바일에서 텍스트 선택 시 사이드바 열기
     if (textId && window.innerWidth < 768) {
       setIsSidebarOpen(true)
     }
-  }, [selectText])
+  }, [selectText, collab])
 
   // Sprint 31: 스티커 클릭 핸들러
   const handleStickerClick = useCallback((stickerId: string | null) => {
@@ -260,6 +305,22 @@ export default function CanvasEditor({
       setIsSidebarOpen(true)
     }
   }, [selectSticker])
+
+  // 협업: 마우스 커서 위치 업데이트 (throttled)
+  const lastCursorUpdate = useRef<number>(0)
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLElement>) => {
+    if (!collab?.isConnected || !containerRef.current) return
+
+    // 50ms마다만 업데이트 (성능 최적화)
+    const now = Date.now()
+    if (now - lastCursorUpdate.current < 50) return
+    lastCursorUpdate.current = now
+
+    const rect = containerRef.current.getBoundingClientRect()
+    const x = (e.clientX - rect.left) / zoom
+    const y = (e.clientY - rect.top) / zoom
+    collab.updateCursor(x, y)
+  }, [collab, zoom])
 
   // Sprint 30: 텍스트 더블클릭 핸들러 (인라인 편집)
   const handleTextDoubleClick = useCallback((textId: string) => {
@@ -947,13 +1008,14 @@ export default function CanvasEditor({
             <span className="hidden sm:inline ml-1">저장</span>
           </Button>
 
-          {/* Sprint 32+: 협업 상태 표시 (개선) */}
-          {sessionId && (
+          {/* Sprint 32+: 협업 버튼 */}
+          {sessionId ? (
+            // 협업 중: 연결 상태 + 초대 버튼
             <div className="flex items-center gap-2">
               <ConnectionIndicator
                 sessionId={sessionId}
-                isConnected={isCollabConnected}
-                participantCount={remoteUsers.size + 1}
+                isConnected={collab?.isConnected ?? false}
+                participantCount={(collab?.remoteUsers?.size ?? 0) + 1}
                 size="sm"
                 showLabel
               />
@@ -964,10 +1026,26 @@ export default function CanvasEditor({
               >
                 <Users className="w-4 h-4" />
                 <span className="text-xs font-medium hidden sm:inline">
-                  {isCollabConnected ? `${remoteUsers.size + 1}명` : '대기'}
+                  {collab?.isConnected ? `${(collab?.remoteUsers?.size ?? 0) + 1}명` : '대기'}
                 </span>
               </button>
             </div>
+          ) : (
+            // 협업 없음: 협업 시작 버튼
+            <button
+              onClick={() => {
+                // 새 sessionId 생성하고 URL 변경
+                const newSessionId = `collab_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+                const newUrl = `${window.location.pathname}?session=${newSessionId}`
+                window.history.pushState({}, '', newUrl)
+                window.location.reload() // 세션 적용을 위해 리로드
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-100 text-primary-700 rounded-lg hover:bg-primary-200 transition-colors"
+              title="협업 시작하기"
+            >
+              <Users className="w-4 h-4" />
+              <span className="text-xs font-medium hidden sm:inline">협업</span>
+            </button>
           )}
 
           {/* 내보내기 */}
@@ -1005,6 +1083,7 @@ export default function CanvasEditor({
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
+          onMouseMove={handleMouseMove}
         >
           {/* 줌 컨트롤 */}
           <div
@@ -1096,7 +1175,7 @@ export default function CanvasEditor({
                 />
 
                 {/* Sprint 32: 협업 오버레이 */}
-                {isCollabConnected && (
+                {collab?.isConnected && (
                   <CollabOverlay
                     canvasWidth={templateConfig.canvas.width}
                     canvasHeight={templateConfig.canvas.height}
@@ -1349,34 +1428,27 @@ export default function CanvasEditor({
       />
 
       {/* 협업 확장: 참여자 목록 */}
-      {sessionId && (
+      {sessionId && collab && (
         <div className="fixed top-20 right-4 z-30">
           <ParticipantList
             sessionId={sessionId}
-            user={collabUser}
-            remoteUsers={remoteUsers}
+            user={collab.localUser}
+            remoteUsers={collab.remoteUsers}
             isHost={isHost}
-            myZone={myZone}
+            myZone={collab.myZone}
           />
         </div>
-      )}
-
-      {/* 협업 확장: 채팅 */}
-      {sessionId && (
-        <CollabChat
-          sessionId={sessionId}
-          user={collabUser}
-          position="bottom-right"
-        />
       )}
 
       {/* 협업 확장: 연결 끊김 배너 */}
       <ConnectionBanner
         sessionId={sessionId || null}
-        isConnected={isCollabConnected}
+        isConnected={collab?.isConnected ?? false}
         onReconnect={() => {
           // TODO: 재연결 로직
-          setIsCollabConnected(true)
+          if (sessionId && collab?.localUser) {
+            collab.connect(sessionId, collab.localUser)
+          }
         }}
       />
 
@@ -1387,7 +1459,7 @@ export default function CanvasEditor({
         inviteCode={collabSession?.inviteCode || sessionId?.slice(-6).toUpperCase() || 'DEMO'}
         sessionId={sessionId || ''}
         maxParticipants={collabSession?.maxParticipants || 2}
-        currentParticipants={remoteUsers.size + 1}
+        currentParticipants={(collab?.remoteUsers?.size ?? 0) + 1}
       />
     </div>
   )
