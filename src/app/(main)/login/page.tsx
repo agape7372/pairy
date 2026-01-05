@@ -2,7 +2,7 @@
 
 import { Suspense, useState, useCallback } from 'react'
 import Link from 'next/link'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { Mail, Lock, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react'
 import { Button } from '@/components/ui'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
@@ -29,7 +29,6 @@ interface UIState {
 }
 
 function LoginContent() {
-  const router = useRouter()
   const searchParams = useSearchParams()
 
   // URL 파라미터 안전하게 처리 (Open Redirect 방지)
@@ -151,7 +150,8 @@ function LoginContent() {
         } else if (data.user) {
           // 이메일 인증이 필요 없는 경우 프로필 생성 후 리다이렉트
           await ensureProfile(supabase, data.user)
-          router.push(redirectTo)
+          // [FIXED: 전체 페이지 새로고침으로 세션 동기화]
+          window.location.href = getFullUrl(redirectTo)
         }
       } else {
         // 로그인
@@ -162,7 +162,12 @@ function LoginContent() {
 
         if (error) throw error
 
-        router.push(redirectTo)
+        // [FIXED: router.push() 대신 window.location.href 사용]
+        // router.push()는 클라이언트 사이드 네비게이션으로 React 상태가 유지됨
+        // 이로 인해 새 페이지의 useUser()가 세션을 감지하기 전에 렌더링될 수 있음
+        // window.location.href는 전체 페이지 새로고침을 강제하여
+        // 새 페이지에서 깨끗한 상태로 세션을 로드함
+        window.location.href = getFullUrl(redirectTo)
       }
     } catch (err) {
       logError('EmailAuth', err)
@@ -171,7 +176,7 @@ function LoginContent() {
         isLoading: null,
       })
     }
-  }, [form, ui.mode, redirectTo, router, clearMessages, updateUI])
+  }, [form, ui.mode, redirectTo, clearMessages, updateUI])
 
   // 모드 전환
   const toggleMode = useCallback(() => {
