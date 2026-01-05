@@ -75,9 +75,10 @@ export function TitleInputStep({ className }: TitleInputStepProps) {
       // NOTE: URLSearchParams.set()이 자동으로 인코딩하므로 encodeURIComponent 불필요
       params.set('title', title.trim())
 
-      // Duo 모드일 경우 세션 생성
+      // Duo 모드일 경우 세션 자동 생성
       if (mode === 'duo') {
-        params.set('mode', 'duo')
+        const sessionId = `collab_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+        params.set('session', sessionId)
       }
 
       // 에디터로 이동
