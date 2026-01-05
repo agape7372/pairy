@@ -2,10 +2,16 @@
 
 /**
  * 사용자 인증 상태 훅
- * [FIXED: getSession() 대신 onAuthStateChange 사용 - 네트워크 hang 방지]
+ *
+ * onAuthStateChange만 사용 - INITIAL_SESSION 이벤트는 localStorage에서
+ * 직접 읽어오므로 네트워크 요청 없이 즉시 발생함.
+ * getSession()은 토큰 갱신 시 네트워크를 기다릴 수 있어 hang 위험이 있음.
+ *
+ * timeout 없음 - timeout은 user=null 상태에서 isLoading=false가 되어
+ * 로그인 페이지로 잘못 리다이렉트되는 원인이었음.
  */
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import type { User } from '@supabase/supabase-js'
 import type { UserRole } from '@/types/database.types'
@@ -36,119 +42,92 @@ export function useUser(): UseUserReturn {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
-  // [FIXED: ref로 상태 추적 - 클로저 문제 해결]
-  const sessionReceivedRef = useRef(false)
+  // 프로필 로드 함수
+  const loadProfile = useCallback(async (userId: string, isMounted: () => boolean) => {
+    if (!isSupabaseConfigured()) return
+
+    try {
+      const supabase = createClient()
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, display_name, avatar_url, bio, role')
+        .eq('id', userId)
+        .single()
+
+      if (!error && data && isMounted()) {
+        setProfile(data as Profile)
+      }
+    } catch (err) {
+      console.error('[useUser] Profile load error:', err)
+    }
+  }, [])
 
   useEffect(() => {
-    // Supabase 설정이 없으면 데모 모드로 동작
+    // 데모 모드 체크
     if (!isSupabaseConfigured()) {
+      console.log('[useUser] Demo mode - skipping auth')
       setIsLoading(false)
       return
     }
 
-    const supabase = createClient()
     let isMounted = true
-    sessionReceivedRef.current = false
+    const checkMounted = () => isMounted
+    const supabase = createClient()
 
-    // [FIXED: onAuthStateChange만 사용 - getSession() 제거]
-    // getSession()은 autoRefreshToken으로 인해 네트워크 요청을 기다릴 수 있음
-    // onAuthStateChange의 INITIAL_SESSION 이벤트는 localStorage에서 직접 읽어 즉시 발생
+    console.log('[useUser] Setting up auth listener...')
+
+    // onAuthStateChange만 사용
+    // INITIAL_SESSION은 localStorage에서 즉시 읽어오므로 네트워크 hang 없음
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (!isMounted) return
-
-        console.log('[useUser] Auth state changed:', event, session?.user?.email)
-
-        // 세션 이벤트 수신 플래그 설정
-        sessionReceivedRef.current = true
-
-        // 사용자 상태 즉시 업데이트
-        setUser(session?.user ?? null)
-        setIsLoading(false)
-
-        // 프로필은 별도로 비동기 로드 (UI 블로킹 방지)
-        if (session?.user) {
-          try {
-            const { data: profileData, error } = await supabase
-              .from('profiles')
-              .select('id, display_name, avatar_url, bio, role')
-              .eq('id', session.user.id)
-              .single()
-
-            if (!isMounted) return
-
-            if (!error && profileData) {
-              setProfile(profileData as Profile)
-            }
-          } catch {
-            // 프로필 로드 실패해도 user는 유지
-          }
-        } else {
-          setProfile(null)
-        }
-      }
-    )
-
-    // [FIXED: Fallback - 2초 후에도 이벤트가 없으면 수동으로 getSession 호출]
-    // 이는 onAuthStateChange가 발생하지 않는 엣지 케이스를 처리
-    const fallbackTimer = setTimeout(async () => {
-      if (!isMounted) return
-
-      // 이미 세션 이벤트를 받았으면 스킵
-      if (sessionReceivedRef.current) return
-
-      console.log('[useUser] Fallback: no auth event received, checking session manually')
-
-      try {
-        const { data: { session } } = await supabase.auth.getSession()
+      (event, session) => {
+        console.log('[useUser] Auth event:', event, session?.user?.email ?? 'no user')
 
         if (!isMounted) return
 
+        // 세션 상태 업데이트
         if (session?.user) {
           setUser(session.user)
-
-          // 프로필 로드
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select('id, display_name, avatar_url, bio, role')
-            .eq('id', session.user.id)
-            .single()
-
-          if (!isMounted) return
-          if (profileData) {
-            setProfile(profileData as Profile)
-          }
+          loadProfile(session.user.id, checkMounted)
+        } else {
+          setUser(null)
+          setProfile(null)
         }
 
+        // 모든 이벤트에서 로딩 완료
         setIsLoading(false)
-      } catch (err) {
-        console.error('[useUser] Fallback session check failed:', err)
-        if (isMounted) {
-          setIsLoading(false)
-        }
       }
-    }, 2000)
+    )
 
     return () => {
       isMounted = false
       subscription.unsubscribe()
-      clearTimeout(fallbackTimer)
+    }
+  }, [loadProfile])
+
+  // 로그아웃
+  const signOut = useCallback(async () => {
+    if (!isSupabaseConfigured()) return
+
+    try {
+      const supabase = createClient()
+      await supabase.auth.signOut()
+      setUser(null)
+      setProfile(null)
+    } catch (err) {
+      console.error('[useUser] Sign out error:', err)
     }
   }, [])
 
-  const signOut = async () => {
-    if (!isSupabaseConfigured()) return
-
-    const supabase = createClient()
-    await supabase.auth.signOut()
-    setUser(null)
-    setProfile(null)
-  }
-
   const role = profile?.role ?? null
-  const isAdmin = role === 'admin' || role === 'super_admin'
-  const isSuperAdmin = role === 'super_admin'
-  const isCreator = role === 'creator' || isAdmin
 
-  return { user, profile, isLoading, role, isAdmin, isSuperAdmin, isCreator, signOut }
+  return {
+    user,
+    profile,
+    isLoading,
+    role,
+    isAdmin: role === 'admin' || role === 'super_admin',
+    isSuperAdmin: role === 'super_admin',
+    isCreator: role === 'creator' || role === 'admin' || role === 'super_admin',
+    signOut,
+  }
 }
