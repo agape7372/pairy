@@ -9,22 +9,12 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Users, Crown, Circle, ChevronDown, ChevronUp } from 'lucide-react'
 import { useUserActivity, getActivityStatusColor, type ActivityStatus } from '@/hooks/useUserActivity'
-import type { EditingZone, CollabUser } from '@/lib/collab/types'
-
-// 원격 참여자 타입
-interface RemoteParticipant {
-  id: string
-  name: string
-  color: string
-  zone: EditingZone
-  lastActivity: number
-  isOnline: boolean
-}
+import type { EditingZone, CollabUser, UserEditingState } from '@/lib/collab/types'
 
 interface ParticipantListProps {
   sessionId: string | null
   user: CollabUser | null
-  remoteUsers?: Map<string, RemoteParticipant>
+  remoteUsers?: Map<string, UserEditingState>
   isHost?: boolean
   hostName?: string
   className?: string
@@ -130,11 +120,11 @@ export function ParticipantList({
               {participants.map(([participantId, participant]) => (
                 <ParticipantItem
                   key={participantId}
-                  userName={participant.name}
-                  color={participant.color || getUserColor(participantId)}
+                  userName={participant.userId.slice(0, 8)}
+                  color={getUserColor(participantId)}
                   zone={participant.zone}
-                  isActive={participant.isOnline && Date.now() - participant.lastActivity < 5000}
-                  isHost={hostName === participant.name}
+                  isActive={Date.now() - participant.lastActivity < 5000}
+                  isHost={false}
                 />
               ))}
             </div>
