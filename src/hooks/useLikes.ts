@@ -5,6 +5,7 @@
  * 변경 이유: 데모 모드 localStorage 로직을 demoStorage 유틸리티로 통합
  * 추가: UUID 유효성 검사로 샘플 데이터 ID에 대한 400 에러 방지
  * [FIXED: useRef로 race condition 방지 - 빠른 더블클릭 시 중복 요청 방지]
+ * [FIXED: 무한루프 방지 - 상태값을 useCallback 의존성에서 제거, ref 패턴 사용]
  */
 
 import { useEffect, useState, useCallback, useRef } from 'react'
@@ -42,6 +43,19 @@ export function useLikes(templateId: string, initialLikeCount?: number): UseLike
 
   // [FIXED: useRef로 동기적 체크 - 상태는 비동기라 race condition 발생 가능]
   const isProcessingRef = useRef(false)
+
+  // [FIXED: 무한루프 방지 - 상태값을 ref로 추적하여 콜백 의존성에서 제거]
+  const isLikedRef = useRef(isLiked)
+  const likeCountRef = useRef(likeCount)
+
+  // 상태 변경 시 ref 동기화
+  useEffect(() => {
+    isLikedRef.current = isLiked
+  }, [isLiked])
+
+  useEffect(() => {
+    likeCountRef.current = likeCount
+  }, [likeCount])
 
   // 초기 상태 로드
   useEffect(() => {
@@ -105,6 +119,7 @@ export function useLikes(templateId: string, initialLikeCount?: number): UseLike
   }, [templateId, initialLikeCount])
 
   // 좋아요 (낙관적 업데이트 + 실패 시 롤백)
+  // [FIXED: 무한루프 방지 - 상태값(isLiked, likeCount)을 의존성에서 제거, ref 사용]
   const like = useCallback(async (): Promise<boolean> => {
     // [FIXED: ref 기반 동기적 체크로 race condition 완전 방지]
     if (isProcessingRef.current) return false
@@ -126,9 +141,11 @@ export function useLikes(templateId: string, initialLikeCount?: number): UseLike
       return false
     }
 
+    // [FIXED: ref에서 현재 값을 읽어 롤백용으로 저장]
+    const previousIsLiked = isLikedRef.current
+    const previousCount = likeCountRef.current
+
     // 낙관적 업데이트: UI 먼저 변경
-    const previousIsLiked = isLiked
-    const previousCount = likeCount
     setIsLiked(true)
     setLikeCount(prev => prev + 1)
 
@@ -160,9 +177,10 @@ export function useLikes(templateId: string, initialLikeCount?: number): UseLike
     } finally {
       isProcessingRef.current = false  // [FIXED: 반드시 해제]
     }
-  }, [templateId, currentUserId, isLiked, likeCount])
+  }, [templateId, currentUserId])  // [FIXED: isLiked, likeCount 제거]
 
   // 좋아요 취소 (낙관적 업데이트 + 실패 시 롤백)
+  // [FIXED: 무한루프 방지 - 상태값(isLiked, likeCount)을 의존성에서 제거, ref 사용]
   const unlike = useCallback(async (): Promise<boolean> => {
     // [FIXED: ref 기반 동기적 체크로 race condition 완전 방지]
     if (isProcessingRef.current) return false
@@ -184,9 +202,11 @@ export function useLikes(templateId: string, initialLikeCount?: number): UseLike
       return false
     }
 
+    // [FIXED: ref에서 현재 값을 읽어 롤백용으로 저장]
+    const previousIsLiked = isLikedRef.current
+    const previousCount = likeCountRef.current
+
     // 낙관적 업데이트: UI 먼저 변경
-    const previousIsLiked = isLiked
-    const previousCount = likeCount
     setIsLiked(false)
     setLikeCount(prev => Math.max(0, prev - 1))
 
@@ -217,12 +237,13 @@ export function useLikes(templateId: string, initialLikeCount?: number): UseLike
     } finally {
       isProcessingRef.current = false  // [FIXED: 반드시 해제]
     }
-  }, [templateId, currentUserId, isLiked, likeCount])
+  }, [templateId, currentUserId])  // [FIXED: isLiked, likeCount 제거]
 
   // 토글
+  // [FIXED: 무한루프 방지 - isLikedRef 사용으로 콜백 안정성 확보]
   const toggle = useCallback(async (): Promise<boolean> => {
-    return isLiked ? unlike() : like()
-  }, [isLiked, like, unlike])
+    return isLikedRef.current ? unlike() : like()
+  }, [like, unlike])  // [FIXED: isLiked 제거, ref 사용]
 
   return {
     isLiked,

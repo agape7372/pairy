@@ -1,41 +1,83 @@
 'use client'
 
-import { Suspense, useState } from 'react'
+import { Suspense, useState, useCallback } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Mail, Lock, Eye, EyeOff } from 'lucide-react'
+import { Mail, Lock, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react'
 import { Button } from '@/components/ui'
-import { createClient } from '@/lib/supabase/client'
-import { BASE_PATH, getFullUrl } from '@/lib/constants'
+import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
+import { validateRedirectUrl, getFullUrl } from '@/lib/utils/url'
+import { parseError, logError } from '@/lib/utils/error'
+import { ensureProfile } from '@/lib/auth/profile'
+import type { OAuthProvider } from '@/lib/auth/identity'
 
-type Provider = 'google' | 'twitter'
 type AuthMode = 'login' | 'signup'
+
+// 폼 상태 타입
+interface FormState {
+  email: string
+  password: string
+  showPassword: boolean
+}
+
+// UI 상태 타입
+interface UIState {
+  mode: AuthMode
+  isLoading: OAuthProvider | 'email' | null
+  error: string | null
+  success: string | null
+}
 
 function LoginContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const redirectTo = searchParams.get('redirectTo') || '/'
 
-  const [mode, setMode] = useState<AuthMode>('login')
-  const [isLoading, setIsLoading] = useState<Provider | 'email' | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState<string | null>(null)
+  // URL 파라미터 안전하게 처리 (Open Redirect 방지)
+  const redirectTo = validateRedirectUrl(searchParams.get('redirectTo'))
+  const urlError = searchParams.get('error')
 
-  // 이메일/비밀번호 폼
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
+  // 폼 상태
+  const [form, setForm] = useState<FormState>({
+    email: '',
+    password: '',
+    showPassword: false,
+  })
 
-  const handleSocialLogin = async (provider: Provider) => {
-    setIsLoading(provider)
-    setError(null)
+  // UI 상태
+  const [ui, setUI] = useState<UIState>({
+    mode: 'login',
+    isLoading: null,
+    error: urlError ? decodeErrorParam(urlError) : null,
+    success: null,
+  })
+
+  // 폼 필드 업데이트
+  const updateForm = useCallback((updates: Partial<FormState>) => {
+    setForm(prev => ({ ...prev, ...updates }))
+  }, [])
+
+  // UI 상태 업데이트
+  const updateUI = useCallback((updates: Partial<UIState>) => {
+    setUI(prev => ({ ...prev, ...updates }))
+  }, [])
+
+  // 에러 초기화
+  const clearMessages = useCallback(() => {
+    updateUI({ error: null, success: null })
+  }, [updateUI])
+
+  // 소셜 로그인 핸들러
+  const handleSocialLogin = useCallback(async (provider: OAuthProvider) => {
+    if (!isSupabaseConfigured()) {
+      updateUI({ error: '데모 모드에서는 소셜 로그인을 사용할 수 없어요.' })
+      return
+    }
+
+    updateUI({ isLoading: provider, error: null })
 
     try {
       const supabase = createClient()
-      // 명시적으로 전체 콜백 URL 생성 (GitHub Pages basePath 포함)
       const callbackUrl = getFullUrl(`/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`)
-
-      console.log('[Login] OAuth redirect to:', callbackUrl)
 
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
@@ -47,28 +89,53 @@ function LoginContent() {
       if (error) {
         throw error
       }
+      // OAuth 리다이렉트가 진행되므로 로딩 상태 유지
     } catch (err) {
-      console.error('Login error:', err)
-      setError('로그인 중 오류가 발생했어요. 다시 시도해주세요.')
-      setIsLoading(null)
+      logError('SocialLogin', err)
+      updateUI({
+        error: parseError(err).message,
+        isLoading: null,
+      })
     }
-  }
+  }, [redirectTo, updateUI])
 
-  const handleEmailAuth = async (e: React.FormEvent) => {
+  // 이메일 인증 핸들러
+  const handleEmailAuth = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading('email')
-    setError(null)
-    setSuccess(null)
+    clearMessages()
+
+    // 유효성 검사
+    if (!form.email.trim()) {
+      updateUI({ error: '이메일을 입력해주세요.' })
+      return
+    }
+
+    if (!isValidEmail(form.email)) {
+      updateUI({ error: '올바른 이메일 형식을 입력해주세요.' })
+      return
+    }
+
+    if (form.password.length < 6) {
+      updateUI({ error: '비밀번호는 최소 6자 이상이어야 해요.' })
+      return
+    }
+
+    if (!isSupabaseConfigured()) {
+      updateUI({ error: '데모 모드에서는 이메일 로그인을 사용할 수 없어요.' })
+      return
+    }
+
+    updateUI({ isLoading: 'email' })
 
     try {
       const supabase = createClient()
 
-      if (mode === 'signup') {
+      if (ui.mode === 'signup') {
         // 회원가입
         const callbackUrl = getFullUrl(`/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`)
         const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
+          email: form.email,
+          password: form.password,
           options: {
             emailRedirectTo: callbackUrl,
           },
@@ -77,56 +144,56 @@ function LoginContent() {
         if (error) throw error
 
         if (data.user && !data.user.confirmed_at) {
-          setSuccess('이메일을 확인해주세요! 인증 링크를 보냈어요.')
-        } else {
-          // 이메일 인증이 필요 없는 경우 바로 프로필 생성
-          if (data.user) {
-            await supabase.from('profiles').insert({
-              id: data.user.id,
-              username: email.split('@')[0],
-              display_name: email.split('@')[0],
-              role: 'user',
-            })
-          }
+          updateUI({
+            success: '이메일을 확인해주세요! 인증 링크를 보냈어요. 📬',
+            isLoading: null,
+          })
+        } else if (data.user) {
+          // 이메일 인증이 필요 없는 경우 프로필 생성 후 리다이렉트
+          await ensureProfile(supabase, data.user)
           router.push(redirectTo)
         }
       } else {
         // 로그인
         const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
+          email: form.email,
+          password: form.password,
         })
 
-        if (error) {
-          if (error.message.includes('Invalid login credentials')) {
-            throw new Error('이메일 또는 비밀번호가 올바르지 않아요.')
-          }
-          throw error
-        }
+        if (error) throw error
 
         router.push(redirectTo)
       }
-    } catch (err: any) {
-      console.error('Auth error:', err)
-      setError(err.message || '오류가 발생했어요. 다시 시도해주세요.')
-    } finally {
-      setIsLoading(null)
+    } catch (err) {
+      logError('EmailAuth', err)
+      updateUI({
+        error: parseError(err).message,
+        isLoading: null,
+      })
     }
-  }
+  }, [form, ui.mode, redirectTo, router, clearMessages, updateUI])
+
+  // 모드 전환
+  const toggleMode = useCallback(() => {
+    clearMessages()
+    updateUI({ mode: ui.mode === 'login' ? 'signup' : 'login' })
+  }, [ui.mode, clearMessages, updateUI])
+
+  const isDisabled = ui.isLoading !== null
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4 animate-fade-in">
       <div className="w-full max-w-[400px]">
         {/* Logo */}
         <div className="text-center mb-8">
-          <Link href="/" className="inline-block mb-6">
+          <Link href="/" className="inline-block mb-6 transition-transform hover:scale-105">
             <span className="text-3xl font-bold">
               <span className="text-primary-400">Pair</span>
               <span className="text-accent-400">y</span>
             </span>
           </Link>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            시작하기
+            {ui.mode === 'login' ? '다시 만나서 반가워요!' : '시작하기'}
           </h1>
           <p className="text-gray-500">
             소셜 계정으로 간편하게 시작해요
@@ -136,9 +203,24 @@ function LoginContent() {
         {/* Login Card */}
         <div className="bg-white rounded-[24px] border border-gray-200 p-8 shadow-sm">
           {/* Error Message */}
-          {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">
-              {error}
+          {ui.error && (
+            <div
+              className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600 flex items-start gap-3 animate-shake"
+              role="alert"
+            >
+              <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+              <span>{ui.error}</span>
+            </div>
+          )}
+
+          {/* Success Message */}
+          {ui.success && (
+            <div
+              className="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl text-sm text-green-600 flex items-start gap-3 animate-fade-in"
+              role="status"
+            >
+              <CheckCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+              <span>{ui.success}</span>
             </div>
           )}
 
@@ -147,30 +229,14 @@ function LoginContent() {
             {/* Google */}
             <button
               onClick={() => handleSocialLogin('google')}
-              disabled={isLoading !== null}
-              className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white border border-gray-200 rounded-full font-medium text-gray-700 hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isDisabled}
+              aria-label="Google 계정으로 로그인"
+              className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white border border-gray-200 rounded-full font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-primary-300 focus:ring-offset-2"
             >
-              {isLoading === 'google' ? (
+              {ui.isLoading === 'google' ? (
                 <LoadingSpinner />
               ) : (
-                <svg className="w-5 h-5" viewBox="0 0 24 24">
-                  <path
-                    fill="#4285F4"
-                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                  />
-                  <path
-                    fill="#34A853"
-                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                  />
-                  <path
-                    fill="#FBBC05"
-                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                  />
-                  <path
-                    fill="#EA4335"
-                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                  />
-                </svg>
+                <GoogleIcon />
               )}
               <span>Google로 계속하기</span>
             </button>
@@ -178,15 +244,14 @@ function LoginContent() {
             {/* Twitter/X */}
             <button
               onClick={() => handleSocialLogin('twitter')}
-              disabled={isLoading !== null}
-              className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-black text-white rounded-full font-medium hover:bg-gray-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isDisabled}
+              aria-label="X 계정으로 로그인"
+              className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-black text-white rounded-full font-medium hover:bg-gray-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
             >
-              {isLoading === 'twitter' ? (
+              {ui.isLoading === 'twitter' ? (
                 <LoadingSpinner />
               ) : (
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-                </svg>
+                <XIcon />
               )}
               <span>X로 계속하기</span>
             </button>
@@ -203,57 +268,72 @@ function LoginContent() {
           </div>
 
           {/* Email/Password Form */}
-          <form onSubmit={handleEmailAuth} className="space-y-4">
-            {/* Success Message */}
-            {success && (
-              <div className="p-4 bg-green-50 border border-green-200 rounded-xl text-sm text-green-600">
-                {success}
-              </div>
-            )}
-
+          <form onSubmit={handleEmailAuth} className="space-y-4" noValidate>
             {/* Email Input */}
             <div className="relative">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <label htmlFor="email" className="sr-only">이메일</label>
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" aria-hidden="true" />
               <input
+                id="email"
                 type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={form.email}
+                onChange={(e) => updateForm({ email: e.target.value })}
                 placeholder="이메일"
                 required
-                className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent"
+                autoComplete="email"
+                disabled={isDisabled}
+                className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent transition-all disabled:bg-gray-50 disabled:cursor-not-allowed"
               />
             </div>
 
             {/* Password Input */}
             <div className="relative">
-              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <label htmlFor="password" className="sr-only">비밀번호</label>
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" aria-hidden="true" />
               <input
-                type={showPassword ? 'text' : 'password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                id="password"
+                type={form.showPassword ? 'text' : 'password'}
+                value={form.password}
+                onChange={(e) => updateForm({ password: e.target.value })}
                 placeholder="비밀번호"
                 required
                 minLength={6}
-                className="w-full pl-12 pr-12 py-3 border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent"
+                autoComplete={ui.mode === 'login' ? 'current-password' : 'new-password'}
+                disabled={isDisabled}
+                className="w-full pl-12 pr-12 py-3 border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent transition-all disabled:bg-gray-50 disabled:cursor-not-allowed"
               />
               <button
                 type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                onClick={() => updateForm({ showPassword: !form.showPassword })}
+                disabled={isDisabled}
+                aria-label={form.showPassword ? '비밀번호 숨기기' : '비밀번호 표시'}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 disabled:cursor-not-allowed transition-colors"
               >
-                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                {form.showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
+
+            {/* Forgot Password Link (로그인 모드에서만) */}
+            {ui.mode === 'login' && (
+              <div className="text-right">
+                <Link
+                  href={`/reset-password?email=${encodeURIComponent(form.email)}`}
+                  className="text-sm text-primary-400 hover:text-primary-500 hover:underline transition-colors"
+                >
+                  비밀번호를 잊으셨나요?
+                </Link>
+              </div>
+            )}
 
             {/* Submit Button */}
             <Button
               type="submit"
-              disabled={isLoading !== null}
+              disabled={isDisabled}
               className="w-full"
             >
-              {isLoading === 'email' ? (
+              {ui.isLoading === 'email' ? (
                 <LoadingSpinner />
-              ) : mode === 'login' ? (
+              ) : ui.mode === 'login' ? (
                 '로그인'
               ) : (
                 '회원가입'
@@ -262,13 +342,14 @@ function LoginContent() {
 
             {/* Toggle Mode */}
             <div className="text-center text-sm text-gray-500">
-              {mode === 'login' ? (
+              {ui.mode === 'login' ? (
                 <>
                   계정이 없으신가요?{' '}
                   <button
                     type="button"
-                    onClick={() => setMode('signup')}
-                    className="text-primary-400 hover:underline font-medium"
+                    onClick={toggleMode}
+                    disabled={isDisabled}
+                    className="text-primary-400 hover:text-primary-500 hover:underline font-medium transition-colors disabled:cursor-not-allowed"
                   >
                     회원가입
                   </button>
@@ -278,8 +359,9 @@ function LoginContent() {
                   이미 계정이 있으신가요?{' '}
                   <button
                     type="button"
-                    onClick={() => setMode('login')}
-                    className="text-primary-400 hover:underline font-medium"
+                    onClick={toggleMode}
+                    disabled={isDisabled}
+                    className="text-primary-400 hover:text-primary-500 hover:underline font-medium transition-colors disabled:cursor-not-allowed"
                   >
                     로그인
                   </button>
@@ -321,6 +403,7 @@ function LoginContent() {
   )
 }
 
+// 로딩 스켈레톤
 function LoginFallback() {
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4">
@@ -354,6 +437,23 @@ export default function LoginPage() {
   )
 }
 
+// 유틸리티 함수들
+function isValidEmail(email: string): boolean {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  return emailRegex.test(email)
+}
+
+function decodeErrorParam(error: string): string {
+  const errorMessages: Record<string, string> = {
+    auth_failed: '인증에 실패했어요. 다시 시도해주세요.',
+    session_failed: '세션 설정에 실패했어요.',
+    no_auth: '인증 정보가 없어요. 다시 로그인해주세요.',
+    access_denied: '접근이 거부되었어요.',
+  }
+  return errorMessages[error] || '오류가 발생했어요. 다시 시도해주세요.'
+}
+
+// 아이콘 컴포넌트들
 function LoadingSpinner() {
   return (
     <svg
@@ -361,6 +461,7 @@ function LoadingSpinner() {
       xmlns="http://www.w3.org/2000/svg"
       fill="none"
       viewBox="0 0 24 24"
+      aria-hidden="true"
     >
       <circle
         className="opacity-25"
@@ -375,6 +476,37 @@ function LoadingSpinner() {
         fill="currentColor"
         d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
       />
+    </svg>
+  )
+}
+
+function GoogleIcon() {
+  return (
+    <svg className="w-5 h-5" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        fill="#4285F4"
+        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+      />
+      <path
+        fill="#34A853"
+        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+      />
+      <path
+        fill="#EA4335"
+        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+      />
+    </svg>
+  )
+}
+
+function XIcon() {
+  return (
+    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
     </svg>
   )
 }
