@@ -71,70 +71,110 @@ export class SupabaseYjsProvider {
       return
     }
 
-    const supabase = createClient()
-
-    // 채널 생성
-    this.channel = supabase.channel(`collab-yjs:${this.sessionId}`, {
-      config: {
-        broadcast: {
-          self: false, // 자신의 브로드캐스트는 수신하지 않음
-        },
-      },
-    })
-
-    // Yjs 업데이트 수신
-    this.channel.on('broadcast', { event: 'yjs-update' }, ({ payload }) => {
-      this.handleRemoteUpdate(payload)
-    })
-
-    // Awareness 업데이트 수신
-    this.channel.on('broadcast', { event: 'awareness-update' }, ({ payload }) => {
-      this.handleAwarenessUpdate(payload)
-    })
-
-    // Presence 설정 (온라인 상태)
-    this.channel.on('presence', { event: 'sync' }, () => {
-      this.syncRemoteUsers()
-    })
-
-    this.channel.on('presence', { event: 'join' }, () => {
-      this.syncRemoteUsers()
-    })
-
-    this.channel.on('presence', { event: 'leave' }, () => {
-      this.syncRemoteUsers()
-    })
-
-    // 구독 시작
-    await this.channel.subscribe(async (status) => {
-      if (status === 'SUBSCRIBED') {
-        this.isConnected = true
-
-        // Presence에 자신 등록
-        await this.channel?.track({
-          user_id: this.user.id,
-          user_name: this.user.name,
-          user_color: this.user.color,
-          user_avatar: this.user.avatar,
-          online_at: new Date().toISOString(),
-        })
-
-        // 초기 상태 요청 (기존 참여자로부터)
-        this.requestInitialState()
+    try {
+      const supabase = createClient()
+      if (!supabase) {
+        console.warn('[YjsProvider] Supabase client not available')
+        return
       }
-    })
+
+      // 채널 생성
+      this.channel = supabase.channel(`collab-yjs:${this.sessionId}`, {
+        config: {
+          broadcast: {
+            self: false, // 자신의 브로드캐스트는 수신하지 않음
+          },
+        },
+      })
+
+      // Yjs 업데이트 수신
+      this.channel.on('broadcast', { event: 'yjs-update' }, ({ payload }) => {
+        try {
+          this.handleRemoteUpdate(payload)
+        } catch (e) {
+          console.warn('[YjsProvider] Error handling remote update:', e)
+        }
+      })
+
+      // Awareness 업데이트 수신
+      this.channel.on('broadcast', { event: 'awareness-update' }, ({ payload }) => {
+        try {
+          this.handleAwarenessUpdate(payload)
+        } catch (e) {
+          console.warn('[YjsProvider] Error handling awareness update:', e)
+        }
+      })
+
+      // Presence 설정 (온라인 상태)
+      this.channel.on('presence', { event: 'sync' }, () => {
+        this.syncRemoteUsers()
+      })
+
+      this.channel.on('presence', { event: 'join' }, () => {
+        this.syncRemoteUsers()
+      })
+
+      this.channel.on('presence', { event: 'leave' }, () => {
+        this.syncRemoteUsers()
+      })
+
+      // 구독 시작
+      await this.channel.subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          this.isConnected = true
+
+          // Presence에 자신 등록
+          try {
+            await this.channel?.track({
+              user_id: this.user.id,
+              user_name: this.user.name,
+              user_color: this.user.color,
+              user_avatar: this.user.avatar,
+              online_at: new Date().toISOString(),
+            })
+          } catch (e) {
+            console.warn('[YjsProvider] Error tracking presence:', e)
+          }
+
+          // 초기 상태 요청 (기존 참여자로부터)
+          this.requestInitialState()
+        }
+      })
+    } catch (error) {
+      console.error('[YjsProvider] Connection failed:', error)
+      throw error // 상위에서 처리하도록 다시 throw
+    }
   }
 
-  /** 연결 해제 */
+  /** 연결 해제 (안전한 정리) */
   disconnect(): void {
-    if (this.channel) {
-      const supabase = createClient()
-      supabase.removeChannel(this.channel)
-      this.channel = null
+    try {
+      if (this.channel) {
+        // 데모 모드가 아닐 때만 채널 제거
+        if (isSupabaseConfigured()) {
+          const supabase = createClient()
+          if (supabase) {
+            supabase.removeChannel(this.channel)
+          }
+        }
+        this.channel = null
+      }
+      this.isConnected = false
+
+      // Awareness와 Doc는 안전하게 정리
+      try {
+        this.awareness.destroy()
+      } catch (e) {
+        console.warn('[YjsProvider] Error destroying awareness:', e)
+      }
+      try {
+        this.doc.destroy()
+      } catch (e) {
+        console.warn('[YjsProvider] Error destroying doc:', e)
+      }
+    } catch (error) {
+      console.error('[YjsProvider] Error during disconnect:', error)
     }
-    this.isConnected = false
-    this.awareness.destroy()
-    this.doc.destroy()
   }
 
   /** 초기 상태 설정 (로컬 스토어에서) */
