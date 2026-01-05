@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
 import {
   ArrowLeft,
   Download,
@@ -110,12 +109,23 @@ function generateUserColor(userId: string): string {
 
 export default function CanvasEditor({
   templateId,
-  initialTitle,
+  initialTitle: propInitialTitle,
   sessionId: propSessionId,
 }: CanvasEditorProps) {
-  // URL에서 session 파라미터 읽기
-  const searchParams = useSearchParams()
-  const sessionId = propSessionId || searchParams.get('session') || undefined
+  // 클라이언트에서 URL 파라미터 읽기 (정적 export 호환)
+  const [urlParams, setUrlParams] = useState<{ session?: string; title?: string }>({})
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search)
+      setUrlParams({
+        session: params.get('session') || undefined,
+        title: params.get('title') || undefined,
+      })
+    }
+  }, [])
+
+  const sessionId = propSessionId || urlParams.session
+  const initialTitle = propInitialTitle || urlParams.title
 
   // 사용자 정보 가져오기
   const { user, profile } = useUser()
