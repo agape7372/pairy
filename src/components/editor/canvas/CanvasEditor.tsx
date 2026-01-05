@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import {
   ArrowLeft,
   Download,
@@ -110,8 +111,12 @@ function generateUserColor(userId: string): string {
 export default function CanvasEditor({
   templateId,
   initialTitle,
-  sessionId,
+  sessionId: propSessionId,
 }: CanvasEditorProps) {
+  // URL에서 session 파라미터 읽기
+  const searchParams = useSearchParams()
+  const sessionId = propSessionId || searchParams.get('session') || undefined
+
   // 사용자 정보 가져오기
   const { user, profile } = useUser()
 
@@ -1003,8 +1008,9 @@ function CanvasEditorContent({
             <span className="hidden sm:inline ml-1">저장</span>
           </Button>
 
-          {/* Sprint 32+: 협업 상태 표시 (개선) */}
-          {sessionId && (
+          {/* Sprint 32+: 협업 버튼 */}
+          {sessionId ? (
+            // 협업 중: 연결 상태 + 초대 버튼
             <div className="flex items-center gap-2">
               <ConnectionIndicator
                 sessionId={sessionId}
@@ -1024,6 +1030,22 @@ function CanvasEditorContent({
                 </span>
               </button>
             </div>
+          ) : (
+            // 협업 없음: 협업 시작 버튼
+            <button
+              onClick={() => {
+                // 새 sessionId 생성하고 URL 변경
+                const newSessionId = `collab_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+                const newUrl = `${window.location.pathname}?session=${newSessionId}`
+                window.history.pushState({}, '', newUrl)
+                window.location.reload() // 세션 적용을 위해 리로드
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-100 text-primary-700 rounded-lg hover:bg-primary-200 transition-colors"
+              title="협업 시작하기"
+            >
+              <Users className="w-4 h-4" />
+              <span className="text-xs font-medium hidden sm:inline">협업</span>
+            </button>
           )}
 
           {/* 내보내기 */}
