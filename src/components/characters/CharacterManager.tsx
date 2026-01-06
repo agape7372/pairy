@@ -2,10 +2,11 @@
 
 /**
  * 캐릭터 관리 컴포넌트
- * 캐릭터 목록, CRUD 작업 UI 제공
+ * 캐릭터 목록, 페이지 이동 및 삭제 UI 제공
  */
 
 import { useState, useCallback, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Plus,
@@ -14,17 +15,25 @@ import {
   AlertCircle,
   Loader2,
   RefreshCw,
+  SlidersHorizontal,
+  ArrowUpDown,
 } from 'lucide-react'
 import { Button, Input } from '@/components/ui'
 import { CharacterCard } from './CharacterCard'
-import { CharacterEditModal } from './CharacterEditModal'
-import {
-  useCharacters,
-  type CreateCharacterInput,
-  type UpdateCharacterInput,
-} from '@/hooks/useCharacters'
+import { useCharacters } from '@/hooks/useCharacters'
 import type { Character } from '@/types/database.types'
 import { cn } from '@/lib/utils/cn'
+
+// 정렬 옵션
+type SortOption = 'created_desc' | 'created_asc' | 'name_asc' | 'name_desc' | 'updated_desc'
+
+const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+  { value: 'created_desc', label: '최신순' },
+  { value: 'created_asc', label: '오래된순' },
+  { value: 'name_asc', label: '이름 (가나다)' },
+  { value: 'name_desc', label: '이름 (역순)' },
+  { value: 'updated_desc', label: '최근 수정' },
+]
 
 interface CharacterManagerProps {
   className?: string
@@ -39,14 +48,12 @@ export function CharacterManager({
   selectionMode = false,
   selectedCharacterId,
 }: CharacterManagerProps) {
+  const router = useRouter()
   const {
     characters,
     isLoading,
     isSaving,
     error,
-    operationState,
-    createCharacter,
-    updateCharacter,
     deleteCharacter,
     canCreateMore,
     refetch,
@@ -55,48 +62,61 @@ export function CharacterManager({
 
   // UI 상태
   const [searchQuery, setSearchQuery] = useState('')
-  const [editModalOpen, setEditModalOpen] = useState(false)
-  const [editingCharacter, setEditingCharacter] = useState<Character | null>(null)
+  const [sortOption, setSortOption] = useState<SortOption>('created_desc')
+  const [showSortMenu, setShowSortMenu] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState<Character | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
-  // 필터링된 캐릭터 목록
+  // 필터링 및 정렬된 캐릭터 목록
   const filteredCharacters = useMemo(() => {
-    if (!searchQuery.trim()) return characters
+    let result = [...characters]
 
-    const query = searchQuery.toLowerCase()
-    return characters.filter(
-      (c) =>
-        c.name.toLowerCase().includes(query) ||
-        c.description?.toLowerCase().includes(query)
-    )
-  }, [characters, searchQuery])
+    // 검색 필터
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase()
+      result = result.filter(
+        (c) =>
+          c.name.toLowerCase().includes(query) ||
+          c.description?.toLowerCase().includes(query)
+      )
+    }
 
-  // 캐릭터 생성 핸들러
+    // 정렬
+    switch (sortOption) {
+      case 'created_desc':
+        result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        break
+      case 'created_asc':
+        result.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+        break
+      case 'name_asc':
+        result.sort((a, b) => a.name.localeCompare(b.name, 'ko'))
+        break
+      case 'name_desc':
+        result.sort((a, b) => b.name.localeCompare(a.name, 'ko'))
+        break
+      case 'updated_desc':
+        result.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+        break
+    }
+
+    return result
+  }, [characters, searchQuery, sortOption])
+
+  // 캐릭터 생성 페이지로 이동
   const handleCreate = useCallback(() => {
     if (!canCreateMore) return
-    setEditingCharacter(null)
-    setEditModalOpen(true)
-  }, [canCreateMore])
+    router.push('/my/characters/new')
+  }, [canCreateMore, router])
 
-  // 캐릭터 편집 핸들러
+  // 캐릭터 편집 페이지로 이동 또는 선택
   const handleEdit = useCallback((character: Character) => {
     if (selectionMode && onCharacterSelect) {
       onCharacterSelect(character)
       return
     }
-    setEditingCharacter(character)
-    setEditModalOpen(true)
-  }, [selectionMode, onCharacterSelect])
-
-  // 저장 핸들러
-  const handleSave = useCallback(async (data: CreateCharacterInput | UpdateCharacterInput) => {
-    if (editingCharacter) {
-      return updateCharacter(editingCharacter.id, data as UpdateCharacterInput)
-    } else {
-      return createCharacter(data as CreateCharacterInput)
-    }
-  }, [editingCharacter, createCharacter, updateCharacter])
+    router.push(`/my/characters/${character.id}`)
+  }, [selectionMode, onCharacterSelect, router])
 
   // 삭제 확인 핸들러
   const handleDeleteConfirm = useCallback((character: Character) => {
@@ -170,16 +190,65 @@ export function CharacterManager({
         </Button>
       </div>
 
-      {/* 검색바 */}
+      {/* 검색 및 필터 */}
       {characters.length > 0 && (
-        <div className="relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <Input
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="캐릭터 검색..."
-            className="pl-10"
-          />
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="캐릭터 검색..."
+              className="pl-10"
+            />
+          </div>
+
+          {/* 정렬 드롭다운 */}
+          <div className="relative">
+            <Button
+              variant="secondary"
+              onClick={() => setShowSortMenu(!showSortMenu)}
+              className="gap-2"
+            >
+              <ArrowUpDown className="w-4 h-4" />
+              <span className="hidden sm:inline">
+                {SORT_OPTIONS.find((o) => o.value === sortOption)?.label}
+              </span>
+            </Button>
+
+            <AnimatePresence>
+              {showSortMenu && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setShowSortMenu(false)}
+                  />
+                  <motion.div
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    className="absolute right-0 mt-2 w-40 bg-white rounded-xl shadow-lg border border-gray-200 py-1 z-50"
+                  >
+                    {SORT_OPTIONS.map((option) => (
+                      <button
+                        key={option.value}
+                        onClick={() => {
+                          setSortOption(option.value)
+                          setShowSortMenu(false)
+                        }}
+                        className={cn(
+                          'w-full px-4 py-2 text-sm text-left hover:bg-gray-50 transition-colors',
+                          sortOption === option.value && 'text-primary-600 font-medium bg-primary-50'
+                        )}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       )}
 
@@ -228,23 +297,6 @@ export function CharacterManager({
         </div>
       )}
 
-      {/* 편집 모달 */}
-      <AnimatePresence>
-        {editModalOpen && (
-          <CharacterEditModal
-            isOpen={editModalOpen}
-            onClose={() => {
-              setEditModalOpen(false)
-              setEditingCharacter(null)
-            }}
-            character={editingCharacter}
-            onSave={handleSave}
-            isSaving={isSaving}
-            validationError={operationState === 'error' ? error : null}
-          />
-        )}
-      </AnimatePresence>
-
       {/* 삭제 확인 대화상자 */}
       <AnimatePresence>
         {deleteConfirm && (
@@ -253,7 +305,7 @@ export function CharacterManager({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100]"
               onClick={() => !isSaving && setDeleteConfirm(null)}
             />
 
@@ -261,7 +313,7 @@ export function CharacterManager({
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-sm bg-white rounded-[24px] shadow-xl p-6 z-50"
+              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-sm bg-white rounded-[24px] shadow-xl p-6 z-[100]"
             >
               <div className="text-center mb-6">
                 <div
