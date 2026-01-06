@@ -172,7 +172,8 @@ const ColorSpectrum = memo(function ColorSpectrum({
       aria-label="색상 채도와 밝기"
       aria-valuetext={`채도 ${saturation}%, 밝기 ${value}%`}
       className={cn(
-        'relative w-full aspect-square rounded-xl overflow-hidden cursor-crosshair',
+        // 모바일: 16:10 비율, 데스크탑: 정사각형
+        'relative w-full aspect-[16/10] sm:aspect-square rounded-xl overflow-hidden cursor-crosshair touch-none',
         'focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-2',
         disabled && 'opacity-50 cursor-not-allowed'
       )}
@@ -300,7 +301,7 @@ const HueSlider = memo(function HueSlider({
       aria-valuemax={360}
       aria-valuenow={hue}
       className={cn(
-        'relative h-4 rounded-full cursor-pointer',
+        'relative h-4 rounded-full cursor-pointer touch-none',
         'focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-2',
         disabled && 'opacity-50 cursor-not-allowed'
       )}
@@ -663,7 +664,7 @@ export const ColorPicker = memo(function ColorPicker({
   const currentRgb = hexToRgb(value) || { r: 255, g: 255, b: 255 }
 
   return (
-    <div className={cn('space-y-4', className)}>
+    <div className={cn('space-y-3 sm:space-y-4', className)}>
       {label && (
         <label className="block text-sm font-medium text-gray-700">{label}</label>
       )}

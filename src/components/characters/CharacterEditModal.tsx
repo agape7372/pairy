@@ -6,9 +6,11 @@
  * - 프로필 사진 업로드
  * - 3색 컬러 시스템 (머리색, 눈색, 메인컬러)
  * - 고급 컬러 피커 (HSV 스펙트럼 + HEX/RGB 입력)
+ * - React Portal로 z-index 계층 분리
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   X,
@@ -151,7 +153,7 @@ function ExpandableColorPicker({
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+            <div className="p-3 sm:p-4 bg-gray-50 rounded-xl border border-gray-100">
               <ColorPicker
                 value={value}
                 onChange={handleColorChange}
@@ -314,33 +316,40 @@ export function CharacterEditModal({
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isOpen, isSaving, onClose])
 
-  if (!isOpen) return null
+  // Portal 마운트 체크 (SSR 안전)
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!isOpen || !mounted) return null
 
   const isDisabled = isSaving || isUploading
 
-  return (
+  // Portal로 body 바로 아래에 렌더링하여 z-index 계층 분리
+  return createPortal(
     <>
       {/* 배경 오버레이 */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100]"
         onClick={isDisabled ? undefined : onClose}
       />
 
-      {/* 모달 */}
+      {/* 모달 - 모바일 반응형 */}
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg max-h-[90vh] overflow-y-auto bg-white rounded-[24px] shadow-xl z-50"
+        className="fixed inset-4 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-full sm:max-w-lg sm:max-h-[90vh] overflow-y-auto bg-white rounded-[24px] shadow-xl z-[100]"
       >
         <form onSubmit={handleSubmit}>
           {/* 헤더 */}
-          <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between rounded-t-[24px] z-10">
-            <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-primary-400" />
+          <div className="sticky top-0 bg-white border-b border-gray-100 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between rounded-t-[24px] z-10">
+            <h2 className="text-lg sm:text-xl font-bold text-gray-900 flex items-center gap-2">
+              <Sparkles className="w-4 sm:w-5 h-4 sm:h-5 text-primary-400" />
               {isEditMode ? '캐릭터 수정' : '새 캐릭터 만들기'}
             </h2>
             <button
@@ -354,7 +363,7 @@ export function CharacterEditModal({
             </button>
           </div>
 
-          <div className="p-6 space-y-6">
+          <div className="p-4 sm:p-6 space-y-5 sm:space-y-6">
             {/* 프로필 사진 업로드 */}
             <div className="flex flex-col items-center gap-3">
               <label className="block text-sm font-medium text-gray-700 flex items-center gap-1">
@@ -519,7 +528,7 @@ export function CharacterEditModal({
           </div>
 
           {/* 푸터 */}
-          <div className="sticky bottom-0 bg-white border-t border-gray-100 px-6 py-4 flex gap-3 rounded-b-[24px]">
+          <div className="sticky bottom-0 bg-white border-t border-gray-100 px-4 sm:px-6 py-3 sm:py-4 flex gap-3 rounded-b-[24px]">
             <Button
               type="button"
               variant="secondary"
@@ -547,7 +556,8 @@ export function CharacterEditModal({
           </div>
         </form>
       </motion.div>
-    </>
+    </>,
+    document.body
   )
 }
 
