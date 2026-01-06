@@ -4,5 +4,6 @@
 
 export { CharacterCard } from './CharacterCard'
 export { CharacterEditModal } from './CharacterEditModal'
+export { CharacterEditForm } from './CharacterEditForm'
 export { CharacterManager } from './CharacterManager'
 export { CharacterSelector } from './CharacterSelector'

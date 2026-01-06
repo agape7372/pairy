@@ -28,6 +28,8 @@ import { useCanvasEditorStore } from '@/stores/canvasEditorStore'
 import type { InputFieldConfig, ImageSlot, ColorConfig, SlotImageTransform, ImageFilters, TextEffects, TextField, StickerLayer } from '@/types/template'
 import { ALL_STICKER_PACKS, searchStickers, type Sticker as StickerType, type StickerPack } from '@/types/sticker'
 import { processImageFile, formatFileSize, isSupportedImageType } from '@/lib/utils/imageCompressor'
+// Sprint 33: 캐릭터 선택
+import { CharacterSection } from './CharacterSelector'
 
 // ============================================
 // 서브 컴포넌트
@@ -1212,6 +1214,9 @@ export default function EditorSidebar({ isOpen = true, onClose }: EditorSidebarP
             aria-labelledby="tab-slots"
             data-tour="slot-panel"
           >
+            {/* Sprint 33: 캐릭터 선택 섹션 */}
+            <CharacterSection className="pb-4 border-b border-gray-200" />
+
             {slotFieldGroups.map(({ slot, fields }) => {
               const slotTransform = slotTransforms[slot.id]
               const hasTransform = slotTransform && (
@@ -1345,6 +1350,11 @@ export default function EditorSidebar({ isOpen = true, onClose }: EditorSidebarP
                 onChange={(value) => updateColor(config.key, value)}
               />
             ))}
+
+            {/* Sprint 33: 캐릭터 컬러 섹션 */}
+            <div className="pt-4 border-t border-gray-200">
+              <CharacterSection />
+            </div>
           </div>
         )}
       </div>

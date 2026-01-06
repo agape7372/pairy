@@ -19,7 +19,14 @@ import type {
   TextEffects,
   TextStyle,
   StickerLayer,
+  CharacterColors,
 } from '@/types/template'
+import type { Character } from '@/types/database.types'
+import {
+  extractCharacterColors,
+  mergeCharacterColorsToColorData,
+  clearCharacterColors,
+} from '@/lib/utils/characterColors'
 import { DEFAULT_SLOT_TRANSFORM } from '@/types/template'
 import {
   type HistorySnapshot,
@@ -51,6 +58,10 @@ interface CanvasEditorState extends HistoryState, LayerSliceState {
 
   // 슬롯 내 이미지 변환 상태
   slotTransforms: SlotTransforms
+
+  // Sprint 33: 캐릭터 퍼스널 컬러 바인딩
+  selectedCharacter: Character | null
+  characterColors: CharacterColors | null
 
   // UI 상태
   selectedSlotId: string | null
@@ -102,6 +113,11 @@ interface CanvasEditorActions extends HistoryActions, LayerSliceActions {
   selectSticker: (stickerId: string | null) => void
   selectedStickerId: string | null
 
+  // Sprint 33: 캐릭터 퍼스널 컬러 바인딩
+  applyCharacter: (character: Character | null) => void
+  clearCharacter: () => void
+  updateCharacterColor: (colorType: 'hair' | 'eye' | 'theme', value: string) => void
+
   // UI 상태
   selectSlot: (slotId: string | null) => void
   selectText: (textId: string | null) => void
@@ -147,6 +163,10 @@ const initialState: CanvasEditorState = {
   images: {},
   colors: { ...DEFAULT_COLORS },
   slotTransforms: {},
+
+  // Sprint 33: 캐릭터 퍼스널 컬러
+  selectedCharacter: null,
+  characterColors: null,
 
   selectedSlotId: null,
   selectedTextId: null,
@@ -507,6 +527,61 @@ export const useCanvasEditorStore = create<CanvasEditorState & CanvasEditorActio
           selectedTextId: null,
         }),
 
+        // Sprint 33: 캐릭터 퍼스널 컬러 바인딩
+        applyCharacter: (character) => {
+          const characterColors = extractCharacterColors(character)
+
+          set((state) => ({
+            selectedCharacter: character,
+            characterColors,
+            colors: mergeCharacterColorsToColorData(state.colors, characterColors),
+            isDirty: true,
+          }))
+          get().pushHistory()
+        },
+
+        clearCharacter: () => {
+          set((state) => ({
+            selectedCharacter: null,
+            characterColors: null,
+            colors: clearCharacterColors(state.colors),
+            isDirty: true,
+          }))
+          get().pushHistory()
+        },
+
+        updateCharacterColor: (colorType, value) => {
+          const colorKeyMap = {
+            hair: 'characterHairColor',
+            eye: 'characterEyeColor',
+            theme: 'characterThemeColor',
+          } as const
+
+          set((state) => {
+            const colorKey = colorKeyMap[colorType]
+            const newCharacterColors = state.characterColors
+              ? {
+                  ...state.characterColors,
+                  [`${colorType}Color`]: value,
+                }
+              : {
+                  hairColor: colorType === 'hair' ? value : null,
+                  eyeColor: colorType === 'eye' ? value : null,
+                  themeColor: colorType === 'theme' ? value : null,
+                }
+
+            return {
+              characterColors: newCharacterColors,
+              colors: {
+                ...state.colors,
+                [colorKey]: value,
+              },
+              isDirty: true,
+            }
+          })
+          get().pushHistory()
+        },
+
         // UI 상태
         selectSlot: (slotId) => set({ selectedSlotId: slotId, selectedTextId: null, selectedStickerId: null }),
         selectText: (textId) => set({ selectedTextId: textId, selectedSlotId: null, selectedStickerId: null }),
@@ -582,6 +657,12 @@ export const useEditorImages = () => useCanvasEditorStore((state) => state.image
 export const useEditorFormData = () => useCanvasEditorStore((state) => state.formData)
 export const useEditorZoom = () => useCanvasEditorStore((state) => state.zoom)
 export const useEditorDirty = () => useCanvasEditorStore((state) => state.isDirty)
+
+// Sprint 33: 캐릭터 퍼스널 컬러 셀렉터
+export const useSelectedCharacter = () => useCanvasEditorStore((state) => state.selectedCharacter)
+export const useCharacterColors = () => useCanvasEditorStore((state) => state.characterColors)
+export const useApplyCharacter = () => useCanvasEditorStore((state) => state.applyCharacter)
+export const useClearCharacter = () => useCanvasEditorStore((state) => state.clearCharacter)
 
 // 타입 재익스포트
 export type { LayerState, LayerStates } from './middleware'
