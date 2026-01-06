@@ -2,17 +2,14 @@
 
 /**
  * 캐릭터 관리 컴포넌트
- * 캐릭터 목록, CRUD 작업, 필터링 UI 제공
+ * 캐릭터 목록, CRUD 작업 UI 제공
  */
 
 import { useState, useCallback, useMemo } from 'react'
-import { motion, AnimatePresence, Reorder } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   Plus,
   Search,
-  Filter,
-  Globe,
-  Star,
   Users,
   AlertCircle,
   Loader2,
@@ -28,8 +25,6 @@ import {
 } from '@/hooks/useCharacters'
 import type { Character } from '@/types/database.types'
 import { cn } from '@/lib/utils/cn'
-
-type FilterTab = 'all' | 'favorites' | 'world'
 
 interface CharacterManagerProps {
   className?: string
@@ -53,57 +48,33 @@ export function CharacterManager({
     createCharacter,
     updateCharacter,
     deleteCharacter,
-    toggleFavorite,
-    reorderCharacters,
-    getWorldNames,
     canCreateMore,
     refetch,
     clearError,
-    validateCharacter,
   } = useCharacters()
 
   // UI 상태
   const [searchQuery, setSearchQuery] = useState('')
-  const [activeTab, setActiveTab] = useState<FilterTab>('all')
-  const [selectedWorld, setSelectedWorld] = useState<string | null>(null)
   const [editModalOpen, setEditModalOpen] = useState(false)
   const [editingCharacter, setEditingCharacter] = useState<Character | null>(null)
   const [deleteConfirm, setDeleteConfirm] = useState<Character | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
-  const worldNames = getWorldNames()
-
   // 필터링된 캐릭터 목록
   const filteredCharacters = useMemo(() => {
-    let result = [...characters]
+    if (!searchQuery.trim()) return characters
 
-    // 검색 필터
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase()
-      result = result.filter(
-        (c) =>
-          c.name.toLowerCase().includes(query) ||
-          c.world_name?.toLowerCase().includes(query) ||
-          c.description?.toLowerCase().includes(query)
-      )
-    }
-
-    // 탭 필터
-    if (activeTab === 'favorites') {
-      result = result.filter((c) => c.is_favorite)
-    } else if (activeTab === 'world' && selectedWorld) {
-      result = result.filter((c) => c.world_name === selectedWorld)
-    }
-
-    return result
-  }, [characters, searchQuery, activeTab, selectedWorld])
+    const query = searchQuery.toLowerCase()
+    return characters.filter(
+      (c) =>
+        c.name.toLowerCase().includes(query) ||
+        c.description?.toLowerCase().includes(query)
+    )
+  }, [characters, searchQuery])
 
   // 캐릭터 생성 핸들러
   const handleCreate = useCallback(() => {
-    if (!canCreateMore) {
-      // TODO: 프리미엄 업그레이드 모달 표시
-      return
-    }
+    if (!canCreateMore) return
     setEditingCharacter(null)
     setEditModalOpen(true)
   }, [canCreateMore])
@@ -144,12 +115,6 @@ export function CharacterManager({
       setDeleteConfirm(null)
     }
   }, [deleteConfirm, deleteCharacter])
-
-  // 순서 변경 핸들러
-  const handleReorder = useCallback(async (reordered: Character[]) => {
-    const newOrder = reordered.map((c) => c.id)
-    await reorderCharacters(newOrder)
-  }, [reorderCharacters])
 
   // 로딩 상태
   if (isLoading) {
@@ -205,9 +170,8 @@ export function CharacterManager({
         </Button>
       </div>
 
-      {/* 검색 & 필터 */}
-      <div className="space-y-4">
-        {/* 검색바 */}
+      {/* 검색바 */}
+      {characters.length > 0 && (
         <div className="relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <Input
@@ -217,65 +181,7 @@ export function CharacterManager({
             className="pl-10"
           />
         </div>
-
-        {/* 필터 탭 */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-2">
-          <button
-            onClick={() => {
-              setActiveTab('all')
-              setSelectedWorld(null)
-            }}
-            className={cn(
-              'px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors',
-              activeTab === 'all'
-                ? 'bg-primary-100 text-primary-600'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            )}
-          >
-            전체
-          </button>
-
-          <button
-            onClick={() => {
-              setActiveTab('favorites')
-              setSelectedWorld(null)
-            }}
-            className={cn(
-              'px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors flex items-center gap-1',
-              activeTab === 'favorites'
-                ? 'bg-amber-100 text-amber-600'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            )}
-          >
-            <Star className="w-4 h-4" />
-            즐겨찾기
-          </button>
-
-          {worldNames.length > 0 && (
-            <>
-              <div className="w-px h-6 bg-gray-200" />
-              {worldNames.map((world) => (
-                <button
-                  key={world}
-                  onClick={() => {
-                    setActiveTab('world')
-                    setSelectedWorld(world)
-                  }}
-                  className={cn(
-                    'px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors flex items-center gap-1',
-                    activeTab === 'world' && selectedWorld === world
-                      ? 'bg-accent-100 text-accent-600'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  )}
-                >
-                  <Globe className="w-3 h-3" />
-                  {world}
-                </button>
-              ))}
-            </>
-          )}
-        </div>
-      </div>
+      )}
 
       {/* 캐릭터 그리드 */}
       {filteredCharacters.length === 0 ? (
@@ -303,36 +209,23 @@ export function CharacterManager({
           )}
         </motion.div>
       ) : (
-        <Reorder.Group
-          axis="y"
-          values={filteredCharacters}
-          onReorder={handleReorder}
-          className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4"
-          as="div"
-        >
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
           <AnimatePresence mode="popLayout">
             {filteredCharacters.map((character) => (
-              <Reorder.Item
+              <CharacterCard
                 key={character.id}
-                value={character}
-                as="div"
-                drag={!selectionMode && activeTab === 'all' && !searchQuery}
-              >
-                <CharacterCard
-                  character={character}
-                  onEdit={handleEdit}
-                  onDelete={handleDeleteConfirm}
-                  onToggleFavorite={toggleFavorite}
-                  isDeleting={deletingId === character.id}
-                  className={cn(
-                    selectionMode && selectedCharacterId === character.id &&
-                    'ring-2 ring-primary-400 ring-offset-2'
-                  )}
-                />
-              </Reorder.Item>
+                character={character}
+                onEdit={handleEdit}
+                onDelete={handleDeleteConfirm}
+                isDeleting={deletingId === character.id}
+                className={cn(
+                  selectionMode && selectedCharacterId === character.id &&
+                  'ring-2 ring-primary-400 ring-offset-2'
+                )}
+              />
             ))}
           </AnimatePresence>
-        </Reorder.Group>
+        </div>
       )}
 
       {/* 편집 모달 */}
@@ -347,7 +240,6 @@ export function CharacterManager({
             character={editingCharacter}
             onSave={handleSave}
             isSaving={isSaving}
-            existingWorldNames={worldNames}
             validationError={operationState === 'error' ? error : null}
           />
         )}

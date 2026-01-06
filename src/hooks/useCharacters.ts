@@ -277,7 +277,8 @@ export function useCharacters(): UseCharactersReturn {
   // ============================================
 
   const fetchCharacters = useCallback(async () => {
-    if (isUserLoading) return
+    // 데모 모드가 아닐 때만 user 로딩 대기
+    if (!IS_DEMO_MODE && isUserLoading) return
 
     setIsLoading(true)
     setError(null)

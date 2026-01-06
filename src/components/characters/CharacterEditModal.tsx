@@ -6,15 +6,12 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import {
   X,
-  Loader2,
-  Upload,
   Palette,
   AlertCircle,
   Check,
-  Globe,
   User,
   Heart,
   Sparkles,
@@ -29,7 +26,6 @@ import type { CreateCharacterInput, UpdateCharacterInput } from '@/hooks/useChar
 import {
   CHARACTER_NAME_MAX_LENGTH,
   CHARACTER_DESCRIPTION_MAX_LENGTH,
-  WORLD_NAME_MAX_LENGTH,
 } from '@/types/database.types'
 import { CHARACTER_COLORS } from '@/hooks/useCharacters'
 
@@ -47,10 +43,9 @@ const BLOOD_TYPES = ['A', 'B', 'O', 'AB'] as const
 interface CharacterEditModalProps {
   isOpen: boolean
   onClose: () => void
-  character?: Character | null // null이면 생성 모드, 있으면 편집 모드
+  character?: Character | null
   onSave: (data: CreateCharacterInput | UpdateCharacterInput) => Promise<Character | boolean | null>
   isSaving: boolean
-  existingWorldNames?: string[]
   validationError?: string | null
 }
 
@@ -58,7 +53,6 @@ interface FormData {
   name: string
   color: string
   description: string
-  world_name: string
   avatar_url: string
   metadata: CharacterMetadata
 }
@@ -67,7 +61,6 @@ const initialFormData: FormData = {
   name: '',
   color: CHARACTER_COLORS[0],
   description: '',
-  world_name: '',
   avatar_url: '',
   metadata: {},
 }
@@ -78,14 +71,11 @@ export function CharacterEditModal({
   character,
   onSave,
   isSaving,
-  existingWorldNames = [],
   validationError,
 }: CharacterEditModalProps) {
   const [formData, setFormData] = useState<FormData>(initialFormData)
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({})
-  const [showColorPicker, setShowColorPicker] = useState(false)
   const [showMbtiPicker, setShowMbtiPicker] = useState(false)
-  const [showWorldSuggestions, setShowWorldSuggestions] = useState(false)
   const nameInputRef = useRef<HTMLInputElement>(null)
 
   const isEditMode = !!character
@@ -99,7 +89,6 @@ export function CharacterEditModal({
           name: character.name,
           color: character.color,
           description: character.description || '',
-          world_name: character.world_name || '',
           avatar_url: character.avatar_url || '',
           metadata: metadata || {},
         })
@@ -147,10 +136,6 @@ export function CharacterEditModal({
       newErrors.description = `설명은 ${CHARACTER_DESCRIPTION_MAX_LENGTH}자 이내로 입력해주세요`
     }
 
-    if (formData.world_name.length > WORLD_NAME_MAX_LENGTH) {
-      newErrors.world_name = `세계관 이름은 ${WORLD_NAME_MAX_LENGTH}자 이내로 입력해주세요`
-    }
-
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }, [formData])
@@ -165,7 +150,6 @@ export function CharacterEditModal({
       name: formData.name.trim(),
       color: formData.color,
       description: formData.description.trim() || null,
-      world_name: formData.world_name.trim() || null,
       avatar_url: formData.avatar_url.trim() || null,
       metadata: formData.metadata,
     }
@@ -230,14 +214,13 @@ export function CharacterEditModal({
             <div className="flex items-center gap-4">
               {/* 아바타 프리뷰 */}
               <div
-                className="w-20 h-20 rounded-full flex items-center justify-center text-white text-3xl font-bold shadow-lg ring-4 ring-white cursor-pointer hover:ring-primary-100 transition-all"
+                className="w-20 h-20 rounded-full flex items-center justify-center text-white text-3xl font-bold shadow-lg ring-4 ring-white"
                 style={{
                   backgroundColor: formData.avatar_url ? undefined : formData.color,
                   backgroundImage: formData.avatar_url ? `url(${formData.avatar_url})` : undefined,
                   backgroundSize: 'cover',
                   backgroundPosition: 'center',
                 }}
-                onClick={() => setShowColorPicker(!showColorPicker)}
               >
                 {!formData.avatar_url && (
                   formData.name[0]?.toUpperCase() || <User className="w-10 h-10" />
@@ -297,65 +280,6 @@ export function CharacterEditModal({
                   {formData.name.length}/{CHARACTER_NAME_MAX_LENGTH}
                 </span>
               </div>
-            </div>
-
-            {/* 세계관 입력 */}
-            <div className="relative">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                <Globe className="w-4 h-4 inline mr-1" />
-                세계관
-              </label>
-              <Input
-                value={formData.world_name}
-                onChange={(e) => {
-                  updateField('world_name', e.target.value)
-                  setShowWorldSuggestions(true)
-                }}
-                onFocus={() => setShowWorldSuggestions(true)}
-                onBlur={() => setTimeout(() => setShowWorldSuggestions(false), 200)}
-                placeholder="캐릭터가 속한 세계관 (선택사항)"
-                maxLength={WORLD_NAME_MAX_LENGTH}
-                error={!!errors.world_name}
-                disabled={isSaving}
-              />
-
-              {/* 세계관 자동완성 */}
-              <AnimatePresence>
-                {showWorldSuggestions && existingWorldNames.length > 0 && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -8 }}
-                    className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-20 max-h-40 overflow-y-auto"
-                  >
-                    {existingWorldNames
-                      .filter((w) =>
-                        w.toLowerCase().includes(formData.world_name.toLowerCase())
-                      )
-                      .map((worldName) => (
-                        <button
-                          key={worldName}
-                          type="button"
-                          onClick={() => {
-                            updateField('world_name', worldName)
-                            setShowWorldSuggestions(false)
-                          }}
-                          className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
-                        >
-                          <Globe className="w-4 h-4 text-gray-400" />
-                          {worldName}
-                        </button>
-                      ))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {errors.world_name && (
-                <span className="text-xs text-error flex items-center gap-1 mt-1">
-                  <AlertCircle className="w-3 h-3" />
-                  {errors.world_name}
-                </span>
-              )}
             </div>
 
             {/* 설명 입력 */}
@@ -418,35 +342,28 @@ export function CharacterEditModal({
                     {formData.metadata.mbti || 'MBTI 선택'}
                   </button>
 
-                  <AnimatePresence>
-                    {showMbtiPicker && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -8 }}
-                        className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-20 p-2 grid grid-cols-4 gap-1"
-                      >
-                        {MBTI_TYPES.map((mbti) => (
-                          <button
-                            key={mbti}
-                            type="button"
-                            onClick={() => {
-                              updateMetadata('mbti', mbti)
-                              setShowMbtiPicker(false)
-                            }}
-                            className={cn(
-                              'px-2 py-1.5 text-xs rounded-lg transition-colors',
-                              formData.metadata.mbti === mbti
-                                ? 'bg-primary-100 text-primary-600 font-medium'
-                                : 'hover:bg-gray-100'
-                            )}
-                          >
-                            {mbti}
-                          </button>
-                        ))}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                  {showMbtiPicker && (
+                    <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-20 p-2 grid grid-cols-4 gap-1">
+                      {MBTI_TYPES.map((mbti) => (
+                        <button
+                          key={mbti}
+                          type="button"
+                          onClick={() => {
+                            updateMetadata('mbti', mbti)
+                            setShowMbtiPicker(false)
+                          }}
+                          className={cn(
+                            'px-2 py-1.5 text-xs rounded-lg transition-colors',
+                            formData.metadata.mbti === mbti
+                              ? 'bg-primary-100 text-primary-600 font-medium'
+                              : 'hover:bg-gray-100'
+                          )}
+                        >
+                          {mbti}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* 혈액형 */}
