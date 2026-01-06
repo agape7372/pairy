@@ -39,6 +39,13 @@ export type ColorReference =
   | 'secondaryColor' // 사용자 지정 서브 컬러
   | 'accentColor' // 강조 컬러
   | 'textColor' // 텍스트 기본 컬러
+  // Sprint 33: 캐릭터 퍼스널 컬러 바인딩
+  | 'characterHairColor' // 캐릭터 머리색
+  | 'characterEyeColor' // 캐릭터 눈색
+  | 'characterThemeColor' // 캐릭터 테마색
+
+/** 캐릭터 컬러 바인딩 타입 (Sprint 33) */
+export type CharacterColorBindType = 'hair' | 'eye' | 'theme' | null
 
 /** 텍스트 정렬 */
 export type TextAlign = 'left' | 'center' | 'right'
@@ -404,7 +411,18 @@ export interface ColorData {
   secondaryColor: string
   accentColor?: string
   textColor?: string
+  // Sprint 33: 캐릭터 퍼스널 컬러
+  characterHairColor?: string
+  characterEyeColor?: string
+  characterThemeColor?: string
   [key: string]: string | undefined
+}
+
+/** 캐릭터 퍼스널 컬러 (Sprint 33) */
+export interface CharacterColors {
+  hairColor: string | null
+  eyeColor: string | null
+  themeColor: string | null
 }
 
 /** 에디터 전체 상태 */

@@ -7,7 +7,7 @@
 
 import { useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { AlertCircle, Users } from 'lucide-react'
+import { Users } from 'lucide-react'
 import { Button } from '@/components/ui'
 import { CharacterEditForm } from '@/components/characters/CharacterEditForm'
 import { useCharacters, type CreateCharacterInput, type UpdateCharacterInput } from '@/hooks/useCharacters'
