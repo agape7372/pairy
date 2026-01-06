@@ -611,11 +611,13 @@ export type CharacterRelationshipInsert = Database['public']['Tables']['characte
  * JSON 필드로 저장되는 확장 가능한 캐릭터 정보
  */
 export interface CharacterMetadata {
-  /** MBTI 유형 */
-  mbti?: string
-  /** 혈액형 */
-  bloodType?: 'A' | 'B' | 'O' | 'AB' | string
-  /** 생일 (MM-DD 형식) */
+  /** 머리색 (HEX) */
+  hairColor?: string
+  /** 눈색 (HEX) */
+  eyeColor?: string
+  /** 메인 컬러/테마색 (HEX) */
+  mainColor?: string
+  /** 생일 (MM-DD 또는 YYYY-MM-DD 형식) */
   birthday?: string
   /** 키 */
   height?: string

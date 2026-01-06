@@ -3,6 +3,8 @@
 /**
  * 캐릭터 카드 컴포넌트
  * 개별 캐릭터를 표시하고 편집/삭제 인터랙션 제공
+ * - 프로필 사진 또는 이니셜 아바타
+ * - 3색 컬러 표시 (머리색, 눈색, 메인컬러)
  */
 
 import { useState, memo } from 'react'
@@ -35,6 +37,11 @@ export const CharacterCard = memo(function CharacterCard({
 
   const metadata = character.metadata as CharacterMetadata | null
 
+  // 컬러 추출 (메타데이터 우선, 없으면 기본 color 사용)
+  const hairColor = metadata?.hairColor || character.color || '#4A3728'
+  const eyeColor = metadata?.eyeColor || '#4A3728'
+  const mainColor = metadata?.mainColor || character.color || '#FF6B6B'
+
   const handleEdit = (e: React.MouseEvent) => {
     e.stopPropagation()
     setShowMenu(false)
@@ -65,32 +72,45 @@ export const CharacterCard = memo(function CharacterCard({
     >
       {/* 아바타 */}
       <div
-        className="w-16 h-16 mx-auto mb-3 rounded-full flex items-center justify-center text-white text-2xl font-bold shadow-inner"
+        className="w-16 h-16 mx-auto mb-3 rounded-full flex items-center justify-center text-white text-2xl font-bold shadow-inner overflow-hidden"
         style={{
-          backgroundColor: character.avatar_url ? undefined : character.color,
-          backgroundImage: character.avatar_url ? `url(${character.avatar_url})` : undefined,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
+          backgroundColor: character.avatar_url ? undefined : mainColor,
         }}
       >
-        {!character.avatar_url && (
+        {character.avatar_url ? (
+          <img
+            src={character.avatar_url}
+            alt={character.name}
+            className="w-full h-full object-cover"
+          />
+        ) : (
           character.name[0]?.toUpperCase() || <User className="w-8 h-8" />
         )}
       </div>
 
       {/* 이름 */}
-      <h3 className="text-center font-semibold text-gray-900 truncate mb-1">
+      <h3 className="text-center font-semibold text-gray-900 truncate mb-2">
         {character.name}
       </h3>
 
-      {/* MBTI 뱃지 */}
-      {metadata?.mbti && (
-        <div className="mt-2 flex justify-center">
-          <span className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-primary-100 text-primary-600">
-            {metadata.mbti}
-          </span>
-        </div>
-      )}
+      {/* 3색 컬러 표시 */}
+      <div className="flex justify-center gap-1.5 mt-2">
+        <div
+          className="w-4 h-4 rounded-full border border-white shadow-sm"
+          style={{ backgroundColor: hairColor }}
+          title="머리색"
+        />
+        <div
+          className="w-4 h-4 rounded-full border border-white shadow-sm"
+          style={{ backgroundColor: eyeColor }}
+          title="눈색"
+        />
+        <div
+          className="w-4 h-4 rounded-full border border-white shadow-sm"
+          style={{ backgroundColor: mainColor }}
+          title="메인 컬러"
+        />
+      </div>
 
       {/* 액션 메뉴 */}
       <div className="absolute bottom-3 right-3">
