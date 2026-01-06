@@ -5,7 +5,7 @@
  * OG 미리보기 + 작품 표시
  */
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Eye,
@@ -34,7 +34,9 @@ interface SharePageClientProps {
 }
 
 export default function SharePageClient({ shareId }: SharePageClientProps) {
-  const { getSharedWork, incrementViewCount, error: hookError } = useShareWork()
+  const shareHook = useShareWork()
+  const shareHookRef = useRef(shareHook)
+  shareHookRef.current = shareHook
 
   const [work, setWork] = useState<Work | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -42,7 +44,7 @@ export default function SharePageClient({ shareId }: SharePageClientProps) {
   const [copied, setCopied] = useState(false)
   const [showShareMenu, setShowShareMenu] = useState(false)
 
-  // 작품 로드
+  // 작품 로드 (shareId 변경 시에만 실행)
   useEffect(() => {
     let mounted = true
 
@@ -50,6 +52,7 @@ export default function SharePageClient({ shareId }: SharePageClientProps) {
       setIsLoading(true)
       setError(null)
 
+      const { getSharedWork, incrementViewCount, error: hookError } = shareHookRef.current
       const result = await getSharedWork(shareId)
 
       if (!mounted) return
@@ -70,7 +73,7 @@ export default function SharePageClient({ shareId }: SharePageClientProps) {
     return () => {
       mounted = false
     }
-  }, [shareId, getSharedWork, incrementViewCount, hookError])
+  }, [shareId])
 
   // 링크 복사
   const handleCopyLink = useCallback(async () => {
