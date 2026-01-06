@@ -4,6 +4,7 @@
 
 export { CollabOverlay } from './CollabOverlay'
 export { ParticipantList } from './ParticipantList'
+export { ParticipantAvatars } from './ParticipantAvatars'
 export { ZoneSelector } from './ZoneSelector'
 export { ConnectionIndicator, ConnectionBanner } from './ConnectionIndicator'
 export { InviteShareModal } from './InviteShareModal'

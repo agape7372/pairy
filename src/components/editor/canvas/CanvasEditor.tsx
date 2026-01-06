@@ -31,7 +31,7 @@ import { OnboardingTour, useOnboarding, DEFAULT_TOUR_STEPS } from './OnboardingT
 import { ContextMenu, useContextMenu, createContextMenuItems } from './ContextMenu'
 // 협업 확장 컴포넌트
 import {
-  ParticipantList,
+  ParticipantAvatars,
   ConnectionIndicator,
   ConnectionBanner,
   InviteShareModal,
@@ -1437,15 +1437,16 @@ function CanvasEditorContent({
         })}
       />
 
-      {/* 협업 확장: 참여자 목록 */}
+      {/* 협업 확장: 참여자 아바타 (왼쪽 하단 가로 정렬) */}
       {sessionId && collab && (
-        <div className="fixed top-20 right-4 z-30">
-          <ParticipantList
+        <div className="fixed bottom-4 left-4 z-30">
+          <ParticipantAvatars
             sessionId={sessionId}
             user={collab.localUser}
             remoteUsers={collab.remoteUsers}
             isHost={isHost}
             myZone={collab.myZone}
+            maxVisible={6}
           />
         </div>
       )}
