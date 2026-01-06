@@ -5,10 +5,11 @@
  * 캐릭터 생성 및 수정 폼 제공
  * - 프로필 사진 업로드
  * - 3색 컬러 시스템 (머리색, 눈색, 메인컬러)
+ * - 고급 컬러 피커 (HSV 스펙트럼 + HEX/RGB 입력)
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   X,
   AlertCircle,
@@ -16,10 +17,12 @@ import {
   User,
   Sparkles,
   Camera,
+  ChevronDown,
 } from 'lucide-react'
-import { Button, Input, ImageUpload } from '@/components/ui'
+import { Button, Input, ImageUpload, ColorPicker } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
 import { uploadFile } from '@/lib/supabase/storage'
+import { addRecentColor } from '@/lib/utils/color'
 import type {
   Character,
   CharacterMetadata,
@@ -30,12 +33,12 @@ import {
   CHARACTER_DESCRIPTION_MAX_LENGTH,
 } from '@/types/database.types'
 
-// 기본 컬러 프리셋
+// 컬러별 프리셋
 const COLOR_PRESETS = {
-  hair: ['#2C1810', '#4A3728', '#8B4513', '#D4A574', '#FFD700', '#FF6B6B', '#4ECDC4', '#9B59B6', '#1ABC9C', '#E74C3C'],
-  eye: ['#2C1810', '#4A3728', '#3498DB', '#27AE60', '#8E44AD', '#E74C3C', '#F39C12', '#1ABC9C', '#95A5A6', '#34495E'],
-  main: ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#F8B500', '#98D8C8', '#FF85A2', '#7C73E6'],
-} as const
+  hair: ['#2C1810', '#4A3728', '#8B4513', '#D4A574', '#FFD700', '#FF6B6B', '#4ECDC4', '#9B59B6', '#1ABC9C', '#E74C3C', '#3498DB', '#E91E63'],
+  eye: ['#2C1810', '#4A3728', '#3498DB', '#27AE60', '#8E44AD', '#E74C3C', '#F39C12', '#1ABC9C', '#95A5A6', '#34495E', '#9C27B0', '#00BCD4'],
+  main: ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#F8B500', '#98D8C8', '#FF85A2', '#7C73E6', '#6C5CE7', '#00B894'],
+}
 
 interface CharacterEditModalProps {
   isOpen: boolean
@@ -64,103 +67,109 @@ const initialFormData: FormData = {
   },
 }
 
-/** 컬러 피커 컴포넌트 */
-function ColorPicker({
+// ============================================
+// 확장형 컬러 피커 컴포넌트
+// ============================================
+
+interface ExpandableColorPickerProps {
+  label: string
+  value: string
+  onChange: (color: string) => void
+  presets: string[]
+  disabled?: boolean
+}
+
+function ExpandableColorPicker({
   label,
   value,
   onChange,
   presets,
   disabled,
-}: {
-  label: string
-  value: string
-  onChange: (color: string) => void
-  presets: readonly string[]
-  disabled?: boolean
-}) {
-  const [inputValue, setInputValue] = useState(value)
-  const inputRef = useRef<HTMLInputElement>(null)
+}: ExpandableColorPickerProps) {
+  const [isExpanded, setIsExpanded] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
 
+  // 외부 클릭 감지
   useEffect(() => {
-    setInputValue(value)
-  }, [value])
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value
-    setInputValue(newValue)
-
-    // HEX 유효성 검사
-    if (/^#[0-9A-Fa-f]{6}$/.test(newValue)) {
-      onChange(newValue)
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsExpanded(false)
+      }
     }
-  }
 
-  const handleInputBlur = () => {
-    // 유효하지 않은 값이면 이전 값으로 복원
-    if (!/^#[0-9A-Fa-f]{6}$/.test(inputValue)) {
-      setInputValue(value)
+    if (isExpanded) {
+      document.addEventListener('mousedown', handleClickOutside)
     }
-  }
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [isExpanded])
+
+  const handleColorChange = useCallback((color: string) => {
+    onChange(color)
+    addRecentColor(color)
+  }, [onChange])
 
   return (
-    <div className="space-y-2">
-      <label className="block text-xs font-medium text-gray-600">{label}</label>
-
-      {/* 색상 입력 영역 */}
-      <div className="flex items-center gap-2">
-        {/* 네이티브 컬러 피커 */}
-        <div className="relative">
-          <input
-            type="color"
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            disabled={disabled}
-            className="w-10 h-10 rounded-lg border-2 border-gray-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{ padding: 0 }}
+    <div ref={containerRef} className="space-y-2">
+      {/* 헤더: 라벨 + 미리보기 + 토글 */}
+      <button
+        type="button"
+        onClick={() => !disabled && setIsExpanded(!isExpanded)}
+        disabled={disabled}
+        className={cn(
+          'w-full flex items-center justify-between p-3 rounded-xl border border-gray-200',
+          'transition-all hover:border-primary-300 hover:bg-gray-50',
+          isExpanded && 'border-primary-400 bg-primary-50/30',
+          disabled && 'opacity-50 cursor-not-allowed'
+        )}
+      >
+        <div className="flex items-center gap-3">
+          {/* 색상 미리보기 */}
+          <div
+            className="w-8 h-8 rounded-lg border border-gray-200 shadow-inner"
+            style={{ backgroundColor: value }}
           />
+          <div className="text-left">
+            <p className="text-sm font-medium text-gray-700">{label}</p>
+            <p className="text-xs font-mono text-gray-400">{value.toUpperCase()}</p>
+          </div>
         </div>
-
-        {/* HEX 입력 */}
-        <input
-          ref={inputRef}
-          type="text"
-          value={inputValue}
-          onChange={handleInputChange}
-          onBlur={handleInputBlur}
-          placeholder="#FFFFFF"
-          maxLength={7}
-          disabled={disabled}
+        <ChevronDown
           className={cn(
-            'flex-1 px-3 py-2 text-sm font-mono bg-white border border-gray-200 rounded-lg',
-            'focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-transparent',
-            'disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-50'
+            'w-5 h-5 text-gray-400 transition-transform',
+            isExpanded && 'rotate-180'
           )}
         />
-      </div>
+      </button>
 
-      {/* 프리셋 컬러 */}
-      <div className="flex flex-wrap gap-1.5">
-        {presets.map((color) => (
-          <button
-            key={color}
-            type="button"
-            onClick={() => !disabled && onChange(color)}
-            disabled={disabled}
-            className={cn(
-              'w-6 h-6 rounded-full transition-all border-2',
-              value === color
-                ? 'border-gray-800 scale-110 shadow-md'
-                : 'border-transparent hover:scale-110',
-              disabled && 'opacity-50 cursor-not-allowed'
-            )}
-            style={{ backgroundColor: color }}
-            aria-label={`색상 ${color}`}
-          />
-        ))}
-      </div>
+      {/* 확장된 컬러 피커 */}
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+              <ColorPicker
+                value={value}
+                onChange={handleColorChange}
+                disabled={disabled}
+                presetColors={presets}
+                showRecentColors={true}
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
+
+// ============================================
+// 메인 모달 컴포넌트
+// ============================================
 
 export function CharacterEditModal({
   isOpen,
@@ -227,7 +236,6 @@ export function CharacterEditModal({
   const handleImageUpload = useCallback(async (file: File): Promise<string | null> => {
     setIsUploading(true)
     try {
-      // 캐릭터 아바타 업로드 (avatars 버킷 사용)
       const timestamp = Date.now()
       const fileExt = file.name.split('.').pop() || 'jpg'
       const path = `characters/${timestamp}.${fileExt}`
@@ -276,9 +284,14 @@ export function CharacterEditModal({
 
     if (!validate()) return
 
+    // 최근 색상에 추가
+    if (formData.metadata.hairColor) addRecentColor(formData.metadata.hairColor)
+    if (formData.metadata.eyeColor) addRecentColor(formData.metadata.eyeColor)
+    if (formData.metadata.mainColor) addRecentColor(formData.metadata.mainColor)
+
     const saveData: CreateCharacterInput | UpdateCharacterInput = {
       name: formData.name.trim(),
-      color: formData.metadata.mainColor || '#FF6B6B', // 메인 컬러를 기본 color로 사용
+      color: formData.metadata.mainColor || '#FF6B6B',
       description: formData.description.trim() || null,
       avatar_url: formData.avatar_url.trim() || null,
       metadata: formData.metadata,
@@ -446,9 +459,9 @@ export function CharacterEditModal({
                 캐릭터 컬러
               </h3>
 
-              <div className="space-y-5">
+              <div className="space-y-3">
                 {/* 머리색 */}
-                <ColorPicker
+                <ExpandableColorPicker
                   label="머리색"
                   value={formData.metadata.hairColor || '#4A3728'}
                   onChange={(color) => updateMetadata('hairColor', color)}
@@ -457,7 +470,7 @@ export function CharacterEditModal({
                 />
 
                 {/* 눈색 */}
-                <ColorPicker
+                <ExpandableColorPicker
                   label="눈색"
                   value={formData.metadata.eyeColor || '#4A3728'}
                   onChange={(color) => updateMetadata('eyeColor', color)}
@@ -466,7 +479,7 @@ export function CharacterEditModal({
                 />
 
                 {/* 메인 컬러 */}
-                <ColorPicker
+                <ExpandableColorPicker
                   label="메인 컬러 (테마색)"
                   value={formData.metadata.mainColor || '#FF6B6B'}
                   onChange={(color) => updateMetadata('mainColor', color)}
