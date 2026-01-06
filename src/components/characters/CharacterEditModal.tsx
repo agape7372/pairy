@@ -3,21 +3,23 @@
 /**
  * 캐릭터 편집 모달
  * 캐릭터 생성 및 수정 폼 제공
+ * - 프로필 사진 업로드
+ * - 3색 컬러 시스템 (머리색, 눈색, 메인컬러)
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion } from 'framer-motion'
 import {
   X,
-  Palette,
   AlertCircle,
   Check,
   User,
-  Heart,
   Sparkles,
+  Camera,
 } from 'lucide-react'
-import { Button, Input } from '@/components/ui'
+import { Button, Input, ImageUpload } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
+import { uploadFile } from '@/lib/supabase/storage'
 import type {
   Character,
   CharacterMetadata,
@@ -27,18 +29,13 @@ import {
   CHARACTER_NAME_MAX_LENGTH,
   CHARACTER_DESCRIPTION_MAX_LENGTH,
 } from '@/types/database.types'
-import { CHARACTER_COLORS } from '@/hooks/useCharacters'
 
-// MBTI 옵션
-const MBTI_TYPES = [
-  'INTJ', 'INTP', 'ENTJ', 'ENTP',
-  'INFJ', 'INFP', 'ENFJ', 'ENFP',
-  'ISTJ', 'ISFJ', 'ESTJ', 'ESFJ',
-  'ISTP', 'ISFP', 'ESTP', 'ESFP',
-] as const
-
-// 혈액형 옵션
-const BLOOD_TYPES = ['A', 'B', 'O', 'AB'] as const
+// 기본 컬러 프리셋
+const COLOR_PRESETS = {
+  hair: ['#2C1810', '#4A3728', '#8B4513', '#D4A574', '#FFD700', '#FF6B6B', '#4ECDC4', '#9B59B6', '#1ABC9C', '#E74C3C'],
+  eye: ['#2C1810', '#4A3728', '#3498DB', '#27AE60', '#8E44AD', '#E74C3C', '#F39C12', '#1ABC9C', '#95A5A6', '#34495E'],
+  main: ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#F8B500', '#98D8C8', '#FF85A2', '#7C73E6'],
+} as const
 
 interface CharacterEditModalProps {
   isOpen: boolean
@@ -51,7 +48,6 @@ interface CharacterEditModalProps {
 
 interface FormData {
   name: string
-  color: string
   description: string
   avatar_url: string
   metadata: CharacterMetadata
@@ -59,10 +55,111 @@ interface FormData {
 
 const initialFormData: FormData = {
   name: '',
-  color: CHARACTER_COLORS[0],
   description: '',
   avatar_url: '',
-  metadata: {},
+  metadata: {
+    hairColor: '#4A3728',
+    eyeColor: '#4A3728',
+    mainColor: '#FF6B6B',
+  },
+}
+
+/** 컬러 피커 컴포넌트 */
+function ColorPicker({
+  label,
+  value,
+  onChange,
+  presets,
+  disabled,
+}: {
+  label: string
+  value: string
+  onChange: (color: string) => void
+  presets: readonly string[]
+  disabled?: boolean
+}) {
+  const [inputValue, setInputValue] = useState(value)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    setInputValue(value)
+  }, [value])
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value
+    setInputValue(newValue)
+
+    // HEX 유효성 검사
+    if (/^#[0-9A-Fa-f]{6}$/.test(newValue)) {
+      onChange(newValue)
+    }
+  }
+
+  const handleInputBlur = () => {
+    // 유효하지 않은 값이면 이전 값으로 복원
+    if (!/^#[0-9A-Fa-f]{6}$/.test(inputValue)) {
+      setInputValue(value)
+    }
+  }
+
+  return (
+    <div className="space-y-2">
+      <label className="block text-xs font-medium text-gray-600">{label}</label>
+
+      {/* 색상 입력 영역 */}
+      <div className="flex items-center gap-2">
+        {/* 네이티브 컬러 피커 */}
+        <div className="relative">
+          <input
+            type="color"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            disabled={disabled}
+            className="w-10 h-10 rounded-lg border-2 border-gray-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ padding: 0 }}
+          />
+        </div>
+
+        {/* HEX 입력 */}
+        <input
+          ref={inputRef}
+          type="text"
+          value={inputValue}
+          onChange={handleInputChange}
+          onBlur={handleInputBlur}
+          placeholder="#FFFFFF"
+          maxLength={7}
+          disabled={disabled}
+          className={cn(
+            'flex-1 px-3 py-2 text-sm font-mono bg-white border border-gray-200 rounded-lg',
+            'focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-transparent',
+            'disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-50'
+          )}
+        />
+      </div>
+
+      {/* 프리셋 컬러 */}
+      <div className="flex flex-wrap gap-1.5">
+        {presets.map((color) => (
+          <button
+            key={color}
+            type="button"
+            onClick={() => !disabled && onChange(color)}
+            disabled={disabled}
+            className={cn(
+              'w-6 h-6 rounded-full transition-all border-2',
+              value === color
+                ? 'border-gray-800 scale-110 shadow-md'
+                : 'border-transparent hover:scale-110',
+              disabled && 'opacity-50 cursor-not-allowed'
+            )}
+            style={{ backgroundColor: color }}
+            aria-label={`색상 ${color}`}
+          />
+        ))}
+      </div>
+    </div>
+  )
 }
 
 export function CharacterEditModal({
@@ -75,7 +172,7 @@ export function CharacterEditModal({
 }: CharacterEditModalProps) {
   const [formData, setFormData] = useState<FormData>(initialFormData)
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({})
-  const [showMbtiPicker, setShowMbtiPicker] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
   const nameInputRef = useRef<HTMLInputElement>(null)
 
   const isEditMode = !!character
@@ -87,10 +184,14 @@ export function CharacterEditModal({
         const metadata = character.metadata as CharacterMetadata | null
         setFormData({
           name: character.name,
-          color: character.color,
           description: character.description || '',
           avatar_url: character.avatar_url || '',
-          metadata: metadata || {},
+          metadata: {
+            hairColor: metadata?.hairColor || character.color || '#4A3728',
+            eyeColor: metadata?.eyeColor || '#4A3728',
+            mainColor: metadata?.mainColor || character.color || '#FF6B6B',
+            birthday: metadata?.birthday,
+          },
         })
       } else {
         setFormData(initialFormData)
@@ -122,6 +223,35 @@ export function CharacterEditModal({
     }))
   }, [])
 
+  // 이미지 업로드 핸들러
+  const handleImageUpload = useCallback(async (file: File): Promise<string | null> => {
+    setIsUploading(true)
+    try {
+      // 캐릭터 아바타 업로드 (avatars 버킷 사용)
+      const timestamp = Date.now()
+      const fileExt = file.name.split('.').pop() || 'jpg'
+      const path = `characters/${timestamp}.${fileExt}`
+
+      const result = await uploadFile({
+        bucket: 'avatars',
+        path,
+        file,
+        upsert: true,
+      })
+
+      if (result.error) {
+        throw result.error
+      }
+
+      return result.url
+    } catch (err) {
+      console.error('Image upload error:', err)
+      return null
+    } finally {
+      setIsUploading(false)
+    }
+  }, [])
+
   // 유효성 검증
   const validate = useCallback((): boolean => {
     const newErrors: Partial<Record<keyof FormData, string>> = {}
@@ -148,7 +278,7 @@ export function CharacterEditModal({
 
     const saveData: CreateCharacterInput | UpdateCharacterInput = {
       name: formData.name.trim(),
-      color: formData.color,
+      color: formData.metadata.mainColor || '#FF6B6B', // 메인 컬러를 기본 color로 사용
       description: formData.description.trim() || null,
       avatar_url: formData.avatar_url.trim() || null,
       metadata: formData.metadata,
@@ -173,6 +303,8 @@ export function CharacterEditModal({
 
   if (!isOpen) return null
 
+  const isDisabled = isSaving || isUploading
+
   return (
     <>
       {/* 배경 오버레이 */}
@@ -181,7 +313,7 @@ export function CharacterEditModal({
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
-        onClick={isSaving ? undefined : onClose}
+        onClick={isDisabled ? undefined : onClose}
       />
 
       {/* 모달 */}
@@ -201,7 +333,7 @@ export function CharacterEditModal({
             <button
               type="button"
               onClick={onClose}
-              disabled={isSaving}
+              disabled={isDisabled}
               className="p-2 hover:bg-gray-100 rounded-full transition-colors disabled:opacity-50"
               aria-label="닫기"
             >
@@ -210,47 +342,38 @@ export function CharacterEditModal({
           </div>
 
           <div className="p-6 space-y-6">
-            {/* 아바타 & 색상 프리뷰 */}
-            <div className="flex items-center gap-4">
-              {/* 아바타 프리뷰 */}
-              <div
-                className="w-20 h-20 rounded-full flex items-center justify-center text-white text-3xl font-bold shadow-lg ring-4 ring-white"
-                style={{
-                  backgroundColor: formData.avatar_url ? undefined : formData.color,
-                  backgroundImage: formData.avatar_url ? `url(${formData.avatar_url})` : undefined,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                }}
-              >
+            {/* 프로필 사진 업로드 */}
+            <div className="flex flex-col items-center gap-3">
+              <label className="block text-sm font-medium text-gray-700 flex items-center gap-1">
+                <Camera className="w-4 h-4" />
+                프로필 사진
+              </label>
+
+              <div className="relative">
+                <ImageUpload
+                  value={formData.avatar_url || null}
+                  onChange={(url) => updateField('avatar_url', url || '')}
+                  onUpload={handleImageUpload}
+                  shape="circle"
+                  size="lg"
+                  placeholder="사진 추가"
+                  disabled={isDisabled}
+                />
+
+                {/* 사진이 없을 때 기본 아바타 표시 */}
                 {!formData.avatar_url && (
-                  formData.name[0]?.toUpperCase() || <User className="w-10 h-10" />
+                  <div
+                    className="absolute inset-0 rounded-full flex items-center justify-center text-white text-4xl font-bold pointer-events-none"
+                    style={{ backgroundColor: formData.metadata.mainColor || '#FF6B6B' }}
+                  >
+                    {formData.name[0]?.toUpperCase() || <User className="w-12 h-12" />}
+                  </div>
                 )}
               </div>
 
-              {/* 색상 선택 */}
-              <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  <Palette className="w-4 h-4 inline mr-1" />
-                  색상 선택
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {CHARACTER_COLORS.map((color) => (
-                    <button
-                      key={color}
-                      type="button"
-                      onClick={() => updateField('color', color)}
-                      className={cn(
-                        'w-8 h-8 rounded-full transition-all',
-                        formData.color === color
-                          ? 'ring-2 ring-offset-2 ring-primary-400 scale-110'
-                          : 'hover:scale-110'
-                      )}
-                      style={{ backgroundColor: color }}
-                      aria-label={`색상 ${color}`}
-                    />
-                  ))}
-                </div>
-              </div>
+              <p className="text-xs text-gray-400">
+                JPG, PNG, GIF (최대 5MB)
+              </p>
             </div>
 
             {/* 이름 입력 */}
@@ -265,7 +388,7 @@ export function CharacterEditModal({
                 placeholder="캐릭터 이름을 입력하세요"
                 maxLength={CHARACTER_NAME_MAX_LENGTH}
                 error={!!errors.name}
-                disabled={isSaving}
+                disabled={isDisabled}
               />
               <div className="flex justify-between mt-1">
                 {errors.name ? (
@@ -293,7 +416,7 @@ export function CharacterEditModal({
                 placeholder="캐릭터 소개를 입력하세요 (선택사항)"
                 maxLength={CHARACTER_DESCRIPTION_MAX_LENGTH}
                 rows={3}
-                disabled={isSaving}
+                disabled={isDisabled}
                 className={cn(
                   'w-full px-4 py-2.5 text-base bg-white border rounded-xl resize-none',
                   'transition-all duration-200 placeholder:text-gray-400',
@@ -317,92 +440,59 @@ export function CharacterEditModal({
               </div>
             </div>
 
-            {/* 추가 정보 섹션 */}
+            {/* 컬러 설정 섹션 */}
             <div className="border-t border-gray-100 pt-6">
-              <h3 className="text-sm font-medium text-gray-700 mb-4 flex items-center gap-2">
-                <Heart className="w-4 h-4 text-primary-400" />
-                추가 정보 (선택사항)
+              <h3 className="text-sm font-semibold text-gray-800 mb-4">
+                캐릭터 컬러
               </h3>
 
-              <div className="grid grid-cols-2 gap-4">
-                {/* MBTI */}
-                <div className="relative">
-                  <label className="block text-xs font-medium text-gray-500 mb-1">
-                    MBTI
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => setShowMbtiPicker(!showMbtiPicker)}
-                    className={cn(
-                      'w-full px-3 py-2 text-sm text-left bg-white border border-gray-200 rounded-lg',
-                      'hover:border-primary-200 transition-colors',
-                      formData.metadata.mbti ? 'text-gray-900' : 'text-gray-400'
-                    )}
-                  >
-                    {formData.metadata.mbti || 'MBTI 선택'}
-                  </button>
+              <div className="space-y-5">
+                {/* 머리색 */}
+                <ColorPicker
+                  label="머리색"
+                  value={formData.metadata.hairColor || '#4A3728'}
+                  onChange={(color) => updateMetadata('hairColor', color)}
+                  presets={COLOR_PRESETS.hair}
+                  disabled={isDisabled}
+                />
 
-                  {showMbtiPicker && (
-                    <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-20 p-2 grid grid-cols-4 gap-1">
-                      {MBTI_TYPES.map((mbti) => (
-                        <button
-                          key={mbti}
-                          type="button"
-                          onClick={() => {
-                            updateMetadata('mbti', mbti)
-                            setShowMbtiPicker(false)
-                          }}
-                          className={cn(
-                            'px-2 py-1.5 text-xs rounded-lg transition-colors',
-                            formData.metadata.mbti === mbti
-                              ? 'bg-primary-100 text-primary-600 font-medium'
-                              : 'hover:bg-gray-100'
-                          )}
-                        >
-                          {mbti}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                {/* 눈색 */}
+                <ColorPicker
+                  label="눈색"
+                  value={formData.metadata.eyeColor || '#4A3728'}
+                  onChange={(color) => updateMetadata('eyeColor', color)}
+                  presets={COLOR_PRESETS.eye}
+                  disabled={isDisabled}
+                />
 
-                {/* 혈액형 */}
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">
-                    혈액형
-                  </label>
-                  <div className="flex gap-1">
-                    {BLOOD_TYPES.map((type) => (
-                      <button
-                        key={type}
-                        type="button"
-                        onClick={() => updateMetadata('bloodType', type)}
-                        className={cn(
-                          'flex-1 py-2 text-xs rounded-lg border transition-colors',
-                          formData.metadata.bloodType === type
-                            ? 'bg-primary-100 border-primary-300 text-primary-600 font-medium'
-                            : 'border-gray-200 hover:border-primary-200'
-                        )}
-                      >
-                        {type}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                {/* 메인 컬러 */}
+                <ColorPicker
+                  label="메인 컬러 (테마색)"
+                  value={formData.metadata.mainColor || '#FF6B6B'}
+                  onChange={(color) => updateMetadata('mainColor', color)}
+                  presets={COLOR_PRESETS.main}
+                  disabled={isDisabled}
+                />
+              </div>
+            </div>
 
-                {/* 생일 */}
-                <div className="col-span-2">
-                  <label className="block text-xs font-medium text-gray-500 mb-1">
-                    생일
-                  </label>
-                  <Input
-                    type="date"
-                    value={formData.metadata.birthday || ''}
-                    onChange={(e) => updateMetadata('birthday', e.target.value)}
-                    className="text-sm"
-                    disabled={isSaving}
-                  />
-                </div>
+            {/* 생일 (선택) */}
+            <div className="border-t border-gray-100 pt-6">
+              <h3 className="text-sm font-semibold text-gray-800 mb-4">
+                추가 정보 (선택)
+              </h3>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">
+                  생일
+                </label>
+                <Input
+                  type="date"
+                  value={formData.metadata.birthday || ''}
+                  onChange={(e) => updateMetadata('birthday', e.target.value)}
+                  className="text-sm"
+                  disabled={isDisabled}
+                />
               </div>
             </div>
 
@@ -421,14 +511,14 @@ export function CharacterEditModal({
               type="button"
               variant="secondary"
               onClick={onClose}
-              disabled={isSaving}
+              disabled={isDisabled}
               className="flex-1"
             >
               취소
             </Button>
             <Button
               type="submit"
-              disabled={isSaving || !formData.name.trim()}
+              disabled={isDisabled || !formData.name.trim()}
               isLoading={isSaving}
               className="flex-1"
             >
