@@ -10,9 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Pencil,
   Trash2,
-  Star,
   MoreVertical,
-  Globe,
   User,
 } from 'lucide-react'
 import type { Character, CharacterMetadata } from '@/types/database.types'
@@ -22,7 +20,6 @@ interface CharacterCardProps {
   character: Character
   onEdit: (character: Character) => void
   onDelete: (character: Character) => void
-  onToggleFavorite: (id: string) => Promise<boolean>
   isDeleting?: boolean
   className?: string
 }
@@ -31,23 +28,12 @@ export const CharacterCard = memo(function CharacterCard({
   character,
   onEdit,
   onDelete,
-  onToggleFavorite,
   isDeleting = false,
   className,
 }: CharacterCardProps) {
   const [showMenu, setShowMenu] = useState(false)
-  const [isFavoriting, setIsFavoriting] = useState(false)
 
   const metadata = character.metadata as CharacterMetadata | null
-
-  const handleToggleFavorite = async (e: React.MouseEvent) => {
-    e.stopPropagation()
-    if (isFavoriting) return
-
-    setIsFavoriting(true)
-    await onToggleFavorite(character.id)
-    setIsFavoriting(false)
-  }
 
   const handleEdit = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -77,25 +63,6 @@ export const CharacterCard = memo(function CharacterCard({
       )}
       onClick={() => onEdit(character)}
     >
-      {/* 즐겨찾기 버튼 */}
-      <button
-        onClick={handleToggleFavorite}
-        disabled={isFavoriting}
-        className={cn(
-          'absolute top-3 right-3 p-1.5 rounded-full transition-all',
-          character.is_favorite
-            ? 'text-amber-400 hover:text-amber-500'
-            : 'text-gray-300 hover:text-amber-400',
-          isFavoriting && 'animate-pulse'
-        )}
-        aria-label={character.is_favorite ? '즐겨찾기 해제' : '즐겨찾기 추가'}
-      >
-        <Star
-          className="w-5 h-5"
-          fill={character.is_favorite ? 'currentColor' : 'none'}
-        />
-      </button>
-
       {/* 아바타 */}
       <div
         className="w-16 h-16 mx-auto mb-3 rounded-full flex items-center justify-center text-white text-2xl font-bold shadow-inner"
@@ -115,14 +82,6 @@ export const CharacterCard = memo(function CharacterCard({
       <h3 className="text-center font-semibold text-gray-900 truncate mb-1">
         {character.name}
       </h3>
-
-      {/* 세계관 태그 */}
-      {character.world_name && (
-        <div className="flex items-center justify-center gap-1 text-xs text-gray-500">
-          <Globe className="w-3 h-3" />
-          <span className="truncate max-w-[100px]">{character.world_name}</span>
-        </div>
-      )}
 
       {/* MBTI 뱃지 */}
       {metadata?.mbti && (
