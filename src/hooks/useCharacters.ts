@@ -276,6 +276,33 @@ export function useCharacters(): UseCharactersReturn {
   // 데이터 로드
   // ============================================
 
+  /** localStorage에서 캐릭터 로드 (데모 모드 또는 폴백) */
+  const loadFromLocalStorage = useCallback(() => {
+    const stored = localStorage.getItem(DEMO_STORAGE_KEY)
+    if (stored) {
+      const parsed = safeJsonParse<Character[]>(stored, [])
+      setCharacters(parsed.sort((a, b) => a.sort_order - b.sort_order))
+    } else {
+      // 초기 데모 데이터 생성
+      const demoData = createDemoCharacters()
+      localStorage.setItem(DEMO_STORAGE_KEY, JSON.stringify(demoData))
+      setCharacters(demoData)
+    }
+  }, [])
+
+  /** Supabase 에러가 테이블 미존재 관련인지 확인 */
+  const isTableNotFoundError = (errorMessage: string): boolean => {
+    return (
+      errorMessage.includes('schema cache') ||
+      errorMessage.includes('does not exist') ||
+      errorMessage.includes('relation') ||
+      errorMessage.includes('42P01') // PostgreSQL: relation does not exist
+    )
+  }
+
+  // localStorage 폴백 모드 상태 (테이블이 없을 때 활성화)
+  const useLocalStorageFallbackRef = useRef(false)
+
   const fetchCharacters = useCallback(async () => {
     // 데모 모드가 아닐 때만 user 로딩 대기
     if (!IS_DEMO_MODE && isUserLoading) return
@@ -285,21 +312,12 @@ export function useCharacters(): UseCharactersReturn {
     setOperationState('loading')
 
     try {
-      if (IS_DEMO_MODE) {
-        // 데모 모드: localStorage에서 로드
-        const stored = localStorage.getItem(DEMO_STORAGE_KEY)
-        if (stored) {
-          const parsed = safeJsonParse<Character[]>(stored, [])
-          setCharacters(parsed.sort((a, b) => a.sort_order - b.sort_order))
-        } else {
-          // 초기 데모 데이터 생성
-          const demoData = createDemoCharacters()
-          localStorage.setItem(DEMO_STORAGE_KEY, JSON.stringify(demoData))
-          setCharacters(demoData)
-        }
+      // 데모 모드이거나 이전에 테이블 없음 에러 발생한 경우
+      if (IS_DEMO_MODE || useLocalStorageFallbackRef.current) {
+        loadFromLocalStorage()
         setOperationState('success')
       } else if (user) {
-        // Supabase에서 로드
+        // Supabase에서 로드 시도
         const supabase = createClient()
         const { data, error: fetchError } = await supabase
           .from('characters')
@@ -308,15 +326,23 @@ export function useCharacters(): UseCharactersReturn {
           .order('sort_order', { ascending: true })
 
         if (fetchError) {
+          // 테이블이 없거나 스키마 에러인 경우 localStorage 폴백
+          if (isTableNotFoundError(fetchError.message)) {
+            console.warn('[useCharacters] characters 테이블이 없습니다. localStorage로 폴백합니다.')
+            useLocalStorageFallbackRef.current = true
+            loadFromLocalStorage()
+            setOperationState('success')
+            return
+          }
           throw new Error(fetchError.message)
         }
 
         setCharacters(data || [])
         setOperationState('success')
       } else {
-        // 로그인 안 됨
-        setCharacters([])
-        setOperationState('idle')
+        // 로그인 안 됨 - localStorage 사용
+        loadFromLocalStorage()
+        setOperationState('success')
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : '캐릭터를 불러오는데 실패했습니다.'
@@ -326,7 +352,7 @@ export function useCharacters(): UseCharactersReturn {
     } finally {
       setIsLoading(false)
     }
-  }, [user, isUserLoading])
+  }, [user, isUserLoading, loadFromLocalStorage])
 
   // 초기 로드
   useEffect(() => {
@@ -345,14 +371,19 @@ export function useCharacters(): UseCharactersReturn {
     setCharacters(previousCharactersRef.current)
   }, [])
 
+  /** localStorage 사용 여부 확인 (데모 모드 또는 폴백 모드) */
+  const shouldUseLocalStorage = useCallback((): boolean => {
+    return IS_DEMO_MODE || useLocalStorageFallbackRef.current
+  }, [])
+
   const persistToStorage = useCallback((data: Character[]) => {
-    if (IS_DEMO_MODE) {
+    if (shouldUseLocalStorage()) {
       if (!checkStorageQuota()) {
         throw new Error('저장 공간이 부족합니다. 일부 캐릭터를 삭제해주세요.')
       }
       localStorage.setItem(DEMO_STORAGE_KEY, JSON.stringify(data))
     }
-  }, [])
+  }, [shouldUseLocalStorage])
 
   // ============================================
   // CRUD 작업
@@ -400,7 +431,8 @@ export function useCharacters(): UseCharactersReturn {
         const updatedList = [...characters, newCharacter]
         setCharacters(updatedList)
 
-        if (IS_DEMO_MODE) {
+        if (shouldUseLocalStorage()) {
+          // localStorage 사용 (데모 모드 또는 테이블 없음)
           persistToStorage(updatedList)
         } else if (user) {
           const supabase = createClient()
@@ -420,7 +452,17 @@ export function useCharacters(): UseCharactersReturn {
             .select()
             .single()
 
-          if (insertError) throw new Error(insertError.message)
+          if (insertError) {
+            // 테이블이 없으면 localStorage 폴백
+            if (isTableNotFoundError(insertError.message)) {
+              console.warn('[useCharacters] characters 테이블이 없습니다. localStorage로 폴백합니다.')
+              useLocalStorageFallbackRef.current = true
+              persistToStorage(updatedList)
+              setOperationState('success')
+              return newCharacter
+            }
+            throw new Error(insertError.message)
+          }
 
           // 서버 응답으로 업데이트 (ID 등 서버 생성 값 반영)
           setCharacters((prev) =>
@@ -428,6 +470,9 @@ export function useCharacters(): UseCharactersReturn {
           )
           setOperationState('success')
           return data
+        } else {
+          // 로그인 안 됨 - localStorage 사용
+          persistToStorage(updatedList)
         }
 
         setOperationState('success')
@@ -443,7 +488,7 @@ export function useCharacters(): UseCharactersReturn {
         setIsSaving(false)
       }
     },
-    [user, characters, validateCharacter, canCreateMore, saveSnapshot, rollback, persistToStorage]
+    [user, characters, validateCharacter, canCreateMore, saveSnapshot, rollback, persistToStorage, shouldUseLocalStorage]
   )
 
   /** 캐릭터 수정 */
@@ -486,7 +531,8 @@ export function useCharacters(): UseCharactersReturn {
         )
         setCharacters(updatedList)
 
-        if (IS_DEMO_MODE) {
+        if (shouldUseLocalStorage()) {
+          // localStorage 사용 (데모 모드 또는 테이블 없음)
           persistToStorage(updatedList)
         } else if (user) {
           const supabase = createClient()
@@ -505,7 +551,20 @@ export function useCharacters(): UseCharactersReturn {
             .eq('id', id)
             .eq('user_id', user.id)
 
-          if (updateError) throw new Error(updateError.message)
+          if (updateError) {
+            // 테이블이 없으면 localStorage 폴백
+            if (isTableNotFoundError(updateError.message)) {
+              console.warn('[useCharacters] characters 테이블이 없습니다. localStorage로 폴백합니다.')
+              useLocalStorageFallbackRef.current = true
+              persistToStorage(updatedList)
+              setOperationState('success')
+              return true
+            }
+            throw new Error(updateError.message)
+          }
+        } else {
+          // 로그인 안 됨 - localStorage 사용
+          persistToStorage(updatedList)
         }
 
         setOperationState('success')
@@ -521,7 +580,7 @@ export function useCharacters(): UseCharactersReturn {
         setIsSaving(false)
       }
     },
-    [user, characters, validateCharacter, saveSnapshot, rollback, persistToStorage]
+    [user, characters, validateCharacter, saveSnapshot, rollback, persistToStorage, shouldUseLocalStorage]
   )
 
   /** 캐릭터 삭제 */
@@ -545,7 +604,8 @@ export function useCharacters(): UseCharactersReturn {
           .map((c, index) => ({ ...c, sort_order: index }))
         setCharacters(updatedList)
 
-        if (IS_DEMO_MODE) {
+        if (shouldUseLocalStorage()) {
+          // localStorage 사용 (데모 모드 또는 테이블 없음)
           persistToStorage(updatedList)
         } else if (user) {
           const supabase = createClient()
@@ -555,7 +615,20 @@ export function useCharacters(): UseCharactersReturn {
             .eq('id', id)
             .eq('user_id', user.id)
 
-          if (deleteError) throw new Error(deleteError.message)
+          if (deleteError) {
+            // 테이블이 없으면 localStorage 폴백
+            if (isTableNotFoundError(deleteError.message)) {
+              console.warn('[useCharacters] characters 테이블이 없습니다. localStorage로 폴백합니다.')
+              useLocalStorageFallbackRef.current = true
+              persistToStorage(updatedList)
+              setOperationState('success')
+              return true
+            }
+            throw new Error(deleteError.message)
+          }
+        } else {
+          // 로그인 안 됨 - localStorage 사용
+          persistToStorage(updatedList)
         }
 
         setOperationState('success')
@@ -571,7 +644,7 @@ export function useCharacters(): UseCharactersReturn {
         setIsSaving(false)
       }
     },
-    [user, characters, saveSnapshot, rollback, persistToStorage]
+    [user, characters, saveSnapshot, rollback, persistToStorage, shouldUseLocalStorage]
   )
 
   // ============================================
@@ -620,7 +693,8 @@ export function useCharacters(): UseCharactersReturn {
 
         setCharacters(reordered)
 
-        if (IS_DEMO_MODE) {
+        if (shouldUseLocalStorage()) {
+          // localStorage 사용 (데모 모드 또는 테이블 없음)
           persistToStorage(reordered)
         } else if (user) {
           const supabase = createClient()
@@ -639,8 +713,20 @@ export function useCharacters(): UseCharactersReturn {
               .eq('id', update.id)
               .eq('user_id', user.id)
 
-            if (updateError) throw new Error(updateError.message)
+            if (updateError) {
+              // 테이블이 없으면 localStorage 폴백
+              if (isTableNotFoundError(updateError.message)) {
+                console.warn('[useCharacters] characters 테이블이 없습니다. localStorage로 폴백합니다.')
+                useLocalStorageFallbackRef.current = true
+                persistToStorage(reordered)
+                return true
+              }
+              throw new Error(updateError.message)
+            }
           }
+        } else {
+          // 로그인 안 됨 - localStorage 사용
+          persistToStorage(reordered)
         }
 
         return true
@@ -654,7 +740,7 @@ export function useCharacters(): UseCharactersReturn {
         setIsSaving(false)
       }
     },
-    [user, characters, saveSnapshot, rollback, persistToStorage]
+    [user, characters, saveSnapshot, rollback, persistToStorage, shouldUseLocalStorage]
   )
 
   /** 즐겨찾기 토글 */
