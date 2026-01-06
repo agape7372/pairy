@@ -3,6 +3,11 @@
 /**
  * Sprint 32: 협업 컨텍스트
  * Yjs 기반 실시간 동기화를 React 컴포넌트에서 사용하기 위한 컨텍스트
+ *
+ * [2026-01-05 Fix] 연결 안정성 개선:
+ * - connect/disconnect 의존성 순환 문제 해결
+ * - 에러 처리 추가
+ * - 데모 모드 안전성 향상
  */
 
 import {
@@ -16,6 +21,7 @@ import {
 } from 'react'
 import { SupabaseYjsProvider } from './yjsProvider'
 import { useCanvasEditorStore } from '@/stores/canvasEditorStore'
+import { isSupabaseConfigured } from '@/lib/supabase/client'
 import type {
   SyncState,
   CollabUser,
@@ -141,41 +147,73 @@ export function CollabProvider({
     }, 3000)
   }, [])
 
-  // 연결
+  // 연결 (에러 처리 포함)
   const connect = useCallback(async (sessionId: string, user: CollabUser) => {
-    if (providerRef.current) {
-      providerRef.current.disconnect()
+    // 데모 모드에서는 연결하지 않음
+    if (!isSupabaseConfigured()) {
+      console.log('[CollabProvider] Demo mode - skipping connection')
+      setLocalUser(user)
+      return
     }
 
-    const provider = new SupabaseYjsProvider({
-      sessionId,
-      user,
-      onSyncStateChange: handleSyncStateChange,
-      onRemoteUserChange: handleRemoteUserChange,
-      onConflict: handleConflict,
-    })
+    try {
+      // 기존 연결 정리
+      if (providerRef.current) {
+        try {
+          providerRef.current.disconnect()
+        } catch (e) {
+          console.warn('[CollabProvider] Error disconnecting old provider:', e)
+        }
+      }
 
-    providerRef.current = provider
-    setLocalUser(user)
+      const provider = new SupabaseYjsProvider({
+        sessionId,
+        user,
+        onSyncStateChange: handleSyncStateChange,
+        onRemoteUserChange: handleRemoteUserChange,
+        onConflict: handleConflict,
+      })
 
-    // 현재 로컬 상태로 초기화
-    const stickers = templateConfig?.layers.stickers || []
-    provider.initializeState({
-      formData,
-      images,
-      colors,
-      slotTransforms,
-      stickers,
-    })
+      providerRef.current = provider
+      setLocalUser(user)
 
-    await provider.connect()
-    setIsConnected(true)
-  }, [formData, images, colors, slotTransforms, templateConfig, handleSyncStateChange, handleRemoteUserChange, handleConflict])
+      // 현재 로컬 상태로 초기화 (templateConfig가 없어도 안전)
+      const currentState = useCanvasEditorStore.getState()
+      const stickers = currentState.templateConfig?.layers.stickers || []
+      provider.initializeState({
+        formData: currentState.formData,
+        images: currentState.images,
+        colors: currentState.colors,
+        slotTransforms: currentState.slotTransforms,
+        stickers,
+      })
 
-  // 연결 해제
+      await provider.connect()
+      setIsConnected(true)
+      console.log('[CollabProvider] Connected successfully')
+    } catch (error) {
+      console.error('[CollabProvider] Connection failed:', error)
+      // 연결 실패 시 상태 정리
+      setIsConnected(false)
+      if (providerRef.current) {
+        try {
+          providerRef.current.disconnect()
+        } catch (e) {
+          // 무시
+        }
+        providerRef.current = null
+      }
+    }
+  }, [handleSyncStateChange, handleRemoteUserChange, handleConflict])
+
+  // 연결 해제 (에러 처리 포함)
   const disconnect = useCallback(() => {
     if (providerRef.current) {
-      providerRef.current.disconnect()
+      try {
+        providerRef.current.disconnect()
+      } catch (e) {
+        console.warn('[CollabProvider] Error during disconnect:', e)
+      }
       providerRef.current = null
     }
     setIsConnected(false)
@@ -231,16 +269,37 @@ export function CollabProvider({
     })
   }, [localUser])
 
-  // 자동 연결
+  // 자동 연결 (의존성 순환 방지를 위해 ref 사용)
+  const connectRef = useRef(connect)
+  const disconnectRef = useRef(disconnect)
+
+  // ref 업데이트
   useEffect(() => {
-    if (autoConnect && initialSessionId && initialUser) {
-      connect(initialSessionId, initialUser)
+    connectRef.current = connect
+    disconnectRef.current = disconnect
+  }, [connect, disconnect])
+
+  // 자동 연결 효과 (sessionId/user 변경 시에만 실행)
+  useEffect(() => {
+    if (!autoConnect || !initialSessionId || !initialUser) {
+      return
     }
 
-    return () => {
-      disconnect()
+    // 비동기 연결 (에러 처리 포함)
+    const doConnect = async () => {
+      try {
+        await connectRef.current(initialSessionId, initialUser)
+      } catch (error) {
+        console.error('[CollabProvider] Auto-connect failed:', error)
+      }
     }
-  }, [autoConnect, initialSessionId, initialUser, connect, disconnect])
+
+    doConnect()
+
+    return () => {
+      disconnectRef.current()
+    }
+  }, [autoConnect, initialSessionId, initialUser])
 
   // 로컬 상태 변경 시 Yjs 업데이트 (디바운스)
   useEffect(() => {
