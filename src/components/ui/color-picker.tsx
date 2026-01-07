@@ -172,8 +172,8 @@ const ColorSpectrum = memo(function ColorSpectrum({
       aria-label="색상 채도와 밝기"
       aria-valuetext={`채도 ${saturation}%, 밝기 ${value}%`}
       className={cn(
-        // 모바일: 16:10 비율, 데스크탑: 정사각형
-        'relative w-full aspect-[16/10] sm:aspect-square rounded-xl overflow-hidden cursor-crosshair touch-none',
+        // 모바일: 컴팩트 비율, 데스크탑: 약간 넓게
+        'relative w-full aspect-[5/3] sm:aspect-[16/10] max-h-[180px] sm:max-h-[220px] rounded-xl overflow-hidden cursor-crosshair touch-none',
         'focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-2',
         disabled && 'opacity-50 cursor-not-allowed'
       )}
