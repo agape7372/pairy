@@ -115,7 +115,8 @@ export function CharacterManager({
       onCharacterSelect(character)
       return
     }
-    router.push(`/my/characters/${character.id}`)
+    // 정적 내보내기 호환을 위해 쿼리 파라미터 방식 사용
+    router.push(`/my/characters/edit?id=${character.id}`)
   }, [selectionMode, onCharacterSelect, router])
 
   // 삭제 확인 핸들러
