@@ -22,6 +22,10 @@ import {
   Copy,
   Trash2,
   Save,
+  Plus,
+  X,
+  Hash,
+  MessageCircle,
 } from 'lucide-react'
 import { Button, Input, ImageUpload, ColorPicker } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
@@ -69,7 +73,124 @@ const initialFormData: FormData = {
     hairColor: '#4A3728',
     eyeColor: '#4A3728',
     mainColor: '#FF6B6B',
+    englishName: '',
+    age: '',
+    height: '',
+    weight: '',
+    catchphrase: '',
+    features: [],
+    tags: [],
   },
+}
+
+// ============================================
+// 태그 입력 컴포넌트 (특징, 키워드용)
+// ============================================
+
+interface TagInputProps {
+  value: string[]
+  onChange: (tags: string[]) => void
+  placeholder?: string
+  maxTags?: number
+  prefix?: string
+  disabled?: boolean
+}
+
+function TagInput({
+  value,
+  onChange,
+  placeholder = '입력 후 Enter',
+  maxTags = 10,
+  prefix,
+  disabled,
+}: TagInputProps) {
+  const [inputValue, setInputValue] = useState('')
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      addTag()
+    } else if (e.key === 'Backspace' && !inputValue && value.length > 0) {
+      // 입력값이 없을 때 백스페이스 누르면 마지막 태그 삭제
+      removeTag(value.length - 1)
+    }
+  }
+
+  const addTag = () => {
+    const trimmed = inputValue.trim()
+    if (!trimmed) return
+    if (value.length >= maxTags) return
+    if (value.includes(trimmed)) {
+      setInputValue('')
+      return
+    }
+    onChange([...value, trimmed])
+    setInputValue('')
+  }
+
+  const removeTag = (index: number) => {
+    onChange(value.filter((_, i) => i !== index))
+  }
+
+  return (
+    <div
+      className={cn(
+        'flex flex-wrap gap-2 p-3 bg-gray-50 border border-gray-200 rounded-xl min-h-[48px] cursor-text',
+        'focus-within:border-primary-300 focus-within:ring-2 focus-within:ring-primary-100',
+        disabled && 'opacity-50 cursor-not-allowed'
+      )}
+      onClick={() => inputRef.current?.focus()}
+    >
+      {value.map((tag, index) => (
+        <motion.span
+          key={`${tag}-${index}`}
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.8, opacity: 0 }}
+          className={cn(
+            'inline-flex items-center gap-1 px-2.5 py-1 text-sm rounded-full',
+            prefix === '#'
+              ? 'bg-primary-100 text-primary-700'
+              : 'bg-gray-200 text-gray-700'
+          )}
+        >
+          {prefix && <span className="text-xs opacity-60">{prefix}</span>}
+          {tag}
+          {!disabled && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                removeTag(index)
+              }}
+              className="ml-0.5 p-0.5 hover:bg-black/10 rounded-full"
+            >
+              <X className="w-3 h-3" />
+            </button>
+          )}
+        </motion.span>
+      ))}
+
+      {value.length < maxTags && !disabled && (
+        <input
+          ref={inputRef}
+          type="text"
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          onKeyDown={handleKeyDown}
+          onBlur={addTag}
+          placeholder={value.length === 0 ? placeholder : ''}
+          className="flex-1 min-w-[100px] bg-transparent outline-none text-sm placeholder:text-gray-400"
+          disabled={disabled}
+        />
+      )}
+
+      {value.length >= maxTags && (
+        <span className="text-xs text-gray-400">최대 {maxTags}개</span>
+      )}
+    </div>
+  )
 }
 
 // ============================================
@@ -207,7 +328,14 @@ export function CharacterEditForm({
           hairColor: metadata?.hairColor || character.color || '#4A3728',
           eyeColor: metadata?.eyeColor || '#4A3728',
           mainColor: metadata?.mainColor || character.color || '#FF6B6B',
+          englishName: metadata?.englishName || '',
           birthday: metadata?.birthday,
+          age: metadata?.age || '',
+          height: metadata?.height || '',
+          weight: metadata?.weight || '',
+          catchphrase: metadata?.catchphrase || '',
+          features: metadata?.features || [],
+          tags: metadata?.tags || [],
         },
       })
     } else {
@@ -510,11 +638,81 @@ export function CharacterEditForm({
         </div>
 
         {/* 추가 정보 */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-6">
+        <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-4">
           <h2 className="text-sm font-semibold text-gray-800 mb-4">
             추가 정보 (선택)
           </h2>
 
+          {/* 영문명 */}
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">
+              영문명
+            </label>
+            <Input
+              value={formData.metadata.englishName || ''}
+              onChange={(e) => updateMetadata('englishName', e.target.value)}
+              placeholder="English Name"
+              className="text-sm"
+              disabled={isDisabled}
+            />
+          </div>
+
+          {/* 한마디 */}
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1 flex items-center gap-1">
+              <MessageCircle className="w-3 h-3" />
+              한마디
+            </label>
+            <Input
+              value={formData.metadata.catchphrase || ''}
+              onChange={(e) => updateMetadata('catchphrase', e.target.value)}
+              placeholder="대표 대사나 좌우명"
+              className="text-sm"
+              disabled={isDisabled}
+            />
+          </div>
+
+          {/* 나이, 키, 몸무게 - 한 줄에 배치 */}
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">
+                나이
+              </label>
+              <Input
+                value={formData.metadata.age || ''}
+                onChange={(e) => updateMetadata('age', e.target.value)}
+                placeholder="예: 20"
+                className="text-sm"
+                disabled={isDisabled}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">
+                키
+              </label>
+              <Input
+                value={formData.metadata.height || ''}
+                onChange={(e) => updateMetadata('height', e.target.value)}
+                placeholder="예: 170cm"
+                className="text-sm"
+                disabled={isDisabled}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">
+                몸무게
+              </label>
+              <Input
+                value={formData.metadata.weight || ''}
+                onChange={(e) => updateMetadata('weight', e.target.value)}
+                placeholder="예: 60kg"
+                className="text-sm"
+                disabled={isDisabled}
+              />
+            </div>
+          </div>
+
+          {/* 생일 */}
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1">
               생일
@@ -526,6 +724,43 @@ export function CharacterEditForm({
               className="text-sm"
               disabled={isDisabled}
             />
+          </div>
+
+          {/* 특징 */}
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1 flex items-center gap-1">
+              <Plus className="w-3 h-3" />
+              특징
+            </label>
+            <TagInput
+              value={formData.metadata.features || []}
+              onChange={(tags) => updateMetadata('features', tags)}
+              placeholder="특징 입력 후 Enter (예: 긴 머리)"
+              maxTags={10}
+              disabled={isDisabled}
+            />
+            <p className="text-xs text-gray-400 mt-1">
+              캐릭터의 외형이나 성격적 특징
+            </p>
+          </div>
+
+          {/* 키워드/태그 */}
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1 flex items-center gap-1">
+              <Hash className="w-3 h-3" />
+              키워드
+            </label>
+            <TagInput
+              value={formData.metadata.tags || []}
+              onChange={(tags) => updateMetadata('tags', tags)}
+              placeholder="키워드 입력 후 Enter"
+              maxTags={15}
+              prefix="#"
+              disabled={isDisabled}
+            />
+            <p className="text-xs text-gray-400 mt-1">
+              검색이나 분류에 사용할 태그
+            </p>
           </div>
         </div>
 
