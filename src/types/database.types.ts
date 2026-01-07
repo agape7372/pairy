@@ -617,14 +617,24 @@ export interface CharacterMetadata {
   eyeColor?: string
   /** 메인 컬러/테마색 (HEX) */
   mainColor?: string
+  /** 영문명 */
+  englishName?: string
   /** 생일 (MM-DD 또는 YYYY-MM-DD 형식) */
   birthday?: string
   /** 키 */
   height?: string
+  /** 몸무게 */
+  weight?: string
   /** 나이/연령대 */
   age?: string
   /** 성별 */
   gender?: string
+  /** 한마디 (대표 대사/좌우명) */
+  catchphrase?: string
+  /** 특징 목록 */
+  features?: string[]
+  /** 키워드/태그 (#형태) */
+  tags?: string[]
   /** 취미 목록 */
   hobbies?: string[]
   /** 성격 키워드 */
