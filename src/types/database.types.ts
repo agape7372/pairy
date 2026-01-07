@@ -554,6 +554,68 @@ export interface Database {
         }
         Relationships: []
       }
+      /** Sprint 35: 위스퍼 테이블 */
+      whispers: {
+        Row: {
+          id: string
+          sender_id: string
+          receiver_id: string
+          whisper_type: 'GIFT' | 'NOTICE' | 'SECRET_EVENT'
+          payload: Json
+          scheduled_at: string | null
+          sent_at: string | null
+          read_at: string | null
+          claimed_at: string | null
+          status: 'PENDING' | 'SENT' | 'READ' | 'CLAIMED' | 'EXPIRED'
+          theme: 'NIGHT' | 'LOVE' | 'GOLDEN' | 'MYSTIC' | 'SPRING'
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          sender_id: string
+          receiver_id: string
+          whisper_type: 'GIFT' | 'NOTICE' | 'SECRET_EVENT'
+          payload: Json
+          scheduled_at?: string | null
+          sent_at?: string | null
+          read_at?: string | null
+          claimed_at?: string | null
+          status?: 'PENDING' | 'SENT' | 'READ' | 'CLAIMED' | 'EXPIRED'
+          theme?: 'NIGHT' | 'LOVE' | 'GOLDEN' | 'MYSTIC' | 'SPRING'
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          sender_id?: string
+          receiver_id?: string
+          whisper_type?: 'GIFT' | 'NOTICE' | 'SECRET_EVENT'
+          payload?: Json
+          scheduled_at?: string | null
+          sent_at?: string | null
+          read_at?: string | null
+          claimed_at?: string | null
+          status?: 'PENDING' | 'SENT' | 'READ' | 'CLAIMED' | 'EXPIRED'
+          theme?: 'NIGHT' | 'LOVE' | 'GOLDEN' | 'MYSTIC' | 'SPRING'
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'whispers_sender_id_fkey'
+            columns: ['sender_id']
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'whispers_receiver_id_fkey'
+            columns: ['receiver_id']
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never
