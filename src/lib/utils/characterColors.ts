@@ -8,7 +8,7 @@
  */
 
 import type { Character, CharacterMetadata } from '@/types/database.types'
-import type { ColorData, CharacterColors } from '@/types/template'
+import type { ColorData, CharacterColors, CharacterTextData } from '@/types/template'
 
 // ============================================
 // 타입 정의
@@ -326,4 +326,132 @@ export function getColorReferenceOptions(includeCharacterColors = true): Array<{
   }
 
   return options
+}
+
+// ============================================
+// 캐릭터 텍스트 데이터 바인딩 (Sprint 33 확장)
+// ============================================
+
+/** 캐릭터 텍스트 참조 키 목록 */
+export const CHARACTER_TEXT_KEYS: Array<keyof CharacterTextData> = [
+  'characterName',
+  'characterEnglishName',
+  'characterAge',
+  'characterHeight',
+  'characterWeight',
+  'characterBirthday',
+  'characterCatchphrase',
+  'characterFeatures',
+  'characterTags',
+  'characterDescription',
+]
+
+/** 캐릭터 텍스트 참조 레이블 */
+export const CHARACTER_TEXT_LABELS: Record<keyof CharacterTextData, string> = {
+  characterName: '캐릭터 이름',
+  characterEnglishName: '영문명',
+  characterAge: '나이',
+  characterHeight: '키',
+  characterWeight: '몸무게',
+  characterBirthday: '생일',
+  characterCatchphrase: '한마디',
+  characterFeatures: '특징',
+  characterTags: '키워드',
+  characterDescription: '소개',
+}
+
+/**
+ * 캐릭터에서 텍스트 데이터를 추출합니다.
+ * 템플릿의 inputField.key가 characterName, characterAge 등일 때 자동 바인딩됩니다.
+ *
+ * @param character - 캐릭터 객체
+ * @returns 추출된 캐릭터 텍스트 데이터
+ *
+ * @example
+ * ```typescript
+ * const textData = extractCharacterTextData(character)
+ * // { characterName: '민트', characterEnglishName: 'Mint', characterAge: '20', ... }
+ * ```
+ */
+export function extractCharacterTextData(character: Character | null): CharacterTextData {
+  if (!character) {
+    return {}
+  }
+
+  const metadata = character.metadata as CharacterMetadata | null
+
+  return {
+    characterName: character.name || undefined,
+    characterEnglishName: metadata?.englishName || undefined,
+    characterAge: metadata?.age || undefined,
+    characterHeight: metadata?.height || undefined,
+    characterWeight: metadata?.weight || undefined,
+    characterBirthday: metadata?.birthday || undefined,
+    characterCatchphrase: metadata?.catchphrase || undefined,
+    // 배열을 문자열로 변환
+    characterFeatures: metadata?.features?.length
+      ? metadata.features.join(', ')
+      : undefined,
+    characterTags: metadata?.tags?.length
+      ? metadata.tags.map(t => `#${t}`).join(' ')
+      : undefined,
+    characterDescription: character.description || undefined,
+  }
+}
+
+/**
+ * formData에 캐릭터 텍스트 데이터를 병합합니다.
+ * 기존 값이 있으면 덮어쓰지 않습니다 (사용자 입력 우선).
+ *
+ * @param currentFormData - 현재 폼 데이터
+ * @param characterTextData - 캐릭터 텍스트 데이터
+ * @param overwrite - 기존 값 덮어쓰기 여부 (기본값: false)
+ * @returns 병합된 폼 데이터
+ */
+export function mergeCharacterTextToFormData(
+  currentFormData: Record<string, string | undefined>,
+  characterTextData: CharacterTextData,
+  overwrite = false
+): Record<string, string | undefined> {
+  const result = { ...currentFormData }
+
+  for (const key of CHARACTER_TEXT_KEYS) {
+    const value = characterTextData[key]
+    if (value !== undefined) {
+      // 기존 값이 없거나 덮어쓰기 모드일 때만 적용
+      if (overwrite || !result[key]) {
+        result[key] = value
+      }
+    }
+  }
+
+  return result
+}
+
+/**
+ * formData에서 캐릭터 텍스트 데이터를 제거합니다.
+ *
+ * @param currentFormData - 현재 폼 데이터
+ * @returns 캐릭터 텍스트가 제거된 폼 데이터
+ */
+export function clearCharacterTextFromFormData(
+  currentFormData: Record<string, string | undefined>
+): Record<string, string | undefined> {
+  const result = { ...currentFormData }
+
+  for (const key of CHARACTER_TEXT_KEYS) {
+    delete result[key]
+  }
+
+  return result
+}
+
+/**
+ * 키가 캐릭터 텍스트 참조인지 확인합니다.
+ *
+ * @param key - 확인할 키
+ * @returns 캐릭터 텍스트 참조 여부
+ */
+export function isCharacterTextReference(key: string): key is keyof CharacterTextData {
+  return CHARACTER_TEXT_KEYS.includes(key as keyof CharacterTextData)
 }

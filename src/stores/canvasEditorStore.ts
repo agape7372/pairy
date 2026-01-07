@@ -26,6 +26,9 @@ import {
   extractCharacterColors,
   mergeCharacterColorsToColorData,
   clearCharacterColors,
+  extractCharacterTextData,
+  mergeCharacterTextToFormData,
+  clearCharacterTextFromFormData,
 } from '@/lib/utils/characterColors'
 import { DEFAULT_SLOT_TRANSFORM } from '@/types/template'
 import {
@@ -527,14 +530,17 @@ export const useCanvasEditorStore = create<CanvasEditorState & CanvasEditorActio
           selectedTextId: null,
         }),
 
-        // Sprint 33: 캐릭터 퍼스널 컬러 바인딩
+        // Sprint 33: 캐릭터 퍼스널 컬러 + 텍스트 데이터 바인딩
         applyCharacter: (character) => {
           const characterColors = extractCharacterColors(character)
+          const characterTextData = extractCharacterTextData(character)
 
           set((state) => ({
             selectedCharacter: character,
             characterColors,
             colors: mergeCharacterColorsToColorData(state.colors, characterColors),
+            // 텍스트 데이터도 formData에 자동 병합 (기존 값이 없는 필드만)
+            formData: mergeCharacterTextToFormData(state.formData, characterTextData, false),
             isDirty: true,
           }))
           get().pushHistory()
@@ -545,6 +551,8 @@ export const useCanvasEditorStore = create<CanvasEditorState & CanvasEditorActio
             selectedCharacter: null,
             characterColors: null,
             colors: clearCharacterColors(state.colors),
+            // 캐릭터 텍스트 데이터도 제거
+            formData: clearCharacterTextFromFormData(state.formData),
             isDirty: true,
           }))
           get().pushHistory()

@@ -47,6 +47,36 @@ export type ColorReference =
 /** 캐릭터 컬러 바인딩 타입 (Sprint 33) */
 export type CharacterColorBindType = 'hair' | 'eye' | 'theme' | null
 
+/**
+ * 캐릭터 텍스트 데이터 참조 키 (Sprint 33)
+ * 템플릿의 inputField.key에 이 값을 사용하면 캐릭터 데이터가 자동 바인딩됨
+ */
+export type CharacterTextReference =
+  | 'characterName' // 캐릭터 이름
+  | 'characterEnglishName' // 영문명
+  | 'characterAge' // 나이
+  | 'characterHeight' // 키
+  | 'characterWeight' // 몸무게
+  | 'characterBirthday' // 생일
+  | 'characterCatchphrase' // 한마디
+  | 'characterFeatures' // 특징 (쉼표로 연결)
+  | 'characterTags' // 키워드 (#으로 연결)
+  | 'characterDescription' // 소개
+
+/** 캐릭터 텍스트 데이터 인터페이스 */
+export interface CharacterTextData {
+  characterName?: string
+  characterEnglishName?: string
+  characterAge?: string
+  characterHeight?: string
+  characterWeight?: string
+  characterBirthday?: string
+  characterCatchphrase?: string
+  characterFeatures?: string
+  characterTags?: string
+  characterDescription?: string
+}
+
 /** 텍스트 정렬 */
 export type TextAlign = 'left' | 'center' | 'right'
 export type VerticalAlign = 'top' | 'middle' | 'bottom'
