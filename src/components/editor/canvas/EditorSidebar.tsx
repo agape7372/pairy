@@ -22,6 +22,8 @@ import {
   Sticker,
   Search,
   Trash2,
+  // Sprint 34: 유저 스티커
+  FolderHeart,
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { useCanvasEditorStore } from '@/stores/canvasEditorStore'
@@ -30,6 +32,8 @@ import { ALL_STICKER_PACKS, searchStickers, type Sticker as StickerType, type St
 import { processImageFile, formatFileSize, isSupportedImageType } from '@/lib/utils/imageCompressor'
 // Sprint 33: 캐릭터 선택
 import { CharacterSection } from './CharacterSelector'
+// Sprint 34: 유저 스티커
+import { UserStickerPanel } from '../stickers/UserStickerPanel'
 
 // ============================================
 // 서브 컴포넌트
@@ -817,8 +821,14 @@ const SlotInputGroup = React.forwardRef<HTMLDivElement, {
 
 /**
  * Sprint 31: 스티커 패널
- * 이미지 스티커만 지원 (이모지 배제)
+ * Sprint 34: 유저 스티커 업로드 기능 추가
+ *
+ * 탭 구조:
+ * - 내 스티커: 유저가 업로드한 스티커
+ * - 스티커 팩: 기본 제공 스티커 팩
  */
+type StickerTabType = 'my' | 'packs'
+
 function StickerPanel({
   onAddSticker,
   stickers,
@@ -832,6 +842,7 @@ function StickerPanel({
   onSelectSticker: (id: string | null) => void
   onRemoveSticker: (id: string) => void
 }) {
+  const [activeTab, setActiveTab] = useState<StickerTabType>('my')
   const [searchQuery, setSearchQuery] = useState('')
   const [activePack, setActivePack] = useState<string>(ALL_STICKER_PACKS[0]?.id || '')
 
@@ -844,73 +855,127 @@ function StickerPanel({
 
   return (
     <div className="space-y-4">
-      {/* 검색 */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="스티커 검색..."
-          className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-300"
-        />
+      {/* 메인 탭: 내 스티커 / 스티커 팩 */}
+      <div className="flex gap-2">
+        <button
+          onClick={() => setActiveTab('my')}
+          className={cn(
+            'flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium rounded-xl transition-all duration-200',
+            activeTab === 'my'
+              ? 'bg-primary-400 text-white shadow-sm'
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+          )}
+          aria-selected={activeTab === 'my'}
+          role="tab"
+        >
+          <FolderHeart className="w-4 h-4" />
+          내 스티커
+        </button>
+        <button
+          onClick={() => setActiveTab('packs')}
+          className={cn(
+            'flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium rounded-xl transition-all duration-200',
+            activeTab === 'packs'
+              ? 'bg-primary-400 text-white shadow-sm'
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+          )}
+          aria-selected={activeTab === 'packs'}
+          role="tab"
+        >
+          <Sticker className="w-4 h-4" />
+          스티커 팩
+        </button>
       </div>
 
-      {/* 팩 선택 탭 */}
-      {!searchQuery.trim() && (
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          {ALL_STICKER_PACKS.map((pack) => (
-            <button
-              key={pack.id}
-              onClick={() => setActivePack(pack.id)}
-              className={cn(
-                'px-3 py-1.5 text-sm rounded-full whitespace-nowrap transition-colors',
-                activePack === pack.id
-                  ? 'bg-primary-400 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              )}
-            >
-              {pack.name}
-            </button>
-          ))}
-        </div>
+      {/* 내 스티커 탭 */}
+      {activeTab === 'my' && (
+        <UserStickerPanel
+          onAddToCanvas={onAddSticker}
+          isPremium={false} // TODO: 프리미엄 상태 연동
+        />
       )}
 
-      {/* 스티커 그리드 */}
-      <div className="grid grid-cols-4 gap-2">
-        {displayStickers.map((sticker) => (
-          <button
-            key={sticker.id}
-            onClick={() => onAddSticker(sticker)}
-            className="aspect-square flex items-center justify-center bg-gray-50 hover:bg-primary-50 rounded-xl transition-colors border border-gray-200 hover:border-primary-300 overflow-hidden"
-            title={sticker.tags.join(', ')}
-          >
-            <img
-              src={sticker.thumbnailUrl || sticker.imageUrl}
-              alt={sticker.tags[0] || 'sticker'}
-              className="w-full h-full object-contain p-1"
+      {/* 스티커 팩 탭 */}
+      {activeTab === 'packs' && (
+        <>
+          {/* 검색 */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="스티커 검색..."
+              className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-300"
+              aria-label="스티커 검색"
             />
-          </button>
-        ))}
-      </div>
+          </div>
 
-      {displayStickers.length === 0 && (
-        <div className="text-center py-8">
-          <Sticker className="w-12 h-12 text-gray-300 mx-auto mb-2" />
-          <p className="text-gray-400 text-sm">
-            {searchQuery.trim() ? '검색 결과가 없습니다' : '스티커 준비 중입니다'}
-          </p>
-          <p className="text-gray-300 text-xs mt-1">
-            곧 다양한 스티커가 추가됩니다
-          </p>
-        </div>
+          {/* 팩 선택 탭 */}
+          {!searchQuery.trim() && (
+            <div className="flex gap-2 overflow-x-auto pb-1" role="tablist">
+              {ALL_STICKER_PACKS.map((pack) => (
+                <button
+                  key={pack.id}
+                  onClick={() => setActivePack(pack.id)}
+                  className={cn(
+                    'px-3 py-1.5 text-sm rounded-full whitespace-nowrap transition-colors',
+                    activePack === pack.id
+                      ? 'bg-primary-400 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  )}
+                  role="tab"
+                  aria-selected={activePack === pack.id}
+                >
+                  {pack.name}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* 스티커 그리드 */}
+          {displayStickers.length > 0 && (
+            <div className="grid grid-cols-4 gap-2">
+              {displayStickers.map((sticker) => (
+                <button
+                  key={sticker.id}
+                  onClick={() => onAddSticker(sticker)}
+                  className="aspect-square flex items-center justify-center bg-gray-50 hover:bg-primary-50 rounded-xl transition-colors border border-gray-200 hover:border-primary-300 overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400"
+                  title={sticker.tags.join(', ')}
+                  aria-label={`${sticker.tags[0] || 'sticker'} 스티커 추가`}
+                >
+                  <img
+                    src={sticker.thumbnailUrl || sticker.imageUrl}
+                    alt={sticker.tags[0] || 'sticker'}
+                    className="w-full h-full object-contain p-1"
+                    loading="lazy"
+                  />
+                </button>
+              ))}
+            </div>
+          )}
+
+          {displayStickers.length === 0 && (
+            <div className="text-center py-8">
+              <Sticker className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+              <p className="text-gray-400 text-sm">
+                {searchQuery.trim() ? '검색 결과가 없습니다' : '스티커 준비 중입니다'}
+              </p>
+              <p className="text-gray-300 text-xs mt-1">
+                곧 다양한 스티커가 추가됩니다
+              </p>
+            </div>
+          )}
+        </>
       )}
 
       {/* 배치된 스티커 목록 */}
       {stickers.length > 0 && (
         <div className="border-t border-gray-200 pt-4 mt-4">
-          <h4 className="text-xs font-medium text-gray-600 mb-2">배치된 스티커</h4>
-          <div className="space-y-2">
+          <h4 className="text-xs font-medium text-gray-600 mb-2">
+            배치된 스티커 ({stickers.length})
+          </h4>
+          <div className="space-y-2 max-h-48 overflow-y-auto">
             {stickers.map((sticker) => (
               <div
                 key={sticker.id}
@@ -921,6 +986,14 @@ function StickerPanel({
                     : 'border-gray-200 hover:border-gray-300'
                 )}
                 onClick={() => onSelectSticker(sticker.id)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    onSelectSticker(sticker.id)
+                  }
+                }}
+                aria-selected={selectedStickerId === sticker.id}
               >
                 <div className="flex items-center gap-2">
                   <img
@@ -937,8 +1010,9 @@ function StickerPanel({
                     e.stopPropagation()
                     onRemoveSticker(sticker.id)
                   }}
-                  className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
+                  className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
                   title="스티커 삭제"
+                  aria-label="스티커 삭제"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
