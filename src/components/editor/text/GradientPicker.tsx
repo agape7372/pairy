@@ -345,27 +345,30 @@ export const GradientPicker = memo(function GradientPicker({
             <div className="space-y-2">
               <span className="text-xs text-gray-500">프리셋</span>
               <div className="grid grid-cols-4 gap-2">
-                {GRADIENT_PRESETS.map((preset) => (
-                  <button
-                    key={preset.id}
-                    type="button"
-                    onClick={() => handlePresetSelect(preset)}
-                    className={cn(
-                      'relative h-8 rounded-lg border-2 transition-all',
-                      JSON.stringify(value) === JSON.stringify(preset.gradient)
-                        ? 'border-pink-500 ring-2 ring-pink-200'
-                        : 'border-transparent hover:border-gray-300'
-                    )}
-                    style={{ background: gradientToCSS(preset.gradient) }}
-                    title={preset.name}
-                  >
-                    {JSON.stringify(value) === JSON.stringify(preset.gradient) && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/20 rounded-md">
-                        <Check className="w-4 h-4 text-white" />
-                      </div>
-                    )}
-                  </button>
-                ))}
+                {GRADIENT_PRESETS.map((preset) => {
+                  const isSelected = JSON.stringify(value) === JSON.stringify(preset.gradient)
+                  return (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      onClick={() => handlePresetSelect(preset)}
+                      className={cn(
+                        'relative h-8 rounded-lg border-2 transition-all',
+                        isSelected
+                          ? 'border-pink-500 ring-2 ring-pink-200'
+                          : 'border-transparent hover:border-gray-300'
+                      )}
+                      style={{ background: gradientToCSS(preset.gradient) }}
+                      title={preset.name}
+                    >
+                      {isSelected && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/20 rounded-md">
+                          <Check className="w-4 h-4 text-white" />
+                        </div>
+                      )}
+                    </button>
+                  )
+                })}
               </div>
             </div>
 
