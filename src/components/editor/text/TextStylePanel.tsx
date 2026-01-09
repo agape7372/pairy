@@ -280,13 +280,17 @@ const Section = memo(function Section({
   icon,
   children,
   className,
-}: SectionProps) {
+  titleExtra,
+}: SectionProps & { titleExtra?: React.ReactNode }) {
   return (
     <div className={cn('space-y-3', className)}>
-      <h4 className="text-xs font-medium text-gray-600 dark:text-gray-400 flex items-center gap-1.5">
-        {icon}
-        {title}
-      </h4>
+      <div className="flex items-center justify-between">
+        <h4 className="text-xs font-medium text-gray-600 dark:text-gray-400 flex items-center gap-1.5">
+          {icon}
+          {title}
+        </h4>
+        {titleExtra}
+      </div>
       {children}
     </div>
   )
@@ -538,24 +542,16 @@ export const TextStylePanel = memo(function TextStylePanel({
         onApplyPreset={handleApplyPreset}
       />
 
-      {/* 폰트 선택 + 장식 아이콘 */}
-      <Section title="폰트" icon={<LetterText className="w-3.5 h-3.5" />}>
-        <div className="flex items-center gap-2">
-          <div className="flex-1">
-            <FontSelector
-              value={style.fontFamily}
-              onChange={handleFontChange}
-              weight={currentWeight}
-              onWeightChange={handleWeightChange}
-              previewText={currentText}
-            />
-          </div>
-          {/* 밑줄/취소선 아이콘 */}
-          <div className="flex items-center gap-1">
+      {/* 폰트 선택 */}
+      <Section
+        title="폰트"
+        icon={<LetterText className="w-3.5 h-3.5" />}
+        titleExtra={
+          <div className="flex items-center gap-0.5">
             <button
               type="button"
               className={cn(
-                'p-1.5 rounded-md transition-all',
+                'p-1 rounded transition-all',
                 style.textDecoration === 'underline'
                   ? 'bg-pink-500 text-white'
                   : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'
@@ -563,12 +559,12 @@ export const TextStylePanel = memo(function TextStylePanel({
               onClick={() => handleDecorationToggle('underline')}
               title="밑줄"
             >
-              <Underline className="w-4 h-4" />
+              <Underline className="w-3.5 h-3.5" />
             </button>
             <button
               type="button"
               className={cn(
-                'p-1.5 rounded-md transition-all',
+                'p-1 rounded transition-all',
                 style.textDecoration === 'line-through'
                   ? 'bg-pink-500 text-white'
                   : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'
@@ -576,10 +572,18 @@ export const TextStylePanel = memo(function TextStylePanel({
               onClick={() => handleDecorationToggle('line-through')}
               title="취소선"
             >
-              <Strikethrough className="w-4 h-4" />
+              <Strikethrough className="w-3.5 h-3.5" />
             </button>
           </div>
-        </div>
+        }
+      >
+        <FontSelector
+          value={style.fontFamily}
+          onChange={handleFontChange}
+          weight={currentWeight}
+          onWeightChange={handleWeightChange}
+          previewText={currentText}
+        />
       </Section>
 
       {/* 크기 & 간격 - 2줄 컴팩트 레이아웃 */}
