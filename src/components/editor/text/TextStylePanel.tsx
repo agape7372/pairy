@@ -134,6 +134,8 @@ interface NumberInputProps {
   max?: number
   step?: number
   unit?: string
+  /** 컴팩트 모드 (라벨 숨김, 더 작은 사이즈) */
+  compact?: boolean
 }
 
 const NumberInput = memo(function NumberInput({
@@ -144,6 +146,7 @@ const NumberInput = memo(function NumberInput({
   max = 999,
   step = 1,
   unit,
+  compact = false,
 }: NumberInputProps) {
   const handleDecrement = useCallback(() => {
     const newValue = Math.max(min, value - step)
@@ -154,6 +157,61 @@ const NumberInput = memo(function NumberInput({
     const newValue = Math.min(max, value + step)
     onChange(newValue)
   }, [value, max, step, onChange])
+
+  if (compact) {
+    return (
+      <div className="flex items-center gap-0.5">
+        <button
+          type="button"
+          className={cn(
+            'p-1 rounded transition-colors',
+            'hover:bg-gray-200 dark:hover:bg-gray-700',
+            'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300',
+            value <= min && 'opacity-30 cursor-not-allowed'
+          )}
+          onClick={handleDecrement}
+          disabled={value <= min}
+          aria-label={`${label} 감소`}
+        >
+          <Minus className="w-3 h-3" />
+        </button>
+        <input
+          type="number"
+          value={step < 1 ? value.toFixed(1) : value}
+          onChange={(e) => {
+            const parsed = parseFloat(e.target.value)
+            if (!isNaN(parsed)) {
+              onChange(Math.min(max, Math.max(min, parsed)))
+            }
+          }}
+          min={min}
+          max={max}
+          step={step}
+          title={label}
+          className={cn(
+            'w-10 px-1 py-0.5 text-center text-xs',
+            'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700',
+            'rounded focus:outline-none focus:ring-1 focus:ring-pink-400'
+          )}
+        />
+        {unit && <span className="text-[10px] text-gray-400 ml-0.5">{unit}</span>}
+        <button
+          type="button"
+          className={cn(
+            'p-1 rounded transition-colors',
+            'hover:bg-gray-200 dark:hover:bg-gray-700',
+            'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300',
+            value >= max && 'opacity-30 cursor-not-allowed'
+          )}
+          onClick={handleIncrement}
+          disabled={value >= max}
+          aria-label={`${label} 증가`}
+        >
+          <Plus className="w-3 h-3" />
+        </button>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-1">
@@ -501,36 +559,48 @@ export const TextStylePanel = memo(function TextStylePanel({
         />
       </Section>
 
-      {/* 크기 & 행간 */}
+      {/* 크기 & 행간 - 컴팩트 한 줄 레이아웃 */}
       <Section title="크기 & 간격" icon={<MoveVertical className="w-3.5 h-3.5" />}>
-        <div className="grid grid-cols-2 gap-4">
-          <NumberInput
-            label="크기"
-            value={style.fontSize}
-            onChange={handleFontSizeChange}
-            min={8}
-            max={200}
-            step={1}
-            unit="px"
-          />
-          <NumberInput
-            label="행간"
-            value={style.lineHeight || 1.2}
-            onChange={handleLineHeightChange}
-            min={0.5}
-            max={3}
-            step={0.1}
-          />
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-1">
+            <span className="text-[10px] text-gray-400 w-6">크기</span>
+            <NumberInput
+              label="크기"
+              value={style.fontSize}
+              onChange={handleFontSizeChange}
+              min={8}
+              max={200}
+              step={1}
+              unit="px"
+              compact
+            />
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="text-[10px] text-gray-400 w-6">행간</span>
+            <NumberInput
+              label="행간"
+              value={style.lineHeight || 1.2}
+              onChange={handleLineHeightChange}
+              min={0.5}
+              max={3}
+              step={0.1}
+              compact
+            />
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="text-[10px] text-gray-400 w-6">자간</span>
+            <NumberInput
+              label="자간"
+              value={style.letterSpacing || 0}
+              onChange={handleLetterSpacingChange}
+              min={-10}
+              max={30}
+              step={0.5}
+              unit="px"
+              compact
+            />
+          </div>
         </div>
-        <NumberInput
-          label="자간"
-          value={style.letterSpacing || 0}
-          onChange={handleLetterSpacingChange}
-          min={-10}
-          max={30}
-          step={0.5}
-          unit="px"
-        />
       </Section>
 
       {/* 자동 맞춤 */}
@@ -604,27 +674,23 @@ export const TextStylePanel = memo(function TextStylePanel({
         </Section>
       )}
 
-      {/* 정렬 */}
+      {/* 정렬 - 컴팩트 레이아웃 */}
       <Section title="정렬">
-        <div className="flex items-center gap-4">
-          <div className="space-y-1">
-            <span className="text-xs text-gray-400">가로</span>
-            <ButtonGroup
-              value={style.align || 'center'}
-              options={alignOptions}
-              onChange={handleAlignChange}
-              size="sm"
-            />
-          </div>
-          <div className="space-y-1">
-            <span className="text-xs text-gray-400">세로</span>
-            <ButtonGroup
-              value={style.verticalAlign || 'middle'}
-              options={verticalAlignOptions}
-              onChange={handleVerticalAlignChange}
-              size="sm"
-            />
-          </div>
+        <div className="flex items-center gap-3">
+          <span className="text-[10px] text-gray-400">가로</span>
+          <ButtonGroup
+            value={style.align || 'center'}
+            options={alignOptions}
+            onChange={handleAlignChange}
+            size="sm"
+          />
+          <span className="text-[10px] text-gray-400 ml-2">세로</span>
+          <ButtonGroup
+            value={style.verticalAlign || 'middle'}
+            options={verticalAlignOptions}
+            onChange={handleVerticalAlignChange}
+            size="sm"
+          />
         </div>
       </Section>
 
