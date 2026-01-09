@@ -32,9 +32,6 @@ import {
   Plus,
   Underline,
   Strikethrough,
-  CaseSensitive,
-  ArrowUpAZ,
-  ArrowDownAZ,
   Palette,
   LetterText,
   MoveVertical,
@@ -432,13 +429,6 @@ export const TextStylePanel = memo(function TextStylePanel({
     [style.textDecoration, onUpdateStyle]
   )
 
-  const handleTransformChange = useCallback(
-    (transform: TextStyle['textTransform']) => {
-      onUpdateStyle({ textTransform: transform })
-    },
-    [onUpdateStyle]
-  )
-
   // ============================================
   // 자동 맞춤 핸들러
   // ============================================
@@ -548,21 +538,55 @@ export const TextStylePanel = memo(function TextStylePanel({
         onApplyPreset={handleApplyPreset}
       />
 
-      {/* 폰트 선택 */}
+      {/* 폰트 선택 + 장식 아이콘 */}
       <Section title="폰트" icon={<LetterText className="w-3.5 h-3.5" />}>
-        <FontSelector
-          value={style.fontFamily}
-          onChange={handleFontChange}
-          weight={currentWeight}
-          onWeightChange={handleWeightChange}
-          previewText={currentText}
-        />
+        <div className="flex items-center gap-2">
+          <div className="flex-1">
+            <FontSelector
+              value={style.fontFamily}
+              onChange={handleFontChange}
+              weight={currentWeight}
+              onWeightChange={handleWeightChange}
+              previewText={currentText}
+            />
+          </div>
+          {/* 밑줄/취소선 아이콘 */}
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              className={cn(
+                'p-1.5 rounded-md transition-all',
+                style.textDecoration === 'underline'
+                  ? 'bg-pink-500 text-white'
+                  : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'
+              )}
+              onClick={() => handleDecorationToggle('underline')}
+              title="밑줄"
+            >
+              <Underline className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              className={cn(
+                'p-1.5 rounded-md transition-all',
+                style.textDecoration === 'line-through'
+                  ? 'bg-pink-500 text-white'
+                  : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'
+              )}
+              onClick={() => handleDecorationToggle('line-through')}
+              title="취소선"
+            >
+              <Strikethrough className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
       </Section>
 
-      {/* 크기 & 행간 - 컴팩트 한 줄 레이아웃 */}
+      {/* 크기 & 간격 - 2줄 컴팩트 레이아웃 */}
       <Section title="크기 & 간격" icon={<MoveVertical className="w-3.5 h-3.5" />}>
-        <div className="flex items-center justify-between gap-2 flex-wrap">
-          <div className="flex items-center gap-1">
+        <div className="space-y-2">
+          {/* 크기 */}
+          <div className="flex items-center gap-2">
             <span className="text-[10px] text-gray-400 w-6">크기</span>
             <NumberInput
               label="크기"
@@ -575,30 +599,33 @@ export const TextStylePanel = memo(function TextStylePanel({
               compact
             />
           </div>
-          <div className="flex items-center gap-1">
-            <span className="text-[10px] text-gray-400 w-6">행간</span>
-            <NumberInput
-              label="행간"
-              value={style.lineHeight || 1.2}
-              onChange={handleLineHeightChange}
-              min={0.5}
-              max={3}
-              step={0.1}
-              compact
-            />
-          </div>
-          <div className="flex items-center gap-1">
-            <span className="text-[10px] text-gray-400 w-6">자간</span>
-            <NumberInput
-              label="자간"
-              value={style.letterSpacing || 0}
-              onChange={handleLetterSpacingChange}
-              min={-10}
-              max={30}
-              step={0.5}
-              unit="px"
-              compact
-            />
+          {/* 행간 + 자간 한 줄 */}
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-gray-400 w-6">행간</span>
+              <NumberInput
+                label="행간"
+                value={style.lineHeight || 1.2}
+                onChange={handleLineHeightChange}
+                min={0.5}
+                max={3}
+                step={0.1}
+                compact
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-gray-400 w-6">자간</span>
+              <NumberInput
+                label="자간"
+                value={style.letterSpacing || 0}
+                onChange={handleLetterSpacingChange}
+                min={-10}
+                max={30}
+                step={0.5}
+                unit="px"
+                compact
+              />
+            </div>
           </div>
         </div>
       </Section>
@@ -674,25 +701,21 @@ export const TextStylePanel = memo(function TextStylePanel({
         </Section>
       )}
 
-      {/* 정렬 - 컴팩트 레이아웃 */}
-      <Section title="정렬">
-        <div className="flex items-center gap-3">
-          <span className="text-[10px] text-gray-400">가로</span>
-          <ButtonGroup
-            value={style.align || 'center'}
-            options={alignOptions}
-            onChange={handleAlignChange}
-            size="sm"
-          />
-          <span className="text-[10px] text-gray-400 ml-2">세로</span>
-          <ButtonGroup
-            value={style.verticalAlign || 'middle'}
-            options={verticalAlignOptions}
-            onChange={handleVerticalAlignChange}
-            size="sm"
-          />
-        </div>
-      </Section>
+      {/* 정렬 - 아이콘만 */}
+      <div className="flex items-center gap-2">
+        <ButtonGroup
+          value={style.align || 'center'}
+          options={alignOptions}
+          onChange={handleAlignChange}
+          size="sm"
+        />
+        <ButtonGroup
+          value={style.verticalAlign || 'middle'}
+          options={verticalAlignOptions}
+          onChange={handleVerticalAlignChange}
+          size="sm"
+        />
+      </div>
 
       {/* 색상 & 그라디언트 */}
       <Section title="색상" icon={<Palette className="w-3.5 h-3.5" />}>
@@ -725,98 +748,6 @@ export const TextStylePanel = memo(function TextStylePanel({
           value={style.gradient}
           onChange={handleGradientChange}
         />
-      </Section>
-
-      {/* 장식 & 변환 */}
-      <Section title="장식">
-        <div className="flex flex-wrap gap-2">
-          {/* 밑줄 */}
-          <button
-            type="button"
-            className={cn(
-              'flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full border transition-all',
-              style.textDecoration === 'underline'
-                ? 'bg-pink-500 text-white border-pink-500'
-                : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:border-pink-300'
-            )}
-            onClick={() => handleDecorationToggle('underline')}
-          >
-            <Underline className="w-3.5 h-3.5" />
-            밑줄
-          </button>
-
-          {/* 취소선 */}
-          <button
-            type="button"
-            className={cn(
-              'flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full border transition-all',
-              style.textDecoration === 'line-through'
-                ? 'bg-pink-500 text-white border-pink-500'
-                : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:border-pink-300'
-            )}
-            onClick={() => handleDecorationToggle('line-through')}
-          >
-            <Strikethrough className="w-3.5 h-3.5" />
-            취소선
-          </button>
-        </div>
-
-        {/* 대소문자 변환 */}
-        <div className="flex flex-wrap gap-2 mt-2">
-          <button
-            type="button"
-            className={cn(
-              'flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full border transition-all',
-              style.textTransform === 'uppercase'
-                ? 'bg-pink-500 text-white border-pink-500'
-                : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:border-pink-300'
-            )}
-            onClick={() =>
-              handleTransformChange(
-                style.textTransform === 'uppercase' ? 'none' : 'uppercase'
-              )
-            }
-          >
-            <ArrowUpAZ className="w-3.5 h-3.5" />
-            대문자
-          </button>
-
-          <button
-            type="button"
-            className={cn(
-              'flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full border transition-all',
-              style.textTransform === 'lowercase'
-                ? 'bg-pink-500 text-white border-pink-500'
-                : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:border-pink-300'
-            )}
-            onClick={() =>
-              handleTransformChange(
-                style.textTransform === 'lowercase' ? 'none' : 'lowercase'
-              )
-            }
-          >
-            <ArrowDownAZ className="w-3.5 h-3.5" />
-            소문자
-          </button>
-
-          <button
-            type="button"
-            className={cn(
-              'flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full border transition-all',
-              style.textTransform === 'capitalize'
-                ? 'bg-pink-500 text-white border-pink-500'
-                : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:border-pink-300'
-            )}
-            onClick={() =>
-              handleTransformChange(
-                style.textTransform === 'capitalize' ? 'none' : 'capitalize'
-              )
-            }
-          >
-            <CaseSensitive className="w-3.5 h-3.5" />
-            첫글자 대문자
-          </button>
-        </div>
       </Section>
 
       {/* 곡선/아치 텍스트 */}
