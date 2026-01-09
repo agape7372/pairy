@@ -4,17 +4,15 @@
  * Sprint 36: 텍스트 스타일 프리셋 피커
  *
  * 기능:
- * - 프리셋 스타일 선택
- * - 커스텀 프리셋 저장
- * - 실시간 미리보기
- * - 카테고리별 분류
+ * - 커스텀 프리셋 저장/적용/삭제
+ * - 드롭다운 UI (공간 효율적)
  *
  * UX 원칙:
- * - 한눈에 보이는 스타일 미리보기
- * - 빠른 적용
+ * - 컴팩트한 드롭다운으로 공간 절약
+ * - 프리셋이 늘어나도 스크롤로 대응
  */
 
-import React, { memo, useCallback, useMemo, useState } from 'react'
+import React, { memo, useCallback, useRef, useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Sparkles,
@@ -22,6 +20,7 @@ import {
   Trash2,
   ChevronDown,
   Plus,
+  Check,
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import type { TextStyle, TextEffects } from '@/types/template'
@@ -34,290 +33,9 @@ import type { TextStyle, TextEffects } from '@/types/template'
 export interface StylePreset {
   id: string
   name: string
-  category: PresetCategory
   style: Partial<TextStyle>
   effects?: Partial<TextEffects>
-  isCustom?: boolean
 }
-
-type PresetCategory = 'basic' | 'modern' | 'retro' | 'fun' | 'elegant' | 'custom'
-
-const CATEGORY_LABELS: Record<PresetCategory, string> = {
-  basic: '기본',
-  modern: '모던',
-  retro: '레트로',
-  fun: '펀',
-  elegant: '엘레강스',
-  custom: '내 프리셋',
-}
-
-// ============================================
-// 기본 프리셋
-// ============================================
-
-const BUILT_IN_PRESETS: StylePreset[] = [
-  // 기본
-  {
-    id: 'clean',
-    name: '클린',
-    category: 'basic',
-    style: {
-      fontFamily: 'Pretendard Variable',
-      fontSize: 24,
-      fontWeight: '400',
-      color: '#333333',
-    },
-  },
-  {
-    id: 'bold-title',
-    name: '볼드 타이틀',
-    category: 'basic',
-    style: {
-      fontFamily: 'Pretendard Variable',
-      fontSize: 36,
-      fontWeight: '700',
-      color: '#111111',
-      letterSpacing: -0.5,
-    },
-  },
-  {
-    id: 'subtle',
-    name: '서브텍스트',
-    category: 'basic',
-    style: {
-      fontFamily: 'Pretendard Variable',
-      fontSize: 14,
-      fontWeight: '400',
-      color: '#666666',
-      letterSpacing: 0.5,
-    },
-  },
-
-  // 모던
-  {
-    id: 'modern-gradient',
-    name: '모던 그라디언트',
-    category: 'modern',
-    style: {
-      fontFamily: 'Pretendard Variable',
-      fontSize: 32,
-      fontWeight: '600',
-      gradient: {
-        type: 'linear',
-        angle: 45,
-        stops: [
-          { offset: 0, color: '#667eea' },
-          { offset: 1, color: '#764ba2' },
-        ],
-      },
-    },
-  },
-  {
-    id: 'neon-pink',
-    name: '네온 핑크',
-    category: 'modern',
-    style: {
-      fontFamily: 'Pretendard Variable',
-      fontSize: 28,
-      fontWeight: '700',
-      color: '#FF1493',
-    },
-    effects: {
-      glow: {
-        color: '#FF1493',
-        blur: 12,
-      },
-    },
-  },
-  {
-    id: 'glassmorphism',
-    name: '글래스',
-    category: 'modern',
-    style: {
-      fontFamily: 'Pretendard Variable',
-      fontSize: 24,
-      fontWeight: '500',
-      color: '#FFFFFF',
-    },
-    effects: {
-      shadow: {
-        color: 'rgba(0,0,0,0.2)',
-        blur: 8,
-        offsetX: 2,
-        offsetY: 2,
-      },
-    },
-  },
-
-  // 레트로
-  {
-    id: 'retro-shadow',
-    name: '레트로 그림자',
-    category: 'retro',
-    style: {
-      fontFamily: 'Nanum Gothic',
-      fontSize: 28,
-      fontWeight: '700',
-      color: '#FF6B35',
-    },
-    effects: {
-      shadow: {
-        color: '#004E89',
-        blur: 0,
-        offsetX: 3,
-        offsetY: 3,
-      },
-    },
-  },
-  {
-    id: 'vintage',
-    name: '빈티지',
-    category: 'retro',
-    style: {
-      fontFamily: 'Nanum Myeongjo',
-      fontSize: 24,
-      fontWeight: '400',
-      color: '#8B4513',
-      letterSpacing: 2,
-    },
-  },
-  {
-    id: 'pixel',
-    name: '8비트',
-    category: 'retro',
-    style: {
-      fontFamily: 'DungGeunMo',
-      fontSize: 20,
-      fontWeight: '400',
-      color: '#00FF00',
-    },
-    effects: {
-      stroke: {
-        color: '#003300',
-        width: 1,
-      },
-    },
-  },
-
-  // 펀
-  {
-    id: 'rainbow',
-    name: '레인보우',
-    category: 'fun',
-    style: {
-      fontFamily: 'Jua',
-      fontSize: 32,
-      fontWeight: '400',
-      gradient: {
-        type: 'linear',
-        angle: 90,
-        stops: [
-          { offset: 0, color: '#ff0000' },
-          { offset: 0.2, color: '#ff8000' },
-          { offset: 0.4, color: '#ffff00' },
-          { offset: 0.6, color: '#00ff00' },
-          { offset: 0.8, color: '#0080ff' },
-          { offset: 1, color: '#8000ff' },
-        ],
-      },
-    },
-  },
-  {
-    id: 'comic',
-    name: '만화',
-    category: 'fun',
-    style: {
-      fontFamily: 'Black Han Sans',
-      fontSize: 36,
-      fontWeight: '400',
-      color: '#FFFF00',
-    },
-    effects: {
-      stroke: {
-        color: '#000000',
-        width: 3,
-      },
-    },
-  },
-  {
-    id: 'bubble',
-    name: '버블',
-    category: 'fun',
-    style: {
-      fontFamily: 'Jua',
-      fontSize: 28,
-      fontWeight: '400',
-      color: '#FF69B4',
-    },
-    effects: {
-      stroke: {
-        color: '#FFFFFF',
-        width: 4,
-      },
-      shadow: {
-        color: 'rgba(0,0,0,0.3)',
-        blur: 4,
-        offsetX: 2,
-        offsetY: 2,
-      },
-    },
-  },
-
-  // 엘레강스
-  {
-    id: 'elegant-serif',
-    name: '엘레강트 세리프',
-    category: 'elegant',
-    style: {
-      fontFamily: 'Nanum Myeongjo',
-      fontSize: 28,
-      fontWeight: '400',
-      color: '#2C3E50',
-      letterSpacing: 1,
-      lineHeight: 1.6,
-    },
-  },
-  {
-    id: 'gold-luxury',
-    name: '골드 럭셔리',
-    category: 'elegant',
-    style: {
-      fontFamily: 'Nanum Myeongjo',
-      fontSize: 32,
-      fontWeight: '700',
-      gradient: {
-        type: 'linear',
-        angle: 135,
-        stops: [
-          { offset: 0, color: '#f9d423' },
-          { offset: 0.5, color: '#e6b800' },
-          { offset: 1, color: '#f9d423' },
-        ],
-      },
-    },
-    effects: {
-      shadow: {
-        color: 'rgba(0,0,0,0.3)',
-        blur: 4,
-        offsetX: 1,
-        offsetY: 1,
-      },
-    },
-  },
-  {
-    id: 'minimal',
-    name: '미니멀',
-    category: 'elegant',
-    style: {
-      fontFamily: 'Noto Sans KR',
-      fontSize: 18,
-      fontWeight: '300',
-      color: '#333333',
-      letterSpacing: 4,
-      textTransform: 'uppercase',
-    },
-  },
-]
 
 // ============================================
 // localStorage 키
@@ -350,10 +68,8 @@ export const StylePresetPicker = memo(function StylePresetPicker({
   onApplyPreset,
   className,
 }: StylePresetPickerProps) {
-  const [isExpanded, setIsExpanded] = useState(false)
-  const [selectedCategory, setSelectedCategory] = useState<PresetCategory>('basic')
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const [customPresets, setCustomPresets] = useState<StylePreset[]>(() => {
-    // 초기값을 lazy initialization으로 설정
     if (typeof window === 'undefined') return []
     try {
       const stored = localStorage.getItem(CUSTOM_PRESETS_KEY)
@@ -365,8 +81,34 @@ export const StylePresetPicker = memo(function StylePresetPicker({
     }
     return []
   })
-  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false)
+  const [isSaveMode, setIsSaveMode] = useState(false)
   const [newPresetName, setNewPresetName] = useState('')
+  const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null)
+
+  const dropdownRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  // 외부 클릭 시 드롭다운 닫기
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false)
+        setIsSaveMode(false)
+      }
+    }
+
+    if (isDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isDropdownOpen])
+
+  // 저장 모드 진입 시 input focus
+  useEffect(() => {
+    if (isSaveMode && inputRef.current) {
+      inputRef.current.focus()
+    }
+  }, [isSaveMode])
 
   // 커스텀 프리셋 저장
   const saveCustomPresets = useCallback((presets: StylePreset[]) => {
@@ -378,278 +120,243 @@ export const StylePresetPicker = memo(function StylePresetPicker({
     }
   }, [])
 
-  // 모든 프리셋
-  const allPresets = useMemo(() => {
-    return [...BUILT_IN_PRESETS, ...customPresets]
-  }, [customPresets])
-
-  // 카테고리별 프리셋
-  const presetsByCategory = useMemo(() => {
-    const grouped: Record<PresetCategory, StylePreset[]> = {
-      basic: [],
-      modern: [],
-      retro: [],
-      fun: [],
-      elegant: [],
-      custom: [],
-    }
-
-    allPresets.forEach((preset) => {
-      grouped[preset.category].push(preset)
-    })
-
-    return grouped
-  }, [allPresets])
-
   // 프리셋 적용
   const handleApplyPreset = useCallback(
     (preset: StylePreset) => {
       onApplyPreset(preset.style, preset.effects)
+      setSelectedPresetId(preset.id)
+      setIsDropdownOpen(false)
     },
     [onApplyPreset]
   )
 
-  // 현재 스타일을 프리셋으로 저장
-  const handleSaveAsPreset = useCallback(() => {
+  // 새 프리셋 저장
+  const handleSaveNewPreset = useCallback(() => {
     if (!newPresetName.trim()) return
 
     const newPreset: StylePreset = {
       id: `custom-${Date.now()}`,
       name: newPresetName.trim(),
-      category: 'custom',
       style: { ...currentStyle },
       effects: currentEffects ? { ...currentEffects } : undefined,
-      isCustom: true,
     }
 
     saveCustomPresets([...customPresets, newPreset])
     setNewPresetName('')
-    setIsSaveModalOpen(false)
-    setSelectedCategory('custom')
+    setIsSaveMode(false)
+    setSelectedPresetId(newPreset.id)
   }, [newPresetName, currentStyle, currentEffects, customPresets, saveCustomPresets])
 
-  // 커스텀 프리셋 삭제
+  // 프리셋 삭제
   const handleDeletePreset = useCallback(
-    (presetId: string) => {
+    (e: React.MouseEvent, presetId: string) => {
+      e.stopPropagation()
       saveCustomPresets(customPresets.filter((p) => p.id !== presetId))
+      if (selectedPresetId === presetId) {
+        setSelectedPresetId(null)
+      }
     },
-    [customPresets, saveCustomPresets]
+    [customPresets, saveCustomPresets, selectedPresetId]
   )
 
   // CSS 그라디언트 문자열 생성
-  const getPreviewBackground = useCallback((style: Partial<TextStyle>): string => {
+  const getPreviewStyle = useCallback((style: Partial<TextStyle>): React.CSSProperties => {
+    const baseStyle: React.CSSProperties = {
+      fontFamily: style.fontFamily || 'inherit',
+      fontWeight: style.fontWeight || 'normal',
+    }
+
     if (style.gradient) {
       const colors = style.gradient.stops
         .map((s) => `${s.color} ${s.offset * 100}%`)
         .join(', ')
 
-      if (style.gradient.type === 'linear') {
-        return `linear-gradient(${style.gradient.angle ?? 0}deg, ${colors})`
-      } else {
-        return `radial-gradient(circle, ${colors})`
+      const gradient = style.gradient.type === 'linear'
+        ? `linear-gradient(${style.gradient.angle ?? 0}deg, ${colors})`
+        : `radial-gradient(circle, ${colors})`
+
+      return {
+        ...baseStyle,
+        background: gradient,
+        color: 'transparent',
+        WebkitBackgroundClip: 'text',
+        backgroundClip: 'text',
       }
     }
 
-    return typeof style.color === 'string' ? style.color : '#333333'
+    return {
+      ...baseStyle,
+      color: typeof style.color === 'string' ? style.color : '#333',
+    }
   }, [])
+
+  // 선택된 프리셋 이름
+  const selectedPresetName = customPresets.find((p) => p.id === selectedPresetId)?.name
 
   // ============================================
   // 렌더링
   // ============================================
 
   return (
-    <div className={cn('space-y-3', className)}>
-      {/* 헤더 */}
+    <div className={cn('relative', className)} ref={dropdownRef}>
+      {/* 드롭다운 트리거 */}
       <button
         type="button"
-        onClick={() => setIsExpanded(!isExpanded)}
+        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
         className={cn(
           'w-full flex items-center justify-between px-3 py-2 rounded-lg border transition-all',
-          isExpanded
+          isDropdownOpen
             ? 'bg-pink-50 border-pink-200 text-pink-700'
             : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-pink-300'
         )}
       >
         <div className="flex items-center gap-2">
           <Sparkles className="w-4 h-4" />
-          <span className="text-sm font-medium">스타일 프리셋</span>
+          <span className="text-sm font-medium">
+            {selectedPresetName || '스타일 프리셋'}
+          </span>
         </div>
         <ChevronDown
           className={cn(
             'w-4 h-4 transition-transform',
-            isExpanded && 'rotate-180'
+            isDropdownOpen && 'rotate-180'
           )}
         />
       </button>
 
-      {/* 확장 패널 */}
+      {/* 드롭다운 메뉴 */}
       <AnimatePresence>
-        {isExpanded && (
+        {isDropdownOpen && (
           <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="space-y-3 overflow-hidden"
+            initial={{ opacity: 0, y: -4, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -4, scale: 0.95 }}
+            transition={{ duration: 0.15 }}
+            className={cn(
+              'absolute z-50 w-full mt-1 py-1',
+              'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700',
+              'rounded-lg shadow-lg overflow-hidden'
+            )}
           >
-            {/* 카테고리 탭 */}
-            <div className="flex flex-wrap gap-1">
-              {(Object.keys(CATEGORY_LABELS) as PresetCategory[]).map((cat) => (
-                <button
-                  key={cat}
-                  type="button"
-                  onClick={() => setSelectedCategory(cat)}
-                  className={cn(
-                    'px-2.5 py-1 text-xs rounded-full transition-all',
-                    selectedCategory === cat
-                      ? 'bg-pink-500 text-white'
-                      : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200'
-                  )}
-                >
-                  {CATEGORY_LABELS[cat]}
-                  {cat === 'custom' && customPresets.length > 0 && (
-                    <span className="ml-1 text-[10px]">({customPresets.length})</span>
-                  )}
-                </button>
-              ))}
-            </div>
-
-            {/* 프리셋 그리드 */}
-            <div className="grid grid-cols-2 gap-2 max-h-[240px] overflow-y-auto">
-              {presetsByCategory[selectedCategory].map((preset) => (
-                <motion.button
-                  key={preset.id}
-                  type="button"
-                  onClick={() => handleApplyPreset(preset)}
-                  className={cn(
-                    'relative group p-3 rounded-lg border text-left transition-all',
-                    'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700',
-                    'hover:border-pink-300 hover:shadow-sm'
-                  )}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  {/* 미리보기 텍스트 */}
-                  <div
-                    className="text-base font-medium truncate"
-                    style={{
-                      fontFamily: preset.style.fontFamily || 'inherit',
-                      fontWeight: preset.style.fontWeight || 'normal',
-                      background: preset.style.gradient
-                        ? getPreviewBackground(preset.style)
-                        : 'transparent',
-                      color: preset.style.gradient
-                        ? 'transparent'
-                        : (typeof preset.style.color === 'string' ? preset.style.color : '#333'),
-                      WebkitBackgroundClip: preset.style.gradient ? 'text' : undefined,
-                      backgroundClip: preset.style.gradient ? 'text' : undefined,
-                      textShadow: preset.effects?.shadow
-                        ? `${preset.effects.shadow.offsetX}px ${preset.effects.shadow.offsetY}px ${preset.effects.shadow.blur}px ${preset.effects.shadow.color}`
-                        : undefined,
-                    }}
+            {/* 프리셋 목록 */}
+            <div className="max-h-[200px] overflow-y-auto">
+              {customPresets.length === 0 ? (
+                <div className="px-3 py-4 text-center text-sm text-gray-400">
+                  저장된 프리셋이 없습니다
+                </div>
+              ) : (
+                customPresets.map((preset) => (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    onClick={() => handleApplyPreset(preset)}
+                    className={cn(
+                      'w-full flex items-center justify-between px-3 py-2 text-left transition-colors',
+                      'hover:bg-gray-50 dark:hover:bg-gray-700',
+                      selectedPresetId === preset.id && 'bg-pink-50 dark:bg-pink-900/20'
+                    )}
                   >
-                    가나다
-                  </div>
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      {/* 선택 체크 */}
+                      <div className="w-4 h-4 flex-shrink-0">
+                        {selectedPresetId === preset.id && (
+                          <Check className="w-4 h-4 text-pink-500" />
+                        )}
+                      </div>
 
-                  {/* 프리셋 이름 */}
-                  <div className="text-[10px] text-gray-400 mt-1 truncate">
-                    {preset.name}
-                  </div>
+                      {/* 미리보기 텍스트 */}
+                      <span
+                        className="text-sm truncate"
+                        style={getPreviewStyle(preset.style)}
+                      >
+                        {preset.name}
+                      </span>
+                    </div>
 
-                  {/* 커스텀 프리셋 삭제 버튼 */}
-                  {preset.isCustom && (
+                    {/* 삭제 버튼 */}
                     <button
                       type="button"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleDeletePreset(preset.id)
-                      }}
-                      className="absolute top-1 right-1 p-1 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={(e) => handleDeletePreset(e, preset.id)}
+                      className={cn(
+                        'p-1 rounded text-gray-400 hover:text-red-500 hover:bg-red-50',
+                        'dark:hover:bg-red-900/20 transition-colors flex-shrink-0'
+                      )}
                       title="삭제"
                     >
-                      <Trash2 className="w-3 h-3" />
+                      <Trash2 className="w-3.5 h-3.5" />
                     </button>
-                  )}
-                </motion.button>
-              ))}
-
-              {/* 빈 상태 */}
-              {presetsByCategory[selectedCategory].length === 0 && (
-                <div className="col-span-2 py-8 text-center text-sm text-gray-400">
-                  {selectedCategory === 'custom'
-                    ? '저장된 프리셋이 없습니다'
-                    : '프리셋이 없습니다'}
-                </div>
+                  </button>
+                ))
               )}
             </div>
 
-            {/* 현재 스타일 저장 버튼 */}
-            <button
-              type="button"
-              onClick={() => setIsSaveModalOpen(true)}
-              className={cn(
-                'w-full flex items-center justify-center gap-2 px-3 py-2 text-sm',
-                'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400',
-                'rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-all'
-              )}
-            >
-              <Save className="w-4 h-4" />
-              현재 스타일 저장
-            </button>
+            {/* 구분선 */}
+            <div className="border-t border-gray-100 dark:border-gray-700 my-1" />
 
-            {/* 저장 모달 */}
-            <AnimatePresence>
-              {isSaveModalOpen && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg space-y-2"
-                >
-                  <input
-                    type="text"
-                    value={newPresetName}
-                    onChange={(e) => setNewPresetName(e.target.value)}
-                    placeholder="프리셋 이름"
-                    className={cn(
-                      'w-full px-3 py-2 text-sm',
-                      'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700',
-                      'rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400'
-                    )}
-                    autoFocus
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        handleSaveAsPreset()
-                      } else if (e.key === 'Escape') {
-                        setIsSaveModalOpen(false)
-                      }
+            {/* 새 프리셋 저장 */}
+            {isSaveMode ? (
+              <div className="px-2 py-2 space-y-2">
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={newPresetName}
+                  onChange={(e) => setNewPresetName(e.target.value)}
+                  placeholder="프리셋 이름 입력"
+                  className={cn(
+                    'w-full px-2.5 py-1.5 text-sm',
+                    'bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-600',
+                    'rounded focus:outline-none focus:ring-2 focus:ring-pink-400'
+                  )}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleSaveNewPreset()
+                    } else if (e.key === 'Escape') {
+                      setIsSaveMode(false)
+                      setNewPresetName('')
+                    }
+                  }}
+                />
+                <div className="flex gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsSaveMode(false)
+                      setNewPresetName('')
                     }}
-                  />
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setIsSaveModalOpen(false)}
-                      className="flex-1 px-3 py-1.5 text-xs text-gray-600 bg-gray-200 dark:bg-gray-700 rounded-lg"
-                    >
-                      취소
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleSaveAsPreset}
-                      disabled={!newPresetName.trim()}
-                      className={cn(
-                        'flex-1 px-3 py-1.5 text-xs rounded-lg flex items-center justify-center gap-1',
-                        newPresetName.trim()
-                          ? 'bg-pink-500 text-white'
-                          : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                      )}
-                    >
-                      <Plus className="w-3 h-3" />
-                      저장
-                    </button>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                    className="flex-1 px-2 py-1 text-xs text-gray-600 bg-gray-100 dark:bg-gray-700 rounded hover:bg-gray-200"
+                  >
+                    취소
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveNewPreset}
+                    disabled={!newPresetName.trim()}
+                    className={cn(
+                      'flex-1 px-2 py-1 text-xs rounded flex items-center justify-center gap-1',
+                      newPresetName.trim()
+                        ? 'bg-pink-500 text-white hover:bg-pink-600'
+                        : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                    )}
+                  >
+                    <Plus className="w-3 h-3" />
+                    저장
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setIsSaveMode(true)}
+                className={cn(
+                  'w-full flex items-center gap-2 px-3 py-2 text-sm',
+                  'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700',
+                  'transition-colors'
+                )}
+              >
+                <Save className="w-4 h-4" />
+                현재 스타일 저장
+              </button>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
