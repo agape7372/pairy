@@ -219,6 +219,54 @@ export interface TextEffects {
   }
 }
 
+/**
+ * 그라디언트 색상 정지점
+ * @example { offset: 0, color: '#FF6B6B' } // 시작점
+ * @example { offset: 1, color: '#4ECDC4' } // 끝점
+ */
+export interface GradientStop {
+  offset: number // 0 ~ 1
+  color: string
+}
+
+/**
+ * 그라디언트 설정 (Sprint 36)
+ *
+ * @description 선형/방사형 그라디언트 지원
+ * @example Linear gradient: { type: 'linear', angle: 45, stops: [...] }
+ * @example Radial gradient: { type: 'radial', centerX: 0.5, centerY: 0.5, stops: [...] }
+ */
+export interface TextGradient {
+  /** 그라디언트 타입 */
+  type: 'linear' | 'radial'
+
+  /**
+   * 선형 그라디언트 각도 (도 단위)
+   * 0 = 오른쪽, 90 = 아래, 180 = 왼쪽, 270 = 위
+   */
+  angle?: number
+
+  /**
+   * 방사형 그라디언트 중심점 X (0~1, 상대 좌표)
+   */
+  centerX?: number
+
+  /**
+   * 방사형 그라디언트 중심점 Y (0~1, 상대 좌표)
+   */
+  centerY?: number
+
+  /**
+   * 방사형 그라디언트 반경 (0~1, 상대 크기)
+   */
+  radius?: number
+
+  /**
+   * 색상 정지점 (최소 2개)
+   */
+  stops: GradientStop[]
+}
+
 /** 텍스트 스타일 설정 */
 export interface TextStyle {
   fontFamily: string
@@ -232,6 +280,12 @@ export interface TextStyle {
   letterSpacing?: number
   textDecoration?: 'none' | 'underline' | 'line-through'
   textTransform?: 'none' | 'uppercase' | 'lowercase' | 'capitalize'
+
+  /**
+   * 그라디언트 채우기 (Sprint 36)
+   * 설정 시 color보다 우선 적용됨
+   */
+  gradient?: TextGradient
 }
 
 /** 텍스트 필드 */
@@ -265,6 +319,51 @@ export interface TextField {
   maxLength?: number
   multiline?: boolean // 기본값: false
   minFontSize?: number // 자동 축소 최소 크기
+
+  // Sprint 36: 자동 맞춤 설정
+  autoFit?: {
+    /** 자동 맞춤 모드 */
+    mode: 'none' | 'shrink' | 'grow' | 'fit-box'
+    /** 최소 폰트 크기 (shrink/fit-box용) */
+    minFontSize?: number
+    /** 최대 폰트 크기 (grow/fit-box용) */
+    maxFontSize?: number
+    /** 한글 줄바꿈 모드 */
+    wordBreak?: 'normal' | 'keep-all' | 'break-all'
+  }
+
+  /**
+   * 곡선/아치 텍스트 설정 (Sprint 36)
+   */
+  curve?: TextCurve
+}
+
+/**
+ * 곡선 텍스트 설정 (Sprint 36)
+ *
+ * 텍스트를 아치형 또는 원형 경로를 따라 렌더링
+ */
+export interface TextCurve {
+  /** 곡선 타입 */
+  type: 'none' | 'arc-up' | 'arc-down' | 'circle' | 'wave'
+
+  /**
+   * 곡률 강도 (0~1)
+   * 0 = 직선, 1 = 최대 곡률
+   */
+  strength: number
+
+  /**
+   * 원형 텍스트의 시작 각도 (도 단위)
+   * circle 타입에서만 사용
+   */
+  startAngle?: number
+
+  /**
+   * 파동 텍스트의 주기
+   * wave 타입에서만 사용
+   */
+  waveFrequency?: number
 }
 
 /** 동적 색상 도형 (사용자 컬러에 반응하는 장식 요소) */
