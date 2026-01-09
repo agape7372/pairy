@@ -34,6 +34,8 @@ import { processImageFile, formatFileSize, isSupportedImageType } from '@/lib/ut
 import { CharacterSection } from './CharacterSelector'
 // Sprint 34: 유저 스티커
 import { UserStickerPanel } from '../stickers/UserStickerPanel'
+// Sprint 36: 텍스트 스타일
+import { TextStylePanel } from '../text/TextStylePanel'
 
 // ============================================
 // 서브 컴포넌트
@@ -1335,16 +1337,24 @@ export default function EditorSidebar({ isOpen = true, onClose }: EditorSidebarP
             aria-labelledby="tab-general"
             data-tour="text-panel"
           >
-            {/* Sprint 30: 선택된 텍스트 효과 패널 */}
+            {/* Sprint 36: 텍스트 스타일 패널 */}
             {selectedTextId && (() => {
               const selectedTextField = layers.texts.find((t) => t.id === selectedTextId)
               if (selectedTextField) {
                 return (
-                  <TextEffectsPanel
-                    textField={selectedTextField}
-                    onUpdateEffects={(effects) => updateTextEffects(selectedTextId, effects)}
-                    onClearEffects={() => clearTextEffects(selectedTextId)}
-                  />
+                  <>
+                    <TextStylePanel
+                      textField={selectedTextField}
+                      onUpdateStyle={(style) => updateTextStyle(selectedTextId, style)}
+                      onUpdateEffects={(effects) => updateTextEffects(selectedTextId, effects)}
+                      currentText={formData[selectedTextField.dataKey] || ''}
+                    />
+                    <TextEffectsPanel
+                      textField={selectedTextField}
+                      onUpdateEffects={(effects) => updateTextEffects(selectedTextId, effects)}
+                      onClearEffects={() => clearTextEffects(selectedTextId)}
+                    />
+                  </>
                 )
               }
               return null
