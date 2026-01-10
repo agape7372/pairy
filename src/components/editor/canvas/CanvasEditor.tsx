@@ -267,6 +267,10 @@ function CanvasEditorContent({
   // 자동 저장 디바운스
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
 
+  // 터치 줌 디바운싱
+  const touchZoomTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const pendingZoomRef = useRef<number | null>(null)
+
   // Export 모달 Focus trap
   const exportModalRef = useRef<HTMLDivElement>(null)
   const focusTrapRef = useRef<ReturnType<typeof createFocusTrap> | null>(null)
@@ -796,13 +800,32 @@ function CanvasEditorContent({
 
       const scale = distance / lastTouchDistance.current
       const newZoom = Math.max(0.25, Math.min(2, lastZoom.current * scale))
-      setZoom(newZoom)
+
+      // 디바운싱: 30ms 내 연속 호출 무시 (성능 최적화)
+      pendingZoomRef.current = newZoom
+      if (!touchZoomTimerRef.current) {
+        touchZoomTimerRef.current = setTimeout(() => {
+          if (pendingZoomRef.current !== null) {
+            setZoom(pendingZoomRef.current)
+          }
+          touchZoomTimerRef.current = null
+        }, 30)
+      }
     }
   }, [setZoom])
 
   const handleTouchEnd = useCallback(() => {
     lastTouchDistance.current = null
-  }, [])
+    // 남은 줌 업데이트 즉시 적용
+    if (touchZoomTimerRef.current) {
+      clearTimeout(touchZoomTimerRef.current)
+      touchZoomTimerRef.current = null
+      if (pendingZoomRef.current !== null) {
+        setZoom(pendingZoomRef.current)
+        pendingZoomRef.current = null
+      }
+    }
+  }, [setZoom])
 
   // 이미지 내보내기 (포맷 및 스케일 지원)
   const handleExport = useCallback(async () => {

@@ -73,6 +73,35 @@ export function sanitizeUsername(username: string | null | undefined): string | 
 }
 
 /**
+ * XSS 위험 패턴을 제거합니다.
+ * - HTML 태그 및 속성
+ * - JavaScript 프로토콜
+ * - 이벤트 핸들러
+ * - HTML 엔티티
+ */
+function sanitizeXSS(input: string): string {
+  return input
+    // HTML 태그 제거 (꺾쇠 포함 모든 태그)
+    .replace(/<[^>]*>/g, '')
+    // JavaScript 프로토콜 제거
+    .replace(/javascript\s*:/gi, '')
+    .replace(/data\s*:/gi, '')
+    .replace(/vbscript\s*:/gi, '')
+    // 이벤트 핸들러 속성 제거 (on으로 시작하는 속성)
+    .replace(/\bon\w+\s*=/gi, '')
+    // HTML 엔티티 제거 (&#로 시작하는 숫자 엔티티)
+    .replace(/&#\d+;?/g, '')
+    .replace(/&#x[\da-f]+;?/gi, '')
+    // 명명된 엔티티 제거 (&amp; &lt; 등)
+    .replace(/&[a-z]+;/gi, '')
+    // 남은 특수 문자 제거
+    .replace(/[<>'"&\\]/g, '')
+    // 연속 공백 정리
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+/**
  * 표시 이름을 정규화합니다.
  * - XSS 위험 문자 제거
  * - 최대 30자
@@ -80,10 +109,8 @@ export function sanitizeUsername(username: string | null | undefined): string | 
 export function sanitizeDisplayName(name: string | null | undefined): string | null {
   if (!name) return null
 
-  return name
-    .replace(/[<>'"&]/g, '') // XSS 위험 문자 제거
-    .trim()
-    .slice(0, 30)
+  const sanitized = sanitizeXSS(name)
+  return sanitized.slice(0, 30) || null
 }
 
 /**
@@ -94,10 +121,8 @@ export function sanitizeDisplayName(name: string | null | undefined): string | n
 export function sanitizeBio(bio: string | null | undefined): string | null {
   if (!bio) return null
 
-  return bio
-    .replace(/[<>]/g, '') // HTML 태그 위험 문자만 제거
-    .trim()
-    .slice(0, 200)
+  const sanitized = sanitizeXSS(bio)
+  return sanitized.slice(0, 200) || null
 }
 
 /**
