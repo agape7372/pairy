@@ -1,6 +1,6 @@
 # Pairy 개발 진행도
 
-> 마지막 업데이트: 2026-01-01
+> 마지막 업데이트: 2026-01-10
 
 ## 현재 상태
 
@@ -521,6 +521,7 @@ Canvas 기반 에디터 재구축 (react-konva)
 | Sprint 37 | 실시간 채팅 훅 (useCollabChat) | ✅ | 2026-01-01 |
 | Sprint 38 | 재연결 로직 (useReconnect) | ✅ | 2026-01-01 |
 | Sprint 39 | 사용자 활동 상태 (useUserActivity) | ✅ | 2026-01-01 |
+| Sprint 40 | 보안 강화 (Ultrathink 코드 리뷰) | ✅ | 2026-01-10 |
 
 ### Phase 6 Sprint 35 완료 (협업 UI 가시성 개선)
 - [x] sessionId 기준으로 협업 UI 표시 (연결 전에도 보이도록)
@@ -571,6 +572,26 @@ Canvas 기반 에디터 재구축 (react-konva)
   - 스로틀링된 이벤트 처리 (100ms)
   - 상태 유틸리티 함수 (getActivityStatusLabel, getActivityStatusColor)
 
+### Phase 6 Sprint 40 완료 (보안 강화)
+- [x] 보안 유틸리티 생성
+  - lib/utils/network.ts (AbortController 타임아웃, 지수 백오프 재시도)
+  - lib/utils/safeStorage.ts (안전한 JSON 파싱, Rate Limiting)
+  - lib/utils/validation.ts (비밀번호 복잡성, 이메일/URL 검증)
+- [x] 로그인 페이지 강화
+  - 비밀번호 강도 표시기 (약함/보통/좋음/강함)
+  - 실시간 비밀번호 요구사항 체크리스트
+  - Rate Limiting (5분 내 5회 실패 시 15분 잠금)
+- [x] useUser 훅 개선
+  - 프로필 로딩에 10초 타임아웃 적용 (AbortController)
+  - 타임아웃/취소 요청 graceful 처리
+- [x] XSS 방지 강화
+  - sanitizeXSS 함수 (lib/auth/profile.ts)
+  - CSP 메타 태그 추가 (layout.tsx)
+- [x] 성능 최적화
+  - historyMiddleware 얕은 비교 (JSON.stringify 대체)
+  - 터치 줌 디바운싱 (30ms)
+  - Blob URL 메모리 누수 방지 (자동 해제)
+
 ### Phase 6 타입 호환성 개선
 - [x] Participant 타입 추가 (CollabPanel 호환용 snake_case)
 - [x] CollabSession에 호환성 속성 추가 (invite_code, max_participants)
@@ -585,6 +606,7 @@ Canvas 기반 에디터 재구축 (react-konva)
 - [x] 타이핑 인디케이터
 - [x] 자동 재연결 (지수 백오프)
 - [x] 사용자 활동 상태 추적
+- [x] 보안 강화 (유효성 검증, Rate Limiting, 타임아웃)
 
 ---
 
@@ -592,6 +614,9 @@ Canvas 기반 에디터 재구축 (react-konva)
 
 | 날짜 | 커밋 | 설명 |
 |------|------|------|
+| 2026-01-10 | 27e28b7 | docs: CLAUDE.md 개선 |
+| 2026-01-10 | b40730e | feat(security): 보안 유틸리티 및 로그인 강화 |
+| 2026-01-10 | 92146cc | fix: 보안 및 성능 개선 (Ultrathink 코드 리뷰) |
 | 2026-01-01 | 6a66d72 | feat: 협업 기능 확장 (Phase 6) |
 | 2026-01-01 | b3a80e8 | fix: 협업 UI 가시성 개선 |
 | 2026-01-01 | c4cfdbd | feat: 에디터 협업 기능 확장 (Phase 5) |
