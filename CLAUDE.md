@@ -5,10 +5,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Build & Development Commands
 
 ```bash
-npm run dev      # Start Next.js development server
-npm run build    # Build for production (static export, uses --webpack)
-npm run lint     # Run ESLint checks
-npm start        # Start production server
+npm run dev          # Start Next.js development server
+npm run build        # Build for production (static export)
+npm run lint         # Run ESLint checks
+npm start            # Start production server
+
+# Testing
+npm test             # Run Jest unit tests
+npm run test:watch   # Run tests in watch mode
+npm run test:e2e     # Run Playwright E2E tests
 ```
 
 **Note**: Build uses `--webpack` flag to avoid Turbopack Korean path bug (Next.js 16.x).
@@ -31,9 +36,17 @@ npm start        # Start production server
 | Types | `src/types/` | TypeScript types and domain models |
 
 ### State Management (Zustand)
-- `editorStore.ts` - Editor canvas state (slots, history, selection, zoom)
+- `canvasEditorStore.ts` - Main editor state (slots, history, layers, selection, zoom)
+- `editorEntryStore.ts` - Editor entry point state
 - `subscriptionStore.ts` - Premium tier state (localStorage persisted)
 - `marketplaceStore.ts` - Purchases, sales, creator earnings
+- `gamificationStore.ts` - User achievements, badges, levels
+- `themeStore.ts` - Theme preferences
+
+### Real-time Collaboration (Yjs)
+- `lib/collab/yjsProvider.ts` - Yjs WebSocket provider for real-time sync
+- `lib/collab/CollabContext.tsx` - React context for collab state
+- Uses Yjs shared types for conflict-free editing
 
 ### Backend Integration (Supabase)
 - `lib/supabase/client.ts` - Browser client with demo mode support
@@ -79,6 +92,12 @@ All data hooks follow this structure:
 ```typescript
 import { Button } from '@/components/ui'  // @/* maps to ./src/*
 ```
+
+### Security Utilities (`lib/utils/`)
+- `validation.ts` - Password strength, email/URL validation
+- `safeStorage.ts` - Safe JSON parsing, rate limiting
+- `network.ts` - AbortController timeouts, retry with backoff
+- `url.ts` - URL validation, redirect protection
 
 ## Static Export Requirements
 
