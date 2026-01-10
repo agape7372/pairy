@@ -259,6 +259,16 @@ export const useCanvasEditorStore = create<CanvasEditorState & CanvasEditorActio
         },
 
         updateImage: (dataKey, url) => {
+          // 기존 Blob URL 메모리 해제 (메모리 누수 방지)
+          const oldUrl = get().images[dataKey]
+          if (oldUrl && oldUrl.startsWith('blob:') && oldUrl !== url) {
+            try {
+              URL.revokeObjectURL(oldUrl)
+            } catch {
+              // Blob URL 해제 실패 무시 (이미 해제됨)
+            }
+          }
+
           set((state) => ({
             images: { ...state.images, [dataKey]: url },
             isDirty: true,
@@ -275,7 +285,20 @@ export const useCanvasEditorStore = create<CanvasEditorState & CanvasEditorActio
         },
 
         setFormData: (data) => set({ formData: data, isDirty: true }),
-        setImages: (data) => set({ images: data, isDirty: true }),
+        setImages: (data) => {
+          // 기존 Blob URL 메모리 해제 (메모리 누수 방지)
+          const oldImages = get().images
+          Object.values(oldImages).forEach((url) => {
+            if (url && url.startsWith('blob:') && !Object.values(data).includes(url)) {
+              try {
+                URL.revokeObjectURL(url)
+              } catch {
+                // Blob URL 해제 실패 무시
+              }
+            }
+          })
+          set({ images: data, isDirty: true })
+        },
         setColors: (data) => set({ colors: data, isDirty: true }),
 
         // 슬롯 이미지 변환

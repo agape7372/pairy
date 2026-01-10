@@ -53,14 +53,59 @@ export const initialHistoryState: HistoryState = {
 const MAX_HISTORY_SIZE = 50
 
 /**
+ * 객체의 얕은 비교 (1단계 깊이)
+ * 성능 최적화: JSON.stringify 대신 키-값 직접 비교
+ */
+function shallowEqual<T extends Record<string, unknown>>(a: T, b: T): boolean {
+  if (a === b) return true
+
+  const keysA = Object.keys(a)
+  const keysB = Object.keys(b)
+
+  if (keysA.length !== keysB.length) return false
+
+  for (const key of keysA) {
+    // 값이 객체인 경우 참조 비교, 아닌 경우 값 비교
+    if (a[key] !== b[key]) {
+      // 중첩 객체는 JSON 비교 (슬롯 변환 등)
+      if (
+        typeof a[key] === 'object' &&
+        a[key] !== null &&
+        typeof b[key] === 'object' &&
+        b[key] !== null
+      ) {
+        if (JSON.stringify(a[key]) !== JSON.stringify(b[key])) {
+          return false
+        }
+      } else {
+        return false
+      }
+    }
+  }
+
+  return true
+}
+
+/**
  * 두 스냅샷이 동일한지 비교
+ * 최적화: 참조 동일성 먼저 체크 후 얕은 비교 수행
  */
 export function areSnapshotsEqual(a: HistorySnapshot, b: HistorySnapshot): boolean {
+  // 빠른 참조 비교
+  if (a === b) return true
+  if (a.formData === b.formData &&
+      a.images === b.images &&
+      a.colors === b.colors &&
+      a.slotTransforms === b.slotTransforms) {
+    return true
+  }
+
+  // 얕은 비교 수행
   return (
-    JSON.stringify(a.formData) === JSON.stringify(b.formData) &&
-    JSON.stringify(a.images) === JSON.stringify(b.images) &&
-    JSON.stringify(a.colors) === JSON.stringify(b.colors) &&
-    JSON.stringify(a.slotTransforms) === JSON.stringify(b.slotTransforms)
+    shallowEqual(a.formData, b.formData) &&
+    shallowEqual(a.images, b.images) &&
+    shallowEqual(a.colors, b.colors) &&
+    shallowEqual(a.slotTransforms, b.slotTransforms)
   )
 }
 
