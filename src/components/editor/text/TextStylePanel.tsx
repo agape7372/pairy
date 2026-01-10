@@ -157,11 +157,11 @@ const NumberInput = memo(function NumberInput({
 
   if (compact) {
     return (
-      <div className="flex items-center gap-0.5">
+      <div className="flex items-center">
         <button
           type="button"
           className={cn(
-            'p-1 rounded transition-colors',
+            'p-1 rounded transition-colors flex-shrink-0',
             'hover:bg-gray-200 dark:hover:bg-gray-700',
             'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300',
             value <= min && 'opacity-30 cursor-not-allowed'
@@ -172,30 +172,37 @@ const NumberInput = memo(function NumberInput({
         >
           <Minus className="w-3 h-3" />
         </button>
-        <input
-          type="number"
-          value={step < 1 ? value.toFixed(1) : value}
-          onChange={(e) => {
-            const parsed = parseFloat(e.target.value)
-            if (!isNaN(parsed)) {
-              onChange(Math.min(max, Math.max(min, parsed)))
-            }
-          }}
-          min={min}
-          max={max}
-          step={step}
-          title={label}
-          className={cn(
-            'w-10 px-1 py-0.5 text-center text-xs',
-            'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700',
-            'rounded focus:outline-none focus:ring-1 focus:ring-pink-400'
+        <div className="relative flex-shrink-0">
+          <input
+            type="number"
+            value={step < 1 ? value.toFixed(1) : value}
+            onChange={(e) => {
+              const parsed = parseFloat(e.target.value)
+              if (!isNaN(parsed)) {
+                onChange(Math.min(max, Math.max(min, parsed)))
+              }
+            }}
+            min={min}
+            max={max}
+            step={step}
+            title={label}
+            className={cn(
+              'w-12 py-0.5 text-center text-xs',
+              'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700',
+              'rounded focus:outline-none focus:ring-1 focus:ring-pink-400',
+              unit ? 'pl-1 pr-4' : 'px-1'
+            )}
+          />
+          {unit && (
+            <span className="absolute right-1 top-1/2 -translate-y-1/2 text-[9px] text-gray-400 pointer-events-none">
+              {unit}
+            </span>
           )}
-        />
-        {unit && <span className="text-[10px] text-gray-400 ml-0.5">{unit}</span>}
+        </div>
         <button
           type="button"
           className={cn(
-            'p-1 rounded transition-colors',
+            'p-1 rounded transition-colors flex-shrink-0',
             'hover:bg-gray-200 dark:hover:bg-gray-700',
             'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300',
             value >= max && 'opacity-30 cursor-not-allowed'
@@ -521,6 +528,7 @@ export const TextStylePanel = memo(function TextStylePanel({
         'space-y-5 p-4 bg-gradient-to-b from-pink-50/50 to-white',
         'dark:from-gray-800/50 dark:to-gray-900',
         'rounded-xl border border-pink-100 dark:border-gray-700',
+        'overflow-hidden',
         className
       )}
       initial={{ opacity: 0, y: -10 }}
@@ -586,12 +594,12 @@ export const TextStylePanel = memo(function TextStylePanel({
         />
       </Section>
 
-      {/* 크기 & 간격 - 2줄 컴팩트 레이아웃 */}
+      {/* 크기 & 간격 - 그리드 레이아웃 */}
       <Section title="크기 & 간격" icon={<MoveVertical className="w-3.5 h-3.5" />}>
-        <div className="space-y-2">
+        <div className="grid grid-cols-2 gap-x-3 gap-y-2">
           {/* 크기 */}
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] text-gray-400 w-6">크기</span>
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] text-gray-400">크기</span>
             <NumberInput
               label="크기"
               value={style.fontSize}
@@ -603,33 +611,32 @@ export const TextStylePanel = memo(function TextStylePanel({
               compact
             />
           </div>
-          {/* 행간 + 자간 한 줄 */}
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] text-gray-400 w-6">행간</span>
-              <NumberInput
-                label="행간"
-                value={style.lineHeight || 1.2}
-                onChange={handleLineHeightChange}
-                min={0.5}
-                max={3}
-                step={0.1}
-                compact
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] text-gray-400 w-6">자간</span>
-              <NumberInput
-                label="자간"
-                value={style.letterSpacing || 0}
-                onChange={handleLetterSpacingChange}
-                min={-10}
-                max={30}
-                step={0.5}
-                unit="px"
-                compact
-              />
-            </div>
+          {/* 행간 */}
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] text-gray-400">행간</span>
+            <NumberInput
+              label="행간"
+              value={style.lineHeight || 1.2}
+              onChange={handleLineHeightChange}
+              min={0.5}
+              max={3}
+              step={0.1}
+              compact
+            />
+          </div>
+          {/* 자간 */}
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] text-gray-400">자간</span>
+            <NumberInput
+              label="자간"
+              value={style.letterSpacing || 0}
+              onChange={handleLetterSpacingChange}
+              min={-10}
+              max={30}
+              step={0.5}
+              unit="px"
+              compact
+            />
           </div>
         </div>
       </Section>
@@ -706,7 +713,7 @@ export const TextStylePanel = memo(function TextStylePanel({
       )}
 
       {/* 정렬 - 아이콘만 */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
         <ButtonGroup
           value={style.align || 'center'}
           options={alignOptions}
