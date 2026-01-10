@@ -7,12 +7,14 @@
  * 직접 읽어오므로 네트워크 요청 없이 즉시 발생함.
  * getSession()은 토큰 갱신 시 네트워크를 기다릴 수 있어 hang 위험이 있음.
  *
- * timeout 없음 - timeout은 user=null 상태에서 isLoading=false가 되어
- * 로그인 페이지로 잘못 리다이렉트되는 원인이었음.
+ * timeout 없음 - auth 체크는 timeout을 적용하지 않음
+ * (user=null에서 isLoading=false가 되어 로그인 페이지로 잘못 리다이렉트 방지)
+ * 단, 프로필 로딩은 별도 네트워크 요청이므로 타임아웃 적용
  */
 
 import { useEffect, useState, useCallback } from 'react'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
+import { createTimeoutController } from '@/lib/utils/network'
 import type { User } from '@supabase/supabase-js'
 import type { UserRole } from '@/types/database.types'
 
@@ -42,9 +44,11 @@ export function useUser(): UseUserReturn {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
-  // 프로필 로드 함수
+  // 프로필 로드 함수 (타임아웃 적용)
   const loadProfile = useCallback(async (userId: string, isMounted: () => boolean) => {
     if (!isSupabaseConfigured()) return
+
+    const { signal, clear } = createTimeoutController('read')
 
     try {
       const supabase = createClient()
@@ -52,12 +56,21 @@ export function useUser(): UseUserReturn {
         .from('profiles')
         .select('id, display_name, avatar_url, bio, role')
         .eq('id', userId)
+        .abortSignal(signal)
         .single()
+
+      clear() // 성공 시 타임아웃 해제
 
       if (!error && data && isMounted()) {
         setProfile(data as Profile)
       }
     } catch (err) {
+      clear()
+      // 타임아웃이나 취소된 요청은 조용히 무시
+      if (err instanceof DOMException && (err.name === 'AbortError' || err.name === 'TimeoutError')) {
+        console.warn('[useUser] Profile load timeout or cancelled')
+        return
+      }
       console.error('[useUser] Profile load error:', err)
     }
   }, [])

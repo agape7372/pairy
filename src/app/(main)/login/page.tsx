@@ -1,14 +1,22 @@
 'use client'
 
-import { Suspense, useState, useCallback } from 'react'
+import { Suspense, useState, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { Mail, Lock, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react'
+import { Mail, Lock, Eye, EyeOff, AlertCircle, CheckCircle, ShieldAlert } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { validateRedirectUrl, getFullUrl } from '@/lib/utils/url'
 import { parseError, logError } from '@/lib/utils/error'
 import { ensureProfile } from '@/lib/auth/profile'
+import {
+  validatePassword,
+  getPasswordStrengthColor,
+  getPasswordStrengthLabel,
+  isValidEmail,
+} from '@/lib/utils/validation'
+import { checkRateLimit, resetRateLimit } from '@/lib/utils/safeStorage'
 import type { OAuthProvider } from '@/lib/auth/identity'
 
 type AuthMode = 'login' | 'signup'
@@ -26,6 +34,17 @@ interface UIState {
   isLoading: OAuthProvider | 'email' | null
   error: string | null
   success: string | null
+  /** Rate limit 잠금 해제 시간 */
+  lockedUntil?: number
+  /** 남은 시도 횟수 */
+  remainingAttempts?: number
+}
+
+// Rate limit 설정
+const LOGIN_RATE_LIMIT = {
+  maxAttempts: 5,
+  windowMs: 5 * 60 * 1000, // 5분
+  lockoutMs: 15 * 60 * 1000, // 15분 잠금
 }
 
 function LoginContent() {
@@ -64,6 +83,21 @@ function LoginContent() {
   const clearMessages = useCallback(() => {
     updateUI({ error: null, success: null })
   }, [updateUI])
+
+  // 비밀번호 강도 계산 (회원가입 시)
+  const passwordValidation = useMemo(() => {
+    if (ui.mode !== 'signup' || !form.password) return null
+    return validatePassword(form.password)
+  }, [form.password, ui.mode])
+
+  // Rate limit 잠금 시간 포맷
+  const lockTimeRemaining = useMemo(() => {
+    if (!ui.lockedUntil) return null
+    const remaining = ui.lockedUntil - Date.now()
+    if (remaining <= 0) return null
+    const minutes = Math.ceil(remaining / 60000)
+    return `${minutes}분`
+  }, [ui.lockedUntil])
 
   // 소셜 로그인 핸들러
   const handleSocialLogin = useCallback(async (provider: OAuthProvider) => {
@@ -114,14 +148,38 @@ function LoginContent() {
       return
     }
 
-    if (form.password.length < 6) {
-      updateUI({ error: '비밀번호는 최소 6자 이상이어야 해요.' })
-      return
+    // 회원가입 시 비밀번호 복잡성 검증
+    if (ui.mode === 'signup') {
+      const pwResult = validatePassword(form.password)
+      if (!pwResult.isValid) {
+        updateUI({ error: pwResult.error || '비밀번호가 요구사항을 충족하지 않아요.' })
+        return
+      }
+    } else {
+      // 로그인 시 최소 길이만 체크
+      if (form.password.length < 6) {
+        updateUI({ error: '비밀번호는 최소 6자 이상이어야 해요.' })
+        return
+      }
     }
 
     if (!isSupabaseConfigured()) {
       updateUI({ error: '데모 모드에서는 이메일 로그인을 사용할 수 없어요.' })
       return
+    }
+
+    // Rate limit 확인 (로그인 시에만)
+    if (ui.mode === 'login') {
+      const rateLimit = checkRateLimit('login', LOGIN_RATE_LIMIT)
+      if (!rateLimit.allowed) {
+        updateUI({
+          error: '로그인 시도가 너무 많아요. 잠시 후 다시 시도해주세요.',
+          lockedUntil: rateLimit.lockedUntil,
+          remainingAttempts: 0,
+        })
+        return
+      }
+      updateUI({ remainingAttempts: rateLimit.remainingAttempts })
     }
 
     updateUI({ isLoading: 'email' })
@@ -161,6 +219,9 @@ function LoginContent() {
         })
 
         if (error) throw error
+
+        // 로그인 성공 시 rate limit 초기화
+        resetRateLimit('login')
 
         // [FIXED: router.push() 대신 window.location.href 사용]
         // router.push()는 클라이언트 사이드 네비게이션으로 React 상태가 유지됨
@@ -300,9 +361,9 @@ function LoginContent() {
                 type={form.showPassword ? 'text' : 'password'}
                 value={form.password}
                 onChange={(e) => updateForm({ password: e.target.value })}
-                placeholder="비밀번호"
+                placeholder={ui.mode === 'signup' ? '비밀번호 (8자 이상, 대소문자+숫자)' : '비밀번호'}
                 required
-                minLength={6}
+                minLength={ui.mode === 'signup' ? 8 : 6}
                 autoComplete={ui.mode === 'login' ? 'current-password' : 'new-password'}
                 disabled={isDisabled}
                 className="w-full pl-12 pr-12 py-3 border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent transition-all disabled:bg-gray-50 disabled:cursor-not-allowed"
@@ -317,6 +378,65 @@ function LoginContent() {
                 {form.showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
+
+            {/* Password Strength Indicator (회원가입 시) */}
+            <AnimatePresence mode="wait">
+              {ui.mode === 'signup' && passwordValidation && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="overflow-hidden"
+                >
+                  <div className="flex items-center gap-2 px-1">
+                    <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                      <motion.div
+                        className="h-full rounded-full transition-all duration-300"
+                        style={{ backgroundColor: getPasswordStrengthColor(passwordValidation.level) }}
+                        initial={{ width: 0 }}
+                        animate={{ width: `${passwordValidation.strength}%` }}
+                      />
+                    </div>
+                    <span
+                      className="text-xs font-medium min-w-[40px]"
+                      style={{ color: getPasswordStrengthColor(passwordValidation.level) }}
+                    >
+                      {getPasswordStrengthLabel(passwordValidation.level)}
+                    </span>
+                  </div>
+                  {/* 체크리스트 */}
+                  <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px]">
+                    <span className={passwordValidation.checks.minLength ? 'text-green-600' : 'text-gray-400'}>
+                      ✓ 8자 이상
+                    </span>
+                    <span className={passwordValidation.checks.hasUppercase ? 'text-green-600' : 'text-gray-400'}>
+                      ✓ 대문자
+                    </span>
+                    <span className={passwordValidation.checks.hasLowercase ? 'text-green-600' : 'text-gray-400'}>
+                      ✓ 소문자
+                    </span>
+                    <span className={passwordValidation.checks.hasNumber ? 'text-green-600' : 'text-gray-400'}>
+                      ✓ 숫자
+                    </span>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Rate Limit Warning */}
+            <AnimatePresence>
+              {lockTimeRemaining && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-700"
+                >
+                  <ShieldAlert className="w-4 h-4 flex-shrink-0" />
+                  <span>{lockTimeRemaining} 후에 다시 시도해주세요</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Forgot Password Link (로그인 모드에서만) */}
             {ui.mode === 'login' && (
@@ -443,11 +563,6 @@ export default function LoginPage() {
 }
 
 // 유틸리티 함수들
-function isValidEmail(email: string): boolean {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-  return emailRegex.test(email)
-}
-
 function decodeErrorParam(error: string): string {
   const errorMessages: Record<string, string> = {
     auth_failed: '인증에 실패했어요. 다시 시도해주세요.',
