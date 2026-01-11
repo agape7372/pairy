@@ -1,18 +1,11 @@
 'use client'
 
 /**
- * PSD 파일 업로드 컴포넌트
+ * PSD 파일 업로드 컴포넌트 (v2 - ag-psd 기반)
  *
  * @description
- * 포토샵(PSD) 파일을 드래그앤드롭 또는 클릭으로 업로드하고
- * 레이어를 분석하여 에디터 슬롯으로 변환합니다.
- *
- * @features
- * - 드래그앤드롭 지원 (시각적 피드백)
- * - 파일 유효성 검증
- * - 파싱 진행률 표시
- * - 레이어 프리뷰 및 선택
- * - 에러 처리 및 복구
+ * ag-psd 라이브러리를 사용하여 PSD 파일을 파싱하고
+ * 실제 레이어 이미지를 react-konva로 렌더링합니다.
  */
 
 import React, {
@@ -37,22 +30,12 @@ import {
   Type,
   Folder,
   RefreshCw,
+  Layers,
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { Button, useToast } from '@/components/ui'
-import type {
-  ExtractedLayer,
-  ParseProgress,
-  PSDParseResult,
-  LayerMappingSuggestion,
-} from '@/types/psd'
-import {
-  parsePSDFile,
-  formatFileSize,
-  generateMappingSuggestions,
-  convertToTemplateData,
-  cleanupLayerImages,
-} from '@/lib/utils/psdParser'
+import { parseAgPsd, convertToTemplate, type ParsedPSD, type ParsedLayer } from '@/lib/utils/agPsdParser'
+import { PSDPreview } from './PSDCanvas'
 
 // ============================================
 // 타입 정의
@@ -61,11 +44,8 @@ import {
 interface PSDUploaderProps {
   /** 변환 완료 콜백 */
   onConvert: (data: {
-    /** PSD 문서 크기 */
-    documentSize: {
-      width: number
-      height: number
-    }
+    documentSize: { width: number; height: number }
+    compositeImage?: string
     slots: Array<{
       id: string
       label: string
@@ -73,14 +53,27 @@ interface PSDUploaderProps {
       y: number
       width: number
       height: number
-      imageDataUrl?: string
     }>
     fields: Array<{
       id: string
       slotId: string
       label: string
-      type: 'text' | 'image' | 'color'
+      type: 'text' | 'color'
+      x: number
+      y: number
+      width: number
+      height: number
       defaultValue?: string
+    }>
+    allLayers: Array<{
+      id: string
+      name: string
+      imageUrl?: string
+      x: number
+      y: number
+      width: number
+      height: number
+      visible: boolean
     }>
   }) => void
   /** 비활성화 여부 */
@@ -90,29 +83,20 @@ interface PSDUploaderProps {
 type UploadState = 'idle' | 'dragging' | 'parsing' | 'preview' | 'error'
 
 // ============================================
-// 서브 컴포넌트: 레이어 아이템
+// 레이어 아이템 컴포넌트
 // ============================================
 
 interface LayerItemProps {
-  layer: ExtractedLayer
-  mapping?: LayerMappingSuggestion
-  allLayers: readonly ExtractedLayer[]
-  onToggle?: (layerId: string) => void
+  layer: ParsedLayer
+  selectedIds: Set<string>
+  onToggle: (id: string) => void
   depth?: number
 }
 
-function LayerItem({
-  layer,
-  mapping,
-  allLayers,
-  onToggle,
-  depth = 0,
-}: LayerItemProps) {
+function LayerItem({ layer, selectedIds, onToggle, depth = 0 }: LayerItemProps) {
   const [expanded, setExpanded] = useState(true)
   const hasChildren = layer.children && layer.children.length > 0
-  const childLayers = hasChildren
-    ? allLayers.filter((l) => layer.children?.includes(l.id))
-    : []
+  const isSelected = selectedIds.has(layer.id)
 
   const LayerIcon = useMemo(() => {
     switch (layer.type) {
@@ -126,19 +110,8 @@ function LayerItem({
     }
   }, [layer.type])
 
-  const getCategoryBadge = (category: string) => {
-    const badges: Record<string, { color: string; label: string }> = {
-      character: { color: 'bg-primary-100 text-primary-700', label: '캐릭터' },
-      info: { color: 'bg-blue-100 text-blue-700', label: '정보' },
-      appearance: { color: 'bg-purple-100 text-purple-700', label: '외모' },
-      personality: { color: 'bg-amber-100 text-amber-700', label: '성격' },
-      relationship: { color: 'bg-rose-100 text-rose-700', label: '관계' },
-      extra: { color: 'bg-green-100 text-green-700', label: '기타' },
-      meta: { color: 'bg-gray-100 text-gray-600', label: '메타' },
-      unknown: { color: 'bg-gray-100 text-gray-400', label: '미분류' },
-    }
-    return badges[category] || badges.unknown
-  }
+  // 그룹은 선택 불가
+  const canSelect = layer.type !== 'group' && layer.type !== 'adjustment'
 
   return (
     <div className="select-none">
@@ -146,7 +119,7 @@ function LayerItem({
         className={cn(
           'flex items-center gap-2 py-1.5 px-2 rounded-lg transition-colors',
           'hover:bg-gray-50',
-          mapping?.selected && 'bg-primary-50'
+          isSelected && 'bg-primary-50'
         )}
         style={{ paddingLeft: `${depth * 16 + 8}px` }}
       >
@@ -167,17 +140,17 @@ function LayerItem({
         )}
 
         {/* 선택 체크박스 */}
-        {mapping && (
+        {canSelect && (
           <button
-            onClick={() => onToggle?.(layer.id)}
+            onClick={() => onToggle(layer.id)}
             className={cn(
               'w-4 h-4 rounded border-2 flex items-center justify-center transition-colors',
-              mapping.selected
+              isSelected
                 ? 'bg-primary-400 border-primary-400'
                 : 'border-gray-300 hover:border-primary-300'
             )}
           >
-            {mapping.selected && <Check className="w-3 h-3 text-white" />}
+            {isSelected && <Check className="w-3 h-3 text-white" />}
           </button>
         )}
 
@@ -185,7 +158,7 @@ function LayerItem({
         <LayerIcon
           className={cn(
             'w-4 h-4 flex-shrink-0',
-            layer.visibility === 'hidden' ? 'text-gray-300' : 'text-gray-500'
+            !layer.visible ? 'text-gray-300' : 'text-gray-500'
           )}
         />
 
@@ -193,28 +166,21 @@ function LayerItem({
         <span
           className={cn(
             'flex-1 text-sm truncate',
-            layer.visibility === 'hidden' ? 'text-gray-400' : 'text-gray-700'
+            !layer.visible ? 'text-gray-400' : 'text-gray-700'
           )}
         >
           {layer.name}
         </span>
 
-        {/* 카테고리 배지 */}
-        {mapping && mapping.suggestedCategory !== 'unknown' && (
-          <span
-            className={cn(
-              'px-1.5 py-0.5 text-[10px] font-medium rounded',
-              getCategoryBadge(mapping.suggestedCategory).color
-            )}
-          >
-            {getCategoryBadge(mapping.suggestedCategory).label}
+        {/* 타입 배지 */}
+        {layer.type === 'text' && (
+          <span className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-blue-100 text-blue-700">
+            텍스트
           </span>
         )}
 
         {/* 가시성 표시 */}
-        {layer.visibility === 'hidden' && (
-          <EyeOff className="w-3.5 h-3.5 text-gray-300" />
-        )}
+        {!layer.visible && <EyeOff className="w-3.5 h-3.5 text-gray-300" />}
       </div>
 
       {/* 자식 레이어 */}
@@ -227,12 +193,12 @@ function LayerItem({
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            {childLayers.map((child) => (
+            {layer.children!.map((child) => (
               <LayerItem
                 key={child.id}
                 layer={child}
-                mapping={undefined}
-                allLayers={allLayers}
+                selectedIds={selectedIds}
+                onToggle={onToggle}
                 depth={depth + 1}
               />
             ))}
@@ -256,64 +222,75 @@ export default function PSDUploader({
 
   // 상태
   const [uploadState, setUploadState] = useState<UploadState>('idle')
-  const [progress, setProgress] = useState<ParseProgress | null>(null)
-  const [parseResult, setParseResult] = useState<PSDParseResult | null>(null)
-  const [mappings, setMappings] = useState<LayerMappingSuggestion[]>([])
-  const [errorMessage, setErrorMessage] = useState<string>('')
+  const [progress, setProgress] = useState({ value: 0, message: '' })
+  const [parsedPsd, setParsedPsd] = useState<ParsedPSD | null>(null)
+  const [selectedLayerIds, setSelectedLayerIds] = useState<Set<string>>(new Set())
+  const [errorMessage, setErrorMessage] = useState('')
 
-  // 메모리 정리
+  // 선택 가능한 레이어만 필터링
+  const selectableLayers = useMemo(() => {
+    if (!parsedPsd) return []
+    return parsedPsd.layers.filter(
+      (l) => l.type !== 'group' && l.type !== 'adjustment' && l.visible
+    )
+  }, [parsedPsd])
+
+  // 초기 선택 (visible 레이어 자동 선택)
   useEffect(() => {
-    return () => {
-      if (parseResult?.layers) {
-        cleanupLayerImages(parseResult.layers)
-      }
+    if (parsedPsd) {
+      // 비동기로 처리하여 렌더 중 setState 방지
+      const timeoutId = setTimeout(() => {
+        const initialSelected = new Set(selectableLayers.map((l) => l.id))
+        setSelectedLayerIds(initialSelected)
+      }, 0)
+      return () => clearTimeout(timeoutId)
     }
-  }, [parseResult])
+  }, [parsedPsd, selectableLayers])
 
-  // 파일 처리 (다른 핸들러보다 먼저 선언)
+  // 파일 처리
   const processFile = useCallback(async (file: File) => {
     setUploadState('parsing')
-    setProgress({
-      status: 'validating',
-      percentage: 0,
-      message: '파일 검증 중...',
-    })
+    setProgress({ value: 0, message: '파일 검증 중...' })
     setErrorMessage('')
 
+    // 확장자 검증
+    const ext = file.name.toLowerCase().split('.').pop()
+    if (ext !== 'psd') {
+      setErrorMessage('PSD 파일만 지원합니다.')
+      setUploadState('error')
+      return
+    }
+
+    // 크기 검증 (50MB)
+    if (file.size > 50 * 1024 * 1024) {
+      setErrorMessage('파일이 너무 큽니다. 최대 50MB까지 지원합니다.')
+      setUploadState('error')
+      return
+    }
+
     try {
-      const result = await parsePSDFile(file, {
-        extractImages: true,
-        extractText: true,
-        includeHidden: false,
-        includeEmpty: false,
-        maxImageSize: 512, // 프리뷰용으로 작게
-        onProgress: setProgress,
+      const result = await parseAgPsd(file, {
+        extractLayerImages: true,
+        extractComposite: true,
+        maxImageSize: 2048,
+        onProgress: (value, message) => {
+          setProgress({ value, message })
+        },
       })
 
-      if (result.success && result.layers) {
-        setParseResult(result)
-        const suggestions = generateMappingSuggestions(result.layers)
-        setMappings(suggestions)
-        setUploadState('preview')
-
-        toast.success(
-          `${result.layers.length}개 레이어를 발견했습니다! (${result.parseTime}ms)`
-        )
-      } else {
-        setErrorMessage(result.error?.message || '파싱에 실패했습니다.')
-        setUploadState('error')
-        toast.error(result.error?.message || '파싱 실패')
-      }
+      setParsedPsd(result)
+      setUploadState('preview')
+      toast.success(`${result.layers.length}개 레이어를 발견했습니다!`)
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.'
+      console.error('PSD parsing error:', err)
+      const message = err instanceof Error ? err.message : '파싱에 실패했습니다.'
       setErrorMessage(message)
       setUploadState('error')
       toast.error(message)
     }
   }, [toast])
 
-  // 드래그 이벤트 핸들러
+  // 드래그 이벤트
   const handleDragOver = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault()
@@ -350,82 +327,64 @@ export default function PSDUploader({
     [disabled, uploadState, processFile]
   )
 
-  // 파일 선택 핸들러
+  // 파일 선택
   const handleFileSelect = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const files = e.target.files
       if (files && files.length > 0) {
         processFile(files[0])
       }
-      // 같은 파일 다시 선택 가능하도록 초기화
       e.target.value = ''
     },
     [processFile]
   )
 
   // 레이어 선택 토글
-  const toggleMapping = useCallback((layerId: string) => {
-    setMappings((prev) =>
-      prev.map((m) =>
-        m.layerId === layerId ? { ...m, selected: !m.selected } : m
-      )
-    )
+  const toggleLayer = useCallback((id: string) => {
+    setSelectedLayerIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
+      return next
+    })
   }, [])
 
   // 전체 선택/해제
-  const toggleAllMappings = useCallback((selected: boolean) => {
-    setMappings((prev) => prev.map((m) => ({ ...m, selected })))
+  const selectAll = useCallback(() => {
+    setSelectedLayerIds(new Set(selectableLayers.map((l) => l.id)))
+  }, [selectableLayers])
+
+  const deselectAll = useCallback(() => {
+    setSelectedLayerIds(new Set())
   }, [])
 
   // 변환 실행
   const handleConvert = useCallback(() => {
-    if (!parseResult?.layers || !parseResult.document) return
+    if (!parsedPsd) return
 
-    const documentSize = {
-      width: parseResult.document.width,
-      height: parseResult.document.height,
-    }
-
-    const { slots, fields } = convertToTemplateData(
-      parseResult.layers,
-      mappings,
-      documentSize
-    )
-
-    onConvert({ documentSize, slots, fields })
+    const result = convertToTemplate(parsedPsd, Array.from(selectedLayerIds))
+    onConvert(result)
 
     // 정리
-    cleanupLayerImages(parseResult.layers)
-    setParseResult(null)
-    setMappings([])
+    setParsedPsd(null)
+    setSelectedLayerIds(new Set())
     setUploadState('idle')
-
-    toast.success('슬롯이 생성되었습니다!')
-  }, [parseResult, mappings, onConvert, toast])
+    toast.success('템플릿이 생성되었습니다!')
+  }, [parsedPsd, selectedLayerIds, onConvert, toast])
 
   // 초기화
   const handleReset = useCallback(() => {
-    if (parseResult?.layers) {
-      cleanupLayerImages(parseResult.layers)
-    }
-    setParseResult(null)
-    setMappings([])
+    setParsedPsd(null)
+    setSelectedLayerIds(new Set())
     setUploadState('idle')
     setErrorMessage('')
-    setProgress(null)
-  }, [parseResult])
+    setProgress({ value: 0, message: '' })
+  }, [])
 
-  // 선택된 매핑 수
-  const selectedCount = useMemo(
-    () => mappings.filter((m) => m.selected).length,
-    [mappings]
-  )
-
-  // 최상위 레이어만 (그룹 자식 제외)
-  const topLevelLayers = useMemo(() => {
-    if (!parseResult?.layers) return []
-    return parseResult.layers.filter((l) => l.parentId === null)
-  }, [parseResult])
+  const selectedCount = selectedLayerIds.size
 
   return (
     <div className="bg-gradient-to-br from-accent-50 to-primary-50 rounded-[20px] border border-accent-200 p-6">
@@ -443,12 +402,11 @@ export default function PSDUploader({
       </div>
 
       <p className="text-xs text-gray-500 mb-4">
-        포토샵(PSD) 파일을 업로드하면 레이어를 자동으로 인식해 슬롯으로
-        변환해드려요.
+        포토샵(PSD) 파일을 업로드하면 레이어를 자동으로 인식해 템플릿으로 변환해드려요.
       </p>
 
       <AnimatePresence mode="wait">
-        {/* Idle / Dragging 상태 */}
+        {/* Idle / Dragging */}
         {(uploadState === 'idle' || uploadState === 'dragging') && (
           <motion.div
             key="dropzone"
@@ -470,17 +428,13 @@ export default function PSDUploader({
               )}
             >
               <motion.div
-                animate={
-                  uploadState === 'dragging' ? { scale: 1.1, y: -5 } : {}
-                }
+                animate={uploadState === 'dragging' ? { scale: 1.1, y: -5 } : {}}
                 transition={{ type: 'spring', stiffness: 300 }}
               >
                 <FileImage
                   className={cn(
                     'w-10 h-10 mx-auto mb-3',
-                    uploadState === 'dragging'
-                      ? 'text-primary-500'
-                      : 'text-accent-400'
+                    uploadState === 'dragging' ? 'text-primary-500' : 'text-accent-400'
                   )}
                 />
               </motion.div>
@@ -503,8 +457,8 @@ export default function PSDUploader({
           </motion.div>
         )}
 
-        {/* 파싱 중 상태 */}
-        {uploadState === 'parsing' && progress && (
+        {/* 파싱 중 */}
+        {uploadState === 'parsing' && (
           <motion.div
             key="parsing"
             initial={{ opacity: 0, scale: 0.95 }}
@@ -516,26 +470,20 @@ export default function PSDUploader({
             <p className="text-sm font-medium text-gray-700 mb-2">
               {progress.message}
             </p>
-            {progress.currentLayer && (
-              <p className="text-xs text-gray-400 mb-3 truncate">
-                {progress.currentLayer}
-              </p>
-            )}
 
-            {/* 진행률 바 */}
             <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
               <motion.div
                 className="h-full bg-gradient-to-r from-primary-400 to-accent-400"
                 initial={{ width: 0 }}
-                animate={{ width: `${progress.percentage}%` }}
+                animate={{ width: `${progress.value}%` }}
                 transition={{ duration: 0.3 }}
               />
             </div>
-            <p className="text-xs text-gray-400 mt-2">{progress.percentage}%</p>
+            <p className="text-xs text-gray-400 mt-2">{progress.value}%</p>
           </motion.div>
         )}
 
-        {/* 에러 상태 */}
+        {/* 에러 */}
         {uploadState === 'error' && (
           <motion.div
             key="error"
@@ -549,20 +497,15 @@ export default function PSDUploader({
               파일 처리 중 오류 발생
             </p>
             <p className="text-xs text-gray-500 mb-4">{errorMessage}</p>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleReset}
-              className="mx-auto"
-            >
+            <Button variant="outline" size="sm" onClick={handleReset}>
               <RefreshCw className="w-4 h-4 mr-1" />
               다시 시도
             </Button>
           </motion.div>
         )}
 
-        {/* 프리뷰 상태 */}
-        {uploadState === 'preview' && parseResult && (
+        {/* 프리뷰 */}
+        {uploadState === 'preview' && parsedPsd && (
           <motion.div
             key="preview"
             initial={{ opacity: 0, scale: 0.95 }}
@@ -570,20 +513,14 @@ export default function PSDUploader({
             exit={{ opacity: 0, scale: 0.95 }}
             className="bg-white rounded-xl overflow-hidden"
           >
-            {/* 파일 정보 */}
-            <div className="p-4 border-b border-gray-100 bg-gray-50">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <FileImage className="w-8 h-8 text-primary-400" />
-                  <div>
-                    <p className="text-sm font-medium text-gray-700 truncate max-w-[180px]">
-                      {parseResult.fileInfo.name}
-                    </p>
-                    <p className="text-xs text-gray-400">
-                      {formatFileSize(parseResult.fileInfo.size)} •{' '}
-                      {parseResult.document?.width}×{parseResult.document?.height}px
-                    </p>
-                  </div>
+            {/* PSD 이미지 프리뷰 */}
+            <div className="p-4 bg-gray-50 border-b border-gray-100">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Layers className="w-4 h-4 text-gray-500" />
+                  <span className="text-xs font-medium text-gray-600">
+                    {parsedPsd.width}×{parsedPsd.height}px
+                  </span>
                 </div>
                 <button
                   onClick={handleReset}
@@ -592,23 +529,34 @@ export default function PSDUploader({
                   <X className="w-4 h-4" />
                 </button>
               </div>
+
+              {/* 실제 PSD 이미지! */}
+              <div className="rounded-lg overflow-hidden bg-white border border-gray-200">
+                <PSDPreview
+                  compositeImage={parsedPsd.compositeImage}
+                  width={parsedPsd.width}
+                  height={parsedPsd.height}
+                  maxWidth={360}
+                  className="mx-auto"
+                />
+              </div>
             </div>
 
             {/* 레이어 선택 */}
             <div className="p-4">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-xs font-medium text-gray-500">
-                  레이어 선택 ({selectedCount}/{mappings.length})
+                  레이어 선택 ({selectedCount}/{selectableLayers.length})
                 </p>
                 <div className="flex gap-1">
                   <button
-                    onClick={() => toggleAllMappings(true)}
+                    onClick={selectAll}
                     className="px-2 py-1 text-[10px] text-primary-600 hover:bg-primary-50 rounded"
                   >
                     전체 선택
                   </button>
                   <button
-                    onClick={() => toggleAllMappings(false)}
+                    onClick={deselectAll}
                     className="px-2 py-1 text-[10px] text-gray-500 hover:bg-gray-50 rounded"
                   >
                     전체 해제
@@ -616,15 +564,14 @@ export default function PSDUploader({
                 </div>
               </div>
 
-              {/* 레이어 목록 */}
-              <div className="max-h-[240px] overflow-y-auto border border-gray-100 rounded-lg">
-                {topLevelLayers.map((layer) => (
+              {/* 레이어 트리 */}
+              <div className="max-h-[200px] overflow-y-auto border border-gray-100 rounded-lg">
+                {parsedPsd.layerTree.map((layer) => (
                   <LayerItem
                     key={layer.id}
                     layer={layer}
-                    mapping={mappings.find((m) => m.layerId === layer.id)}
-                    allLayers={parseResult.layers || []}
-                    onToggle={toggleMapping}
+                    selectedIds={selectedLayerIds}
+                    onToggle={toggleLayer}
                   />
                 ))}
               </div>
@@ -647,14 +594,14 @@ export default function PSDUploader({
                 className="flex-1"
               >
                 <Check className="w-4 h-4 mr-1" />
-                {selectedCount}개 슬롯 생성
+                템플릿 생성
               </Button>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* CLIP 파일 지원 예정 안내 */}
+      {/* CLIP 파일 지원 예정 */}
       {uploadState === 'idle' && (
         <p className="text-[10px] text-gray-400 mt-3 text-center">
           CLIP 파일 지원 예정

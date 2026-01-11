@@ -17,6 +17,7 @@
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.89.0",
     "@webtoon/psd": "^0.4.0",
+    "ag-psd": "^29.0.0",
     "claude-code": "^1.0.0",
     "clsx": "^2.1.1",
     "framer-motion": "^12.23.26",
