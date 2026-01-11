@@ -16,6 +16,7 @@ import { Button, useToast } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
 import { IS_DEMO_MODE } from '@/lib/supabase/client'
 import PSDUploader from '@/components/editor/psd/PSDUploader'
+import PSDCanvas from '@/components/editor/psd/PSDCanvas'
 
 // 이모지 옵션
 const EMOJI_OPTIONS = ['💕', '✨', '🌙', '🍀', '🔺', '📋', '🌸', '🥥', '💜', '🎀', '⭐', '🌈', '🎨', '🎭', '🎮', '🎵']
@@ -66,6 +67,20 @@ export default function NewTemplatePage() {
 
   // 캔버스 크기 (PSD에서 가져오거나 기본값 사용)
   const [canvasSize, setCanvasSize] = useState({ width: 600, height: 400 })
+
+  // PSD 이미지 데이터
+  const [compositeImage, setCompositeImage] = useState<string | undefined>()
+  const [psdLayers, setPsdLayers] = useState<Array<{
+    id: string
+    name: string
+    imageUrl?: string
+    x: number
+    y: number
+    width: number
+    height: number
+    visible: boolean
+  }>>([])
+  const hasPsdImage = Boolean(compositeImage || psdLayers.length > 0)
 
   // 태그 토글
   const toggleTag = (tag: string) => {
@@ -134,6 +149,7 @@ export default function NewTemplatePage() {
       width: number
       height: number
     }
+    compositeImage?: string
     slots: Array<{
       id: string
       label: string
@@ -141,18 +157,35 @@ export default function NewTemplatePage() {
       y: number
       width: number
       height: number
-      imageDataUrl?: string
     }>
     fields: Array<{
       id: string
       slotId: string
       label: string
-      type: 'text' | 'image' | 'color'
+      type: 'text' | 'color'
+      x: number
+      y: number
+      width: number
+      height: number
       defaultValue?: string
+    }>
+    allLayers: Array<{
+      id: string
+      name: string
+      imageUrl?: string
+      x: number
+      y: number
+      width: number
+      height: number
+      visible: boolean
     }>
   }) => {
     // PSD 문서 크기 저장
     setCanvasSize(data.documentSize)
+
+    // PSD 이미지 데이터 저장
+    setCompositeImage(data.compositeImage)
+    setPsdLayers(data.allLayers)
 
     // 슬롯 위치는 PSD 원본 좌표 그대로 사용 (미리보기에서 스케일링)
     const newSlots: TemplateSlot[] = data.slots.map((s) => ({
@@ -370,7 +403,7 @@ export default function NewTemplatePage() {
               </div>
 
               <div className="space-y-2">
-                {slots.map((slot, index) => (
+                {slots.map((slot) => (
                   <div
                     key={slot.id}
                     onClick={() => setSelectedSlot(slot.id)}
@@ -412,46 +445,65 @@ export default function NewTemplatePage() {
                   ({canvasSize.width}×{canvasSize.height})
                 </span>
               </h2>
-              <div
-                className="bg-gradient-to-br from-primary-100 to-accent-100 rounded-xl relative overflow-hidden"
-                style={{ aspectRatio: `${canvasSize.width} / ${canvasSize.height}` }}
-              >
-                {/* 중앙 이모지 */}
-                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-6xl opacity-30">
-                  {selectedEmoji}
+
+              {/* PSD 이미지가 있으면 PSDCanvas로 렌더링 */}
+              {hasPsdImage ? (
+                <div className="rounded-xl overflow-hidden border border-gray-200">
+                  <PSDCanvas
+                    width={canvasSize.width}
+                    height={canvasSize.height}
+                    compositeImage={compositeImage}
+                    layers={psdLayers}
+                    slots={slots}
+                    selectedSlotId={selectedSlot || undefined}
+                    onSlotSelect={setSelectedSlot}
+                    maxWidth={600}
+                    showOverlay={true}
+                  />
                 </div>
-                {/* 슬롯 표시 */}
-                {slots.map((slot) => (
-                  <div
-                    key={slot.id}
-                    onClick={() => setSelectedSlot(slot.id)}
-                    className={cn(
-                      'absolute bg-white/80 backdrop-blur rounded-xl p-2 cursor-pointer transition-all overflow-hidden',
-                      selectedSlot === slot.id
-                        ? 'ring-2 ring-primary-400 shadow-lg'
-                        : 'ring-1 ring-gray-200 hover:ring-primary-200'
-                    )}
-                    style={{
-                      left: `${(slot.x / canvasSize.width) * 100}%`,
-                      top: `${(slot.y / canvasSize.height) * 100}%`,
-                      width: `${(slot.width / canvasSize.width) * 100}%`,
-                      height: `${(slot.height / canvasSize.height) * 100}%`,
-                    }}
-                  >
-                    <p className="text-[10px] text-gray-500 truncate">{slot.label}</p>
-                    <div className="mt-1 text-center space-y-0.5">
-                      {fields
-                        .filter((f) => f.slotId === slot.id)
-                        .slice(0, 3)
-                        .map((field) => (
-                          <p key={field.id} className="text-[8px] text-gray-400 truncate">
-                            {field.label}
-                          </p>
-                        ))}
-                    </div>
+              ) : (
+                /* 기본 미리보기 (PSD 없음) */
+                <div
+                  className="bg-gradient-to-br from-primary-100 to-accent-100 rounded-xl relative overflow-hidden"
+                  style={{ aspectRatio: `${canvasSize.width} / ${canvasSize.height}` }}
+                >
+                  {/* 중앙 이모지 */}
+                  <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-6xl opacity-30">
+                    {selectedEmoji}
                   </div>
-                ))}
-              </div>
+                  {/* 슬롯 표시 */}
+                  {slots.map((slot) => (
+                    <div
+                      key={slot.id}
+                      onClick={() => setSelectedSlot(slot.id)}
+                      className={cn(
+                        'absolute bg-white/80 backdrop-blur rounded-xl p-2 cursor-pointer transition-all overflow-hidden',
+                        selectedSlot === slot.id
+                          ? 'ring-2 ring-primary-400 shadow-lg'
+                          : 'ring-1 ring-gray-200 hover:ring-primary-200'
+                      )}
+                      style={{
+                        left: `${(slot.x / canvasSize.width) * 100}%`,
+                        top: `${(slot.y / canvasSize.height) * 100}%`,
+                        width: `${(slot.width / canvasSize.width) * 100}%`,
+                        height: `${(slot.height / canvasSize.height) * 100}%`,
+                      }}
+                    >
+                      <p className="text-[10px] text-gray-500 truncate">{slot.label}</p>
+                      <div className="mt-1 text-center space-y-0.5">
+                        {fields
+                          .filter((f) => f.slotId === slot.id)
+                          .slice(0, 3)
+                          .map((field) => (
+                            <p key={field.id} className="text-[8px] text-gray-400 truncate">
+                              {field.label}
+                            </p>
+                          ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* 선택된 슬롯 편집 */}
@@ -569,38 +621,52 @@ export default function NewTemplatePage() {
             </div>
 
             {/* Preview Content */}
-            <div
-              className="bg-gradient-to-br from-primary-100 to-accent-100 rounded-xl relative overflow-hidden mb-4"
-              style={{ aspectRatio: `${canvasSize.width} / ${canvasSize.height}` }}
-            >
-              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-6xl opacity-30">
-                {selectedEmoji}
+            {hasPsdImage ? (
+              <div className="rounded-xl overflow-hidden border border-gray-200 mb-4">
+                <PSDCanvas
+                  width={canvasSize.width}
+                  height={canvasSize.height}
+                  compositeImage={compositeImage}
+                  layers={psdLayers}
+                  slots={slots}
+                  maxWidth={560}
+                  showOverlay={false}
+                />
               </div>
-              {slots.map((slot) => (
-                <div
-                  key={slot.id}
-                  className="absolute bg-white/80 backdrop-blur rounded-xl p-2 overflow-hidden"
-                  style={{
-                    left: `${(slot.x / canvasSize.width) * 100}%`,
-                    top: `${(slot.y / canvasSize.height) * 100}%`,
-                    width: `${(slot.width / canvasSize.width) * 100}%`,
-                    height: `${(slot.height / canvasSize.height) * 100}%`,
-                  }}
-                >
-                  <p className="text-[10px] text-gray-500 truncate">{slot.label}</p>
-                  <div className="mt-1 text-center space-y-0.5">
-                    {fields
-                      .filter((f) => f.slotId === slot.id)
-                      .slice(0, 4)
-                      .map((field) => (
-                        <div key={field.id}>
-                          <p className="text-[8px] text-gray-400 truncate">{field.label}</p>
-                        </div>
-                      ))}
-                  </div>
+            ) : (
+              <div
+                className="bg-gradient-to-br from-primary-100 to-accent-100 rounded-xl relative overflow-hidden mb-4"
+                style={{ aspectRatio: `${canvasSize.width} / ${canvasSize.height}` }}
+              >
+                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-6xl opacity-30">
+                  {selectedEmoji}
                 </div>
-              ))}
-            </div>
+                {slots.map((slot) => (
+                  <div
+                    key={slot.id}
+                    className="absolute bg-white/80 backdrop-blur rounded-xl p-2 overflow-hidden"
+                    style={{
+                      left: `${(slot.x / canvasSize.width) * 100}%`,
+                      top: `${(slot.y / canvasSize.height) * 100}%`,
+                      width: `${(slot.width / canvasSize.width) * 100}%`,
+                      height: `${(slot.height / canvasSize.height) * 100}%`,
+                    }}
+                  >
+                    <p className="text-[10px] text-gray-500 truncate">{slot.label}</p>
+                    <div className="mt-1 text-center space-y-0.5">
+                      {fields
+                        .filter((f) => f.slotId === slot.id)
+                        .slice(0, 4)
+                        .map((field) => (
+                          <div key={field.id}>
+                            <p className="text-[8px] text-gray-400 truncate">{field.label}</p>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
 
             <div className="flex items-center gap-4 text-sm text-gray-600">
               <span className="text-2xl">{selectedEmoji}</span>
