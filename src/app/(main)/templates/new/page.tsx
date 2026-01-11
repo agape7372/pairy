@@ -7,18 +7,15 @@ import {
   ArrowLeft,
   Plus,
   Trash2,
-  Move,
   GripVertical,
   Save,
   Eye,
   X,
-  Upload,
-  FileImage,
-  Sparkles,
 } from 'lucide-react'
 import { Button, useToast } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
 import { IS_DEMO_MODE } from '@/lib/supabase/client'
+import PSDUploader from '@/components/editor/psd/PSDUploader'
 
 // 이모지 옵션
 const EMOJI_OPTIONS = ['💕', '✨', '🌙', '🍀', '🔺', '📋', '🌸', '🥥', '💜', '🎀', '⭐', '🌈', '🎨', '🎭', '🎮', '🎵']
@@ -127,6 +124,70 @@ export default function NewTemplatePage() {
   const updateField = (fieldId: string, updates: Partial<TemplateField>) => {
     setFields(fields.map((f) => (f.id === fieldId ? { ...f, ...updates } : f)))
   }
+
+  // PSD 변환 결과 적용
+  const handlePSDConvert = useCallback((data: {
+    slots: Array<{
+      id: string
+      label: string
+      x: number
+      y: number
+      width: number
+      height: number
+      imageDataUrl?: string
+    }>
+    fields: Array<{
+      id: string
+      slotId: string
+      label: string
+      type: 'text' | 'image' | 'color'
+      defaultValue?: string
+    }>
+  }) => {
+    // 기존 슬롯/필드를 새로운 것으로 교체
+    const newSlots: TemplateSlot[] = data.slots.map((s) => ({
+      id: s.id,
+      label: s.label,
+      x: Math.max(0, Math.min(s.x, 400)), // 캔버스 범위 내로 제한
+      y: Math.max(0, Math.min(s.y, 120)),
+      width: Math.max(80, Math.min(s.width, 300)),
+      height: Math.max(100, Math.min(s.height, 350)),
+    }))
+
+    const newFields: TemplateField[] = data.fields.map((f) => ({
+      id: f.id,
+      slotId: f.slotId,
+      label: f.label,
+      type: f.type === 'color' ? 'text' : f.type, // color는 text로 매핑
+    }))
+
+    // 슬롯이 없으면 기본 슬롯 생성
+    if (newSlots.length === 0) {
+      newSlots.push({
+        id: 'slot1',
+        label: '슬롯 1',
+        x: 50,
+        y: 50,
+        width: 200,
+        height: 280,
+      })
+    }
+
+    // 필드가 없으면 기본 필드 생성
+    if (newFields.length === 0) {
+      newFields.push({
+        id: 'name_slot1',
+        slotId: newSlots[0].id,
+        label: '이름',
+        type: 'text',
+      })
+    }
+
+    setSlots(newSlots)
+    setFields(newFields)
+    setSelectedSlot(newSlots[0]?.id || null)
+    toast.success(`${newSlots.length}개의 슬롯과 ${newFields.length}개의 필드가 생성되었습니다!`)
+  }, [toast])
 
   // 저장
   const handleSave = async () => {
@@ -283,27 +344,10 @@ export default function NewTemplatePage() {
               </div>
             </div>
 
-            {/* PSD/CLIP 업로드 (Phase 3 스캐폴딩) */}
-            <div className="bg-gradient-to-br from-accent-50 to-primary-50 rounded-[20px] border border-accent-200 p-6">
-              <div className="flex items-center gap-2 mb-3">
-                <Sparkles className="w-4 h-4 text-accent-500" />
-                <h2 className="text-sm font-semibold text-gray-900">디자인 파일 업로드</h2>
-                <span className="px-2 py-0.5 bg-accent-200 text-accent-700 text-[10px] font-medium rounded-full">
-                  SOON
-                </span>
-              </div>
-              <p className="text-xs text-gray-500 mb-4">
-                포토샵(PSD) 또는 클립스튜디오(CLIP) 파일을 업로드하면
-                레이어를 자동으로 인식해 슬롯으로 변환해드려요.
-              </p>
-              <div
-                className="border-2 border-dashed border-accent-300 rounded-xl p-6 text-center bg-white/50 cursor-not-allowed opacity-70"
-              >
-                <FileImage className="w-8 h-8 text-accent-400 mx-auto mb-2" />
-                <p className="text-sm text-gray-500 mb-1">PSD, CLIP 파일 지원 예정</p>
-                <p className="text-xs text-gray-400">현재는 수동으로 슬롯을 추가해주세요</p>
-              </div>
-            </div>
+            {/* PSD/CLIP 업로드 */}
+            <PSDUploader
+              onConvert={handlePSDConvert}
+            />
 
             {/* 슬롯 목록 카드 */}
             <div className="bg-white rounded-[20px] border border-gray-200 p-6">
