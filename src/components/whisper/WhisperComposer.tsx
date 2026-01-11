@@ -710,7 +710,7 @@ export const WhisperComposer = memo(function WhisperComposer({
                       'placeholder:text-gray-400',
                       'focus:bg-white focus:ring-2 focus:ring-primary-200'
                     )}
-                    placeholder="메시지를 입력하세요..."
+                    placeholder="메시지 입력"
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     maxLength={500}
