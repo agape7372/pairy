@@ -61,6 +61,11 @@ import {
 interface PSDUploaderProps {
   /** 변환 완료 콜백 */
   onConvert: (data: {
+    /** PSD 문서 크기 */
+    documentSize: {
+      width: number
+      height: number
+    }
     slots: Array<{
       id: string
       label: string
@@ -376,13 +381,18 @@ export default function PSDUploader({
   const handleConvert = useCallback(() => {
     if (!parseResult?.layers || !parseResult.document) return
 
+    const documentSize = {
+      width: parseResult.document.width,
+      height: parseResult.document.height,
+    }
+
     const { slots, fields } = convertToTemplateData(
       parseResult.layers,
       mappings,
-      { width: parseResult.document.width, height: parseResult.document.height }
+      documentSize
     )
 
-    onConvert({ slots, fields })
+    onConvert({ documentSize, slots, fields })
 
     // 정리
     cleanupLayerImages(parseResult.layers)

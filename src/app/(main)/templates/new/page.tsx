@@ -64,6 +64,9 @@ export default function NewTemplatePage() {
   const [showPreview, setShowPreview] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
 
+  // 캔버스 크기 (PSD에서 가져오거나 기본값 사용)
+  const [canvasSize, setCanvasSize] = useState({ width: 600, height: 400 })
+
   // 태그 토글
   const toggleTag = (tag: string) => {
     setSelectedTags((prev) =>
@@ -127,6 +130,10 @@ export default function NewTemplatePage() {
 
   // PSD 변환 결과 적용
   const handlePSDConvert = useCallback((data: {
+    documentSize: {
+      width: number
+      height: number
+    }
     slots: Array<{
       id: string
       label: string
@@ -144,14 +151,17 @@ export default function NewTemplatePage() {
       defaultValue?: string
     }>
   }) => {
-    // 기존 슬롯/필드를 새로운 것으로 교체
+    // PSD 문서 크기 저장
+    setCanvasSize(data.documentSize)
+
+    // 슬롯 위치는 PSD 원본 좌표 그대로 사용 (미리보기에서 스케일링)
     const newSlots: TemplateSlot[] = data.slots.map((s) => ({
       id: s.id,
       label: s.label,
-      x: Math.max(0, Math.min(s.x, 400)), // 캔버스 범위 내로 제한
-      y: Math.max(0, Math.min(s.y, 120)),
-      width: Math.max(80, Math.min(s.width, 300)),
-      height: Math.max(100, Math.min(s.height, 350)),
+      x: s.x,
+      y: s.y,
+      width: s.width,
+      height: s.height,
     }))
 
     const newFields: TemplateField[] = data.fields.map((f) => ({
@@ -166,10 +176,10 @@ export default function NewTemplatePage() {
       newSlots.push({
         id: 'slot1',
         label: '슬롯 1',
-        x: 50,
-        y: 50,
-        width: 200,
-        height: 280,
+        x: data.documentSize.width * 0.1,
+        y: data.documentSize.height * 0.1,
+        width: data.documentSize.width * 0.3,
+        height: data.documentSize.height * 0.6,
       })
     }
 
@@ -396,8 +406,16 @@ export default function NewTemplatePage() {
           <div className="lg:col-span-2 space-y-6">
             {/* 캔버스 미리보기 */}
             <div className="bg-white rounded-[20px] border border-gray-200 p-6">
-              <h2 className="text-sm font-semibold text-gray-900 mb-4">미리보기</h2>
-              <div className="aspect-[3/2] bg-gradient-to-br from-primary-100 to-accent-100 rounded-xl relative overflow-hidden">
+              <h2 className="text-sm font-semibold text-gray-900 mb-4">
+                미리보기
+                <span className="ml-2 text-xs font-normal text-gray-400">
+                  ({canvasSize.width}×{canvasSize.height})
+                </span>
+              </h2>
+              <div
+                className="bg-gradient-to-br from-primary-100 to-accent-100 rounded-xl relative overflow-hidden"
+                style={{ aspectRatio: `${canvasSize.width} / ${canvasSize.height}` }}
+              >
                 {/* 중앙 이모지 */}
                 <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-6xl opacity-30">
                   {selectedEmoji}
@@ -408,30 +426,25 @@ export default function NewTemplatePage() {
                     key={slot.id}
                     onClick={() => setSelectedSlot(slot.id)}
                     className={cn(
-                      'absolute bg-white/80 backdrop-blur rounded-xl p-3 cursor-pointer transition-all',
+                      'absolute bg-white/80 backdrop-blur rounded-xl p-2 cursor-pointer transition-all overflow-hidden',
                       selectedSlot === slot.id
                         ? 'ring-2 ring-primary-400 shadow-lg'
                         : 'ring-1 ring-gray-200 hover:ring-primary-200'
                     )}
                     style={{
-                      left: `${(slot.x / 600) * 100}%`,
-                      top: `${(slot.y / 400) * 100}%`,
-                      width: `${(slot.width / 600) * 100}%`,
-                      height: `${(slot.height / 400) * 100}%`,
-                      minWidth: '80px',
-                      minHeight: '100px',
+                      left: `${(slot.x / canvasSize.width) * 100}%`,
+                      top: `${(slot.y / canvasSize.height) * 100}%`,
+                      width: `${(slot.width / canvasSize.width) * 100}%`,
+                      height: `${(slot.height / canvasSize.height) * 100}%`,
                     }}
                   >
-                    <p className="text-xs text-gray-500 mb-2">{slot.label}</p>
-                    <div className="w-10 h-10 mx-auto rounded-full bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center text-lg">
-                      👤
-                    </div>
-                    <div className="mt-2 text-center space-y-1">
+                    <p className="text-[10px] text-gray-500 truncate">{slot.label}</p>
+                    <div className="mt-1 text-center space-y-0.5">
                       {fields
                         .filter((f) => f.slotId === slot.id)
-                        .slice(0, 2)
+                        .slice(0, 3)
                         .map((field) => (
-                          <p key={field.id} className="text-[10px] text-gray-400 truncate">
+                          <p key={field.id} className="text-[8px] text-gray-400 truncate">
                             {field.label}
                           </p>
                         ))}
@@ -556,34 +569,32 @@ export default function NewTemplatePage() {
             </div>
 
             {/* Preview Content */}
-            <div className="aspect-[3/2] bg-gradient-to-br from-primary-100 to-accent-100 rounded-xl relative overflow-hidden mb-4">
+            <div
+              className="bg-gradient-to-br from-primary-100 to-accent-100 rounded-xl relative overflow-hidden mb-4"
+              style={{ aspectRatio: `${canvasSize.width} / ${canvasSize.height}` }}
+            >
               <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-6xl opacity-30">
                 {selectedEmoji}
               </div>
               {slots.map((slot) => (
                 <div
                   key={slot.id}
-                  className="absolute bg-white/80 backdrop-blur rounded-xl p-3"
+                  className="absolute bg-white/80 backdrop-blur rounded-xl p-2 overflow-hidden"
                   style={{
-                    left: `${(slot.x / 600) * 100}%`,
-                    top: `${(slot.y / 400) * 100}%`,
-                    width: `${(slot.width / 600) * 100}%`,
-                    height: `${(slot.height / 400) * 100}%`,
-                    minWidth: '80px',
-                    minHeight: '100px',
+                    left: `${(slot.x / canvasSize.width) * 100}%`,
+                    top: `${(slot.y / canvasSize.height) * 100}%`,
+                    width: `${(slot.width / canvasSize.width) * 100}%`,
+                    height: `${(slot.height / canvasSize.height) * 100}%`,
                   }}
                 >
-                  <p className="text-xs text-gray-500 mb-2">{slot.label}</p>
-                  <div className="w-12 h-12 mx-auto rounded-full bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center text-xl">
-                    👤
-                  </div>
-                  <div className="mt-2 text-center space-y-1">
+                  <p className="text-[10px] text-gray-500 truncate">{slot.label}</p>
+                  <div className="mt-1 text-center space-y-0.5">
                     {fields
                       .filter((f) => f.slotId === slot.id)
+                      .slice(0, 4)
                       .map((field) => (
                         <div key={field.id}>
-                          <p className="text-[10px] text-gray-400">{field.label}</p>
-                          <p className="text-xs text-gray-600">-</p>
+                          <p className="text-[8px] text-gray-400 truncate">{field.label}</p>
                         </div>
                       ))}
                   </div>

@@ -553,58 +553,122 @@ export function convertToTemplateData(
 
   const selectedMappings = mappings.filter((m) => m.selected)
 
-  // 캐릭터 카테고리 레이어 → 슬롯
-  const characterMappings = selectedMappings.filter(
-    (m) =>
-      m.suggestedCategory === 'character' && m.suggestedOutputType === 'slot'
+  // 캐릭터 마커 찾기 (A, B, C 등 단일 문자 레이어)
+  const characterMarkers = selectedMappings.filter(
+    (m) => /^[A-Z]$/.test(m.layerName.trim())
   )
 
-  characterMappings.forEach((mapping, index) => {
-    const layer = layers.find((l) => l.id === mapping.layerId)
-    if (!layer) return
-
-    const slotId = `slot_${index + 1}`
-
+  // 캐릭터가 없으면 좌우 절반으로 슬롯 생성
+  if (characterMarkers.length === 0) {
+    // 기본 2슬롯 생성 (좌/우)
     slots.push({
-      id: slotId,
-      label: mapping.layerName || `슬롯 ${index + 1}`,
-      x: layer.bounds.x,
-      y: layer.bounds.y,
-      width: layer.bounds.width,
-      height: layer.bounds.height,
-      imageDataUrl: layer.imageDataUrl,
+      id: 'slot_1',
+      label: '캐릭터 A',
+      x: documentSize.width * 0.05,
+      y: documentSize.height * 0.1,
+      width: documentSize.width * 0.4,
+      height: documentSize.height * 0.8,
+    })
+    slots.push({
+      id: 'slot_2',
+      label: '캐릭터 B',
+      x: documentSize.width * 0.55,
+      y: documentSize.height * 0.1,
+      width: documentSize.width * 0.4,
+      height: documentSize.height * 0.8,
     })
 
-    // 해당 슬롯에 속하는 필드 찾기
-    const relatedMappings = selectedMappings.filter(
-      (m) =>
-        m.suggestedCategory !== 'character' &&
-        m.suggestedOutputType !== 'slot' &&
-        m.layerId !== mapping.layerId
+    // 모든 텍스트 필드를 X 좌표 기준으로 좌/우 슬롯에 분배
+    const textMappings = selectedMappings.filter(
+      (m) => m.suggestedOutputType !== 'slot' && !/^[A-Z]$/.test(m.layerName.trim())
     )
 
-    // 슬롯당 필드 분배 (간단한 로직)
-    const fieldsPerSlot = Math.ceil(relatedMappings.length / (characterMappings.length || 1))
-    const startIdx = index * fieldsPerSlot
-    const endIdx = Math.min(startIdx + fieldsPerSlot, relatedMappings.length)
+    textMappings.forEach((mapping, index) => {
+      const layer = layers.find((l) => l.id === mapping.layerId)
+      if (!layer) return
 
-    for (let i = startIdx; i < endIdx; i++) {
-      const fieldMapping = relatedMappings[i]
-      if (!fieldMapping) continue
-
-      const fieldType =
-        fieldMapping.suggestedOutputType === 'colorField' ? 'color' : 'text'
+      // X 좌표 기준으로 좌/우 슬롯 결정
+      const isLeftSide = layer.bounds.x < documentSize.width / 2
+      const slotId = isLeftSide ? 'slot_1' : 'slot_2'
+      const fieldType = mapping.suggestedOutputType === 'colorField' ? 'color' : 'text'
 
       fields.push({
-        id: `field_${slotId}_${i - startIdx + 1}`,
+        id: `field_${index + 1}`,
         slotId,
-        label: fieldMapping.layerName,
+        label: mapping.layerName,
         type: fieldType,
-        defaultValue:
-          layers.find((l) => l.id === fieldMapping.layerId)?.textContent,
+        defaultValue: layer.textContent,
       })
-    }
-  })
+    })
+  } else {
+    // 캐릭터 마커 기반으로 슬롯 생성
+    characterMarkers.forEach((marker, index) => {
+      const markerLayer = layers.find((l) => l.id === marker.layerId)
+      if (!markerLayer) return
+
+      const slotId = `slot_${index + 1}`
+
+      // 해당 캐릭터 영역의 다른 레이어들을 찾아서 바운딩 박스 계산
+      const markerX = markerLayer.bounds.x
+      const isLeftSide = markerX < documentSize.width / 2
+
+      // 해당 쪽의 모든 레이어 찾기
+      const relatedLayers = layers.filter((l) => {
+        const layerCenterX = l.bounds.x + l.bounds.width / 2
+        return isLeftSide
+          ? layerCenterX < documentSize.width / 2
+          : layerCenterX >= documentSize.width / 2
+      })
+
+      // 바운딩 박스 계산
+      let minX = documentSize.width,
+        minY = documentSize.height,
+        maxX = 0,
+        maxY = 0
+      relatedLayers.forEach((l) => {
+        minX = Math.min(minX, l.bounds.x)
+        minY = Math.min(minY, l.bounds.y)
+        maxX = Math.max(maxX, l.bounds.x + l.bounds.width)
+        maxY = Math.max(maxY, l.bounds.y + l.bounds.height)
+      })
+
+      slots.push({
+        id: slotId,
+        label: `캐릭터 ${marker.layerName}`,
+        x: minX,
+        y: minY,
+        width: Math.max(maxX - minX, 100),
+        height: Math.max(maxY - minY, 100),
+      })
+
+      // 해당 영역의 텍스트 필드들 추가
+      const textMappings = selectedMappings.filter((m) => {
+        if (m.layerId === marker.layerId) return false
+        if (/^[A-Z]$/.test(m.layerName.trim())) return false
+
+        const layer = layers.find((l) => l.id === m.layerId)
+        if (!layer) return false
+
+        const layerCenterX = layer.bounds.x + layer.bounds.width / 2
+        return isLeftSide
+          ? layerCenterX < documentSize.width / 2
+          : layerCenterX >= documentSize.width / 2
+      })
+
+      textMappings.forEach((mapping, fieldIndex) => {
+        const layer = layers.find((l) => l.id === mapping.layerId)
+        const fieldType = mapping.suggestedOutputType === 'colorField' ? 'color' : 'text'
+
+        fields.push({
+          id: `field_${slotId}_${fieldIndex + 1}`,
+          slotId,
+          label: mapping.layerName,
+          type: fieldType,
+          defaultValue: layer?.textContent,
+        })
+      })
+    })
+  }
 
   // 슬롯이 없는 경우 기본 슬롯 생성
   if (slots.length === 0) {
