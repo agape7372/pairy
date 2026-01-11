@@ -30,7 +30,22 @@ import {
   Check,
   AlertCircle,
   ChevronDown,
+  Moon,
+  Heart,
+  Star,
+  Sparkles,
+  Flower2,
 } from 'lucide-react'
+import type { WhisperThemeConfig } from '@/types/whisper'
+
+// 테마 아이콘 매핑
+const THEME_ICONS: Record<WhisperThemeConfig['iconName'], typeof Moon> = {
+  Moon,
+  Heart,
+  Star,
+  Sparkles,
+  Flower2,
+}
 import { cn } from '@/lib/utils/cn'
 import { useWhispers } from '@/hooks/useWhispers'
 import { WhisperCard } from '@/components/whisper/WhisperCard'
@@ -118,46 +133,38 @@ function EmptyState({ type, filter }: EmptyStateProps) {
   const messages = {
     received: {
       all: {
-        icon: '💌',
         title: '아직 받은 위스퍼가 없어요',
-        description: '크리에이터를 구독하면 특별한 위스퍼를 받을 수 있어요!',
+        description: '크리에이터를 구독하면 특별한 위스퍼를 받을 수 있어요',
       },
       unread: {
-        icon: '✅',
         title: '모든 위스퍼를 확인했어요',
-        description: '새로운 위스퍼가 오면 알려드릴게요.',
+        description: '새로운 위스퍼가 오면 알려드릴게요',
       },
       gift: {
-        icon: '🎁',
         title: '선물이 담긴 위스퍼가 없어요',
-        description: '크리에이터가 보내는 특별한 선물을 기다려보세요!',
+        description: '크리에이터가 보내는 특별한 선물을 기다려보세요',
       },
       expired: {
-        icon: '⏰',
         title: '만료된 위스퍼가 없어요',
-        description: '좋은 일이네요!',
+        description: '',
       },
     },
     sent: {
       all: {
-        icon: '📤',
         title: '아직 보낸 위스퍼가 없어요',
-        description: '구독자에게 특별한 메시지를 보내보세요!',
+        description: '구독자에게 특별한 메시지를 보내보세요',
       },
       unread: {
-        icon: '📬',
         title: '모든 위스퍼가 읽혔어요',
-        description: '구독자들이 위스퍼를 확인했어요.',
+        description: '구독자들이 위스퍼를 확인했어요',
       },
       gift: {
-        icon: '🎁',
         title: '선물을 보낸 적이 없어요',
-        description: '구독자에게 특별한 선물을 보내보세요!',
+        description: '구독자에게 특별한 선물을 보내보세요',
       },
       expired: {
-        icon: '⏰',
         title: '만료된 위스퍼가 없어요',
-        description: '좋은 일이네요!',
+        description: '',
       },
     },
   }
@@ -171,13 +178,17 @@ function EmptyState({ type, filter }: EmptyStateProps) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
     >
-      <div className="text-6xl mb-4">{content.icon}</div>
+      <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mb-4">
+        <Inbox className="w-8 h-8 text-primary-400" />
+      </div>
       <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
         {content.title}
       </h3>
-      <p className="text-gray-500 dark:text-gray-400 text-center max-w-sm">
-        {content.description}
-      </p>
+      {content.description && (
+        <p className="text-gray-500 dark:text-gray-400 text-center max-w-sm">
+          {content.description}
+        </p>
+      )}
     </motion.div>
   )
 }
@@ -290,14 +301,19 @@ function WhisperListItem({ whisper, onClick }: WhisperListItemProps) {
     >
       <div className="flex items-start gap-3">
         {/* 테마 아이콘 */}
-        <div
-          className={cn(
-            'w-10 h-10 rounded-full flex items-center justify-center text-xl',
-            isUnread ? 'bg-white/20' : 'bg-gray-100 dark:bg-gray-700'
-          )}
-        >
-          {theme.icon}
-        </div>
+        {(() => {
+          const ThemeIcon = THEME_ICONS[theme.iconName]
+          return (
+            <div
+              className={cn(
+                'w-10 h-10 rounded-full flex items-center justify-center',
+                isUnread ? 'bg-white/20' : 'bg-gray-100 dark:bg-gray-700'
+              )}
+            >
+              <ThemeIcon className={cn('w-5 h-5', isUnread ? theme.textColor : 'text-gray-500')} />
+            </div>
+          )
+        })()}
 
         {/* 내용 */}
         <div className="flex-1 min-w-0">
@@ -455,17 +471,12 @@ export default function WhispersPage() {
       {/* 헤더 */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-pink-400 rounded-xl flex items-center justify-center">
-            <MessageCircle className="w-5 h-5 text-white" />
+          <div className="w-10 h-10 bg-primary-100 rounded-xl flex items-center justify-center">
+            <MessageCircle className="w-5 h-5 text-primary-600" />
           </div>
-          <div>
-            <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-              위스퍼
-            </h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              크리에이터의 은밀한 속삭임
-            </p>
-          </div>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+            위스퍼
+          </h1>
         </div>
 
         <div className="flex items-center gap-2">
@@ -487,10 +498,10 @@ export default function WhispersPage() {
           <button
             onClick={() => setShowComposer(true)}
             className={cn(
-              'flex items-center gap-2 px-4 py-2 rounded-lg',
-              'bg-gradient-to-r from-purple-500 to-pink-500 text-white',
-              'hover:from-purple-600 hover:to-pink-600',
-              'transition-all shadow-md hover:shadow-lg'
+              'flex items-center gap-2 px-4 py-2 rounded-xl',
+              'bg-primary-400 text-white',
+              'hover:bg-primary-500',
+              'transition-colors'
             )}
           >
             <Plus className="w-4 h-4" />

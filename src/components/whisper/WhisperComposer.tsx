@@ -76,7 +76,7 @@ const ThemeSelector = memo(function ThemeSelector({
 
   return (
     <div className="space-y-2">
-      <label className="text-sm text-gray-400">테마 선택</label>
+      <label className="text-sm text-gray-500">테마 선택</label>
       <div className="flex flex-wrap gap-2">
         {themes.map((theme) => (
           <motion.button
@@ -86,8 +86,8 @@ const ThemeSelector = memo(function ThemeSelector({
               'relative px-3 py-2 rounded-lg text-sm',
               'border transition-all duration-200',
               selectedTheme === theme.id
-                ? 'border-white/40 bg-white/10'
-                : 'border-white/10 bg-white/5 hover:bg-white/10'
+                ? 'border-primary-400 bg-primary-50'
+                : 'border-gray-200 bg-white hover:bg-gray-50'
             )}
             onClick={() => {
               playClickSound()
@@ -96,15 +96,14 @@ const ThemeSelector = memo(function ThemeSelector({
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
-            <span className="mr-1">{theme.icon}</span>
-            <span className="text-gray-300">{theme.name}</span>
+            <span className="text-gray-700">{theme.name}</span>
             {selectedTheme === theme.id && (
               <motion.div
-                className="absolute -top-1 -right-1 w-4 h-4 bg-white rounded-full flex items-center justify-center"
+                className="absolute -top-1 -right-1 w-4 h-4 bg-primary-400 rounded-full flex items-center justify-center"
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
               >
-                <Check className="w-3 h-3 text-gray-900" />
+                <Check className="w-3 h-3 text-white" />
               </motion.div>
             )}
           </motion.button>
@@ -145,7 +144,7 @@ const RecipientSelector = memo(function RecipientSelector({
 
   return (
     <div className="space-y-3">
-      <label className="text-sm text-gray-400">받는 사람</label>
+      <label className="text-sm text-gray-500">받는 사람</label>
 
       {/* 모드 선택 */}
       <div className="flex gap-2">
@@ -157,8 +156,8 @@ const RecipientSelector = memo(function RecipientSelector({
               'flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg',
               'border transition-all duration-200 text-sm',
               mode === option.value
-                ? 'border-purple-500/50 bg-purple-500/20 text-purple-300'
-                : 'border-white/10 bg-white/5 text-gray-400 hover:bg-white/10'
+                ? 'border-primary-400 bg-primary-50 text-primary-700'
+                : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
             )}
             onClick={() => {
               playClickSound()
@@ -186,8 +185,8 @@ const RecipientSelector = memo(function RecipientSelector({
               className={cn(
                 'px-3 py-1.5 rounded-full text-xs border transition-all',
                 selectedTiers.includes(tier.id)
-                  ? 'border-purple-400 bg-purple-500/30 text-purple-200'
-                  : 'border-white/10 bg-white/5 text-gray-400 hover:bg-white/10'
+                  ? 'border-primary-400 bg-primary-100 text-primary-700'
+                  : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
               )}
               onClick={() => {
                 playClickSound()
@@ -206,7 +205,7 @@ const RecipientSelector = memo(function RecipientSelector({
       {/* 개별 선택 (individual 모드) */}
       {mode === 'individual' && subscribers && subscribers.length > 0 && (
         <motion.div
-          className="max-h-32 overflow-y-auto space-y-1 rounded-lg border border-white/10 p-2"
+          className="max-h-32 overflow-y-auto space-y-1 rounded-lg border border-gray-200 p-2"
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
         >
@@ -217,8 +216,8 @@ const RecipientSelector = memo(function RecipientSelector({
               className={cn(
                 'w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm text-left transition-all',
                 selectedReceivers.includes(sub.id)
-                  ? 'bg-purple-500/20 text-purple-200'
-                  : 'text-gray-400 hover:bg-white/5'
+                  ? 'bg-primary-100 text-primary-700'
+                  : 'text-gray-600 hover:bg-gray-50'
               )}
               onClick={() => {
                 playClickSound()
@@ -231,7 +230,7 @@ const RecipientSelector = memo(function RecipientSelector({
               {selectedReceivers.includes(sub.id) && <Check className="w-3 h-3" />}
               <span>{sub.username}</span>
               {sub.tier && (
-                <span className="text-xs text-gray-500 ml-auto">{sub.tier}</span>
+                <span className="text-xs text-gray-400 ml-auto">{sub.tier}</span>
               )}
             </button>
           ))}
@@ -268,8 +267,8 @@ const GiftAttachment = memo(function GiftAttachment({
           'w-full flex items-center justify-between p-3 rounded-xl',
           'border transition-all duration-200',
           selectedGift
-            ? 'border-yellow-500/50 bg-yellow-500/10'
-            : 'border-white/10 bg-white/5 hover:bg-white/10'
+            ? 'border-amber-400 bg-amber-50'
+            : 'border-gray-200 bg-white hover:bg-gray-50'
         )}
         onClick={() => {
           playClickSound()
@@ -280,21 +279,21 @@ const GiftAttachment = memo(function GiftAttachment({
         <div className="flex items-center gap-3">
           <div className={cn(
             'w-10 h-10 rounded-lg flex items-center justify-center',
-            selectedGift ? 'bg-yellow-500/20' : 'bg-white/10'
+            selectedGift ? 'bg-amber-100' : 'bg-gray-100'
           )}>
             <Gift className={cn(
               'w-5 h-5',
-              selectedGift ? 'text-yellow-400' : 'text-gray-400'
+              selectedGift ? 'text-amber-600' : 'text-gray-400'
             )} />
           </div>
           <div className="text-left">
             <p className={cn(
               'text-sm',
-              selectedGift ? 'text-yellow-200' : 'text-gray-300'
+              selectedGift ? 'text-amber-700' : 'text-gray-700'
             )}>
               {selectedGift
-                ? '마법이 담겼습니다 ✨'
-                : '이 위스퍼에 마법(선물)을 담으시겠습니까?'}
+                ? '선물이 첨부되었습니다'
+                : '선물 첨부하기'}
             </p>
             {selectedGift && (
               <p className="text-xs text-gray-500">
@@ -326,8 +325,8 @@ const GiftAttachment = memo(function GiftAttachment({
               className={cn(
                 'p-3 rounded-lg border text-left transition-all',
                 !selectedGift
-                  ? 'border-purple-400/50 bg-purple-500/10'
-                  : 'border-white/10 bg-white/5 hover:bg-white/10'
+                  ? 'border-primary-400 bg-primary-50'
+                  : 'border-gray-200 bg-white hover:bg-gray-50'
               )}
               onClick={() => {
                 playClickSound()
@@ -335,7 +334,7 @@ const GiftAttachment = memo(function GiftAttachment({
                 setIsExpanded(false)
               }}
             >
-              <p className="text-sm text-gray-300">선물 없이</p>
+              <p className="text-sm text-gray-700">선물 없이</p>
               <p className="text-xs text-gray-500">메시지만 전달</p>
             </button>
 
@@ -347,8 +346,8 @@ const GiftAttachment = memo(function GiftAttachment({
                 className={cn(
                   'p-3 rounded-lg border text-left transition-all',
                   selectedGift === gift
-                    ? 'border-yellow-400/50 bg-yellow-500/10'
-                    : 'border-white/10 bg-white/5 hover:bg-white/10'
+                    ? 'border-amber-400 bg-amber-50'
+                    : 'border-gray-200 bg-white hover:bg-gray-50'
                 )}
                 onClick={() => {
                   playClickSound()
@@ -356,11 +355,11 @@ const GiftAttachment = memo(function GiftAttachment({
                   setIsExpanded(false)
                 }}
               >
-                <p className="text-sm text-gray-300">
-                  {gift.type === 'STICKER' && '🎨 스티커'}
-                  {gift.type === 'TEMPLATE' && '📝 템플릿'}
-                  {gift.type === 'COUPON' && '🎟️ 쿠폰'}
-                  {gift.type === 'EXCLUSIVE_CONTENT' && '🔒 독점 콘텐츠'}
+                <p className="text-sm text-gray-700">
+                  {gift.type === 'STICKER' && '스티커'}
+                  {gift.type === 'TEMPLATE' && '템플릿'}
+                  {gift.type === 'COUPON' && '쿠폰'}
+                  {gift.type === 'EXCLUSIVE_CONTENT' && '독점 콘텐츠'}
                 </p>
                 <p className="text-xs text-gray-500 truncate">
                   {'stickerName' in gift && gift.stickerName}
@@ -403,23 +402,23 @@ const AdditionalOptions = memo(function AdditionalOptions({
   return (
     <div className="space-y-3">
       {/* 사라지는 위스퍼 */}
-      <div className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/10">
+      <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-200">
         <div className="flex items-center gap-3">
           {ephemeral ? (
-            <EyeOff className="w-5 h-5 text-purple-400" />
+            <EyeOff className="w-5 h-5 text-primary-500" />
           ) : (
             <Eye className="w-5 h-5 text-gray-400" />
           )}
           <div>
-            <p className="text-sm text-gray-300">사라지는 위스퍼</p>
-            <p className="text-xs text-gray-500">읽은 후 가루처럼 사라집니다</p>
+            <p className="text-sm text-gray-700">사라지는 위스퍼</p>
+            <p className="text-xs text-gray-500">읽은 후 사라집니다</p>
           </div>
         </div>
         <button
           type="button"
           className={cn(
             'w-12 h-6 rounded-full transition-all duration-200',
-            ephemeral ? 'bg-purple-500' : 'bg-gray-700'
+            ephemeral ? 'bg-primary-400' : 'bg-gray-300'
           )}
           onClick={() => {
             playClickSound()
@@ -435,15 +434,15 @@ const AdditionalOptions = memo(function AdditionalOptions({
       </div>
 
       {/* 예약 발송 */}
-      <div className="p-3 rounded-xl bg-white/5 border border-white/10 space-y-2">
+      <div className="p-3 rounded-xl bg-gray-50 border border-gray-200 space-y-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Clock className={cn(
               'w-5 h-5',
-              isScheduled ? 'text-blue-400' : 'text-gray-400'
+              isScheduled ? 'text-accent-600' : 'text-gray-400'
             )} />
             <div>
-              <p className="text-sm text-gray-300">예약 발송</p>
+              <p className="text-sm text-gray-700">예약 발송</p>
               <p className="text-xs text-gray-500">지정한 시간에 자동 발송</p>
             </div>
           </div>
@@ -451,7 +450,7 @@ const AdditionalOptions = memo(function AdditionalOptions({
             type="button"
             className={cn(
               'w-12 h-6 rounded-full transition-all duration-200',
-              isScheduled ? 'bg-blue-500' : 'bg-gray-700'
+              isScheduled ? 'bg-accent-400' : 'bg-gray-300'
             )}
             onClick={() => {
               playClickSound()
@@ -474,8 +473,8 @@ const AdditionalOptions = memo(function AdditionalOptions({
             type="datetime-local"
             className={cn(
               'w-full px-3 py-2 rounded-lg text-sm',
-              'bg-gray-900/50 border border-white/10',
-              'text-gray-300 focus:outline-none focus:border-blue-500/50'
+              'bg-white border border-gray-200',
+              'text-gray-700 focus:outline-none focus:border-accent-400'
             )}
             value={scheduledAt || ''}
             onChange={(e) => onScheduledAtChange(e.target.value || null)}
@@ -486,15 +485,15 @@ const AdditionalOptions = memo(function AdditionalOptions({
       </div>
 
       {/* 선착순 제한 */}
-      <div className="p-3 rounded-xl bg-white/5 border border-white/10 space-y-2">
+      <div className="p-3 rounded-xl bg-gray-50 border border-gray-200 space-y-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <AlertTriangle className={cn(
               'w-5 h-5',
-              limitedQuantity > 0 ? 'text-amber-400' : 'text-gray-400'
+              limitedQuantity > 0 ? 'text-amber-500' : 'text-gray-400'
             )} />
             <div>
-              <p className="text-sm text-gray-300">선착순 제한</p>
+              <p className="text-sm text-gray-700">선착순 제한</p>
               <p className="text-xs text-gray-500">선물 수령 인원 제한</p>
             </div>
           </div>
@@ -504,8 +503,8 @@ const AdditionalOptions = memo(function AdditionalOptions({
             max="1000"
             className={cn(
               'w-20 px-3 py-1.5 rounded-lg text-sm text-center',
-              'bg-gray-900/50 border border-white/10',
-              'text-gray-300 focus:outline-none focus:border-amber-500/50'
+              'bg-white border border-gray-200',
+              'text-gray-700 focus:outline-none focus:border-amber-400'
             )}
             value={limitedQuantity || ''}
             onChange={(e) => {
@@ -516,7 +515,7 @@ const AdditionalOptions = memo(function AdditionalOptions({
           />
         </div>
         {limitedQuantity > 0 && (
-          <p className="text-xs text-amber-400/80 text-center">
+          <p className="text-xs text-amber-600 text-center">
             선착순 {limitedQuantity}명만 선물을 받을 수 있습니다
           </p>
         )}
@@ -636,14 +635,14 @@ export const WhisperComposer = memo(function WhisperComposer({
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 pt-16"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
         >
           {/* 오버레이 */}
           <motion.div
-            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
             onClick={onClose}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -653,39 +652,32 @@ export const WhisperComposer = memo(function WhisperComposer({
           {/* 모달 */}
           <motion.div
             className={cn(
-              'relative w-full max-w-lg max-h-[90vh] overflow-y-auto',
-              'rounded-3xl shadow-2xl',
-              'bg-gradient-to-br from-gray-900 via-gray-900 to-slate-900',
-              'border border-white/10'
+              'relative w-full max-w-lg max-h-[85vh] overflow-y-auto',
+              'rounded-2xl shadow-xl',
+              'bg-white',
+              'border border-gray-200'
             )}
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
           >
             {/* 헤더 */}
-            <div className="sticky top-0 z-10 flex items-center justify-between p-4 border-b border-white/10 bg-gray-900/95 backdrop-blur-sm rounded-t-3xl">
+            <div className="sticky top-0 z-10 flex items-center justify-between p-4 border-b border-gray-100 bg-white/95 backdrop-blur-sm rounded-t-2xl">
               <div className="flex items-center gap-3">
-                <div className={cn(
-                  'w-10 h-10 rounded-xl flex items-center justify-center',
-                  'bg-gradient-to-br',
-                  selectedTheme.backgroundGradient
-                )}>
-                  <Sparkles className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 rounded-xl bg-primary-100 flex items-center justify-center">
+                  <Send className="w-5 h-5 text-primary-600" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-medium text-white">위스퍼 보내기</h2>
-                  <p className="text-xs text-gray-500">
-                    {getWhisperTypeLabel(whisperType)} · {selectedTheme.name}
-                  </p>
+                  <h2 className="text-lg font-medium text-gray-900">위스퍼 보내기</h2>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={onClose}
-                className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+                className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
               >
-                <X className="w-5 h-5 text-gray-400" />
+                <X className="w-5 h-5 text-gray-500" />
               </button>
             </div>
 
@@ -708,30 +700,22 @@ export const WhisperComposer = memo(function WhisperComposer({
 
               {/* 메시지 입력 */}
               <div className="space-y-2">
-                <label className="text-sm text-gray-400">메시지</label>
-                <div className={cn(
-                  'relative rounded-xl overflow-hidden',
-                  'bg-gradient-to-br',
-                  selectedTheme.backgroundGradient
-                )}>
+                <label className="text-sm text-gray-500">메시지</label>
+                <div className="relative rounded-xl overflow-hidden border border-gray-200">
                   <textarea
                     className={cn(
                       'w-full min-h-[120px] p-4 resize-none',
-                      'bg-transparent border-none outline-none',
-                      'text-lg leading-relaxed',
-                      selectedTheme.textColor,
-                      'placeholder:text-white/30'
+                      'bg-gray-50 border-none outline-none',
+                      'text-base leading-relaxed text-gray-900',
+                      'placeholder:text-gray-400',
+                      'focus:bg-white focus:ring-2 focus:ring-primary-200'
                     )}
-                    style={{
-                      fontFamily: '"Nanum Myeongjo", serif',
-                      letterSpacing: '0.02em',
-                    }}
-                    placeholder="속삭이고 싶은 말을 적어주세요..."
+                    placeholder="메시지 입력"
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     maxLength={500}
                   />
-                  <div className="absolute bottom-2 right-3 text-xs text-white/30">
+                  <div className="absolute bottom-2 right-3 text-xs text-gray-400">
                     {message.length}/500
                   </div>
                 </div>
@@ -758,21 +742,21 @@ export const WhisperComposer = memo(function WhisperComposer({
             </div>
 
             {/* 푸터 */}
-            <div className="sticky bottom-0 p-4 border-t border-white/10 bg-gray-900/95 backdrop-blur-sm rounded-b-3xl">
+            <div className="sticky bottom-0 p-4 border-t border-gray-100 bg-white/95 backdrop-blur-sm rounded-b-2xl">
               <motion.button
                 type="button"
                 className={cn(
                   'w-full py-3 px-6 rounded-xl font-medium',
                   'flex items-center justify-center gap-2',
-                  'transition-all duration-200',
+                  'transition-colors',
                   isValid && !isSending
-                    ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-500 hover:to-pink-500'
-                    : 'bg-gray-800 text-gray-500 cursor-not-allowed'
+                    ? 'bg-primary-400 text-white hover:bg-primary-500'
+                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                 )}
                 onClick={handleSend}
                 disabled={!isValid || isSending}
-                whileHover={isValid && !isSending ? { scale: 1.02 } : {}}
-                whileTap={isValid && !isSending ? { scale: 0.98 } : {}}
+                whileHover={isValid && !isSending ? { scale: 1.01 } : {}}
+                whileTap={isValid && !isSending ? { scale: 0.99 } : {}}
               >
                 {isSending ? (
                   <>
@@ -781,12 +765,12 @@ export const WhisperComposer = memo(function WhisperComposer({
                       animate={{ rotate: 360 }}
                       transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
                     />
-                    속삭이는 중...
+                    보내는 중...
                   </>
                 ) : (
                   <>
                     <Send className="w-5 h-5" />
-                    {isScheduled ? '예약하기' : '속삭이기'}
+                    {isScheduled ? '예약하기' : '보내기'}
                   </>
                 )}
               </motion.button>
