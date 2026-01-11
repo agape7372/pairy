@@ -11,11 +11,20 @@
 
 import React, { useCallback, useEffect, useRef, memo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Sparkles, X } from 'lucide-react'
+import { Sparkles, X, Moon, Heart, Star, Flower2 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { playWhisperSound } from '@/lib/utils/whisperSound'
 import type { Whisper, WhisperThemeConfig } from '@/types/whisper'
 import { WHISPER_THEMES, getWhisperTypeLabel } from '@/types/whisper'
+
+// 테마별 아이콘 매핑
+const THEME_ICONS: Record<WhisperThemeConfig['iconName'], typeof Moon> = {
+  Moon,
+  Heart,
+  Star,
+  Sparkles,
+  Flower2,
+}
 
 // ============================================
 // 타입 정의
@@ -248,7 +257,11 @@ export const WhisperNotification = memo(function WhisperNotification({
                     누군가의 위스퍼가 도착했습니다
                   </p>
                   <p className={cn('text-xs mt-0.5 opacity-80', theme.textColor)}>
-                    {theme.icon} {getWhisperTypeLabel(whisper.whisperType)}
+                    {(() => {
+                      const ThemeIcon = THEME_ICONS[theme.iconName]
+                      return <ThemeIcon className="inline w-3 h-3 mr-1" />
+                    })()}
+                    {getWhisperTypeLabel(whisper.whisperType)}
                     {whisper.payload.gift && ' • 선물 포함'}
                   </p>
                 </div>

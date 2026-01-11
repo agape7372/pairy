@@ -189,7 +189,7 @@ export interface WhisperThemeConfig {
   id: WhisperTheme
   /** 테마 이름 */
   name: string
-  /** 배경 그라디언트 */
+  /** 배경 그라디언트 (디자인 시스템 기반) */
   backgroundGradient: string
   /** 텍스트 색상 */
   textColor: string
@@ -197,55 +197,55 @@ export interface WhisperThemeConfig {
   accentColor: string
   /** 글로우 색상 */
   glowColor: string
-  /** 아이콘 이모지 */
-  icon: string
+  /** 아이콘 이름 (Lucide 아이콘) */
+  iconName: 'Moon' | 'Heart' | 'Star' | 'Sparkles' | 'Flower2'
 }
 
 export const WHISPER_THEMES: Record<WhisperTheme, WhisperThemeConfig> = {
   NIGHT: {
     id: 'NIGHT',
-    name: '밤의 속삭임',
-    backgroundGradient: 'from-slate-900 via-purple-900 to-slate-900',
-    textColor: 'text-purple-100',
-    accentColor: 'text-purple-400',
-    glowColor: 'shadow-purple-500/50',
-    icon: '🌙',
+    name: '밤',
+    backgroundGradient: 'from-gray-800 to-gray-900',
+    textColor: 'text-gray-100',
+    accentColor: 'text-gray-400',
+    glowColor: 'shadow-gray-500/30',
+    iconName: 'Moon',
   },
   LOVE: {
     id: 'LOVE',
-    name: '사랑의 고백',
-    backgroundGradient: 'from-rose-900 via-pink-800 to-rose-900',
-    textColor: 'text-rose-100',
-    accentColor: 'text-pink-400',
-    glowColor: 'shadow-pink-500/50',
-    icon: '💕',
+    name: '사랑',
+    backgroundGradient: 'from-primary-100 to-primary-200',
+    textColor: 'text-primary-800',
+    accentColor: 'text-primary-600',
+    glowColor: 'shadow-primary-400/30',
+    iconName: 'Heart',
   },
   GOLDEN: {
     id: 'GOLDEN',
-    name: '황금빛 선물',
-    backgroundGradient: 'from-amber-900 via-yellow-800 to-amber-900',
-    textColor: 'text-amber-100',
-    accentColor: 'text-yellow-400',
-    glowColor: 'shadow-yellow-500/50',
-    icon: '✨',
+    name: '선물',
+    backgroundGradient: 'from-amber-50 to-amber-100',
+    textColor: 'text-amber-900',
+    accentColor: 'text-amber-600',
+    glowColor: 'shadow-amber-400/30',
+    iconName: 'Star',
   },
   MYSTIC: {
     id: 'MYSTIC',
-    name: '신비로운 비밀',
-    backgroundGradient: 'from-indigo-900 via-violet-800 to-indigo-900',
-    textColor: 'text-indigo-100',
-    accentColor: 'text-violet-400',
-    glowColor: 'shadow-violet-500/50',
-    icon: '🔮',
+    name: '비밀',
+    backgroundGradient: 'from-accent-100 to-accent-200',
+    textColor: 'text-accent-800',
+    accentColor: 'text-accent-600',
+    glowColor: 'shadow-accent-400/30',
+    iconName: 'Sparkles',
   },
   SPRING: {
     id: 'SPRING',
-    name: '봄의 설렘',
-    backgroundGradient: 'from-emerald-900 via-teal-800 to-emerald-900',
-    textColor: 'text-emerald-100',
-    accentColor: 'text-teal-400',
-    glowColor: 'shadow-teal-500/50',
-    icon: '🌸',
+    name: '봄',
+    backgroundGradient: 'from-green-50 to-emerald-100',
+    textColor: 'text-emerald-900',
+    accentColor: 'text-emerald-600',
+    glowColor: 'shadow-emerald-400/30',
+    iconName: 'Flower2',
   },
 }
 

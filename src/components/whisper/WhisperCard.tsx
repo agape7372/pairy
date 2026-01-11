@@ -12,7 +12,7 @@
 
 import React, { useCallback, useState, memo, useRef, useMemo } from 'react'
 import { motion, useMotionValue } from 'framer-motion'
-import { Gift, Clock, Sparkles, Check, AlertTriangle } from 'lucide-react'
+import { Gift, Clock, Sparkles, Check, AlertTriangle, Moon, Heart, Star, Flower2 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { playClaimSound } from '@/lib/utils/whisperSound'
 import type {
@@ -28,6 +28,15 @@ import {
   isLimited,
   isSoldOut,
 } from '@/types/whisper'
+
+// 테마별 아이콘 매핑
+const THEME_ICONS: Record<WhisperThemeConfig['iconName'], typeof Moon> = {
+  Moon,
+  Heart,
+  Star,
+  Sparkles,
+  Flower2,
+}
 
 // ============================================
 // 타입 정의
@@ -397,7 +406,10 @@ export const WhisperCard = memo(function WhisperCard({
         {/* 헤더 */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <span className="text-2xl">{theme.icon}</span>
+            {(() => {
+              const ThemeIcon = THEME_ICONS[theme.iconName]
+              return <ThemeIcon className={cn('w-6 h-6', theme.accentColor)} />
+            })()}
             <span className={cn('text-sm font-medium', theme.accentColor)}>
               {getWhisperTypeLabel(whisper.whisperType)}
             </span>
