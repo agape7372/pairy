@@ -7,6 +7,7 @@ import { EditorErrorBoundary } from '@/components/editor'
 export function generateStaticParams() {
   return [
     { templateId: 'couple-magazine' },
+    { templateId: 'custom' }, // 커스텀 템플릿용 (실제 ID는 query param으로 전달)
     // 추가 템플릿은 여기에 추가
   ]
 }

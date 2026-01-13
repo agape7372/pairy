@@ -54,6 +54,11 @@ import {
   getStorageErrorMessage,
   type AutoSaveData,
 } from '@/lib/utils/editorUtils'
+import {
+  isCustomTemplateId,
+  getCustomTemplateById,
+  convertToTemplateConfig,
+} from '@/lib/utils/customTemplateStorage'
 
 // 내보내기 포맷 타입
 type ExportFormat = 'png' | 'jpg' | 'webp'
@@ -113,19 +118,24 @@ export default function CanvasEditor({
   sessionId: propSessionId,
 }: CanvasEditorProps) {
   // 클라이언트에서 URL 파라미터 읽기 (정적 export 호환)
-  const [urlParams, setUrlParams] = useState<{ session?: string; title?: string }>({})
+  const [urlParams, setUrlParams] = useState<{ session?: string; title?: string; customId?: string }>({})
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search)
       setUrlParams({
         session: params.get('session') || undefined,
         title: params.get('title') || undefined,
+        customId: params.get('id') || undefined, // 커스텀 템플릿 ID
       })
     }
   }, [])
 
   const sessionId = propSessionId || urlParams.session
   const initialTitle = propInitialTitle || urlParams.title
+  // 'custom' templateId일 때 query parameter에서 실제 ID 사용
+  const effectiveTemplateId = templateId === 'custom' && urlParams.customId
+    ? urlParams.customId
+    : templateId
 
   // 사용자 정보 가져오기
   const { user, profile } = useUser()
@@ -147,7 +157,7 @@ export default function CanvasEditor({
         autoConnect
       >
         <CanvasEditorContent
-          templateId={templateId}
+          templateId={effectiveTemplateId}
           initialTitle={initialTitle}
           sessionId={sessionId}
         />
@@ -158,7 +168,7 @@ export default function CanvasEditor({
   // 일반 모드 (협업 없음)
   return (
     <CanvasEditorContent
-      templateId={templateId}
+      templateId={effectiveTemplateId}
       initialTitle={initialTitle}
       sessionId={sessionId}
     />
@@ -380,7 +390,20 @@ function CanvasEditorContent({
       setError(null)
 
       try {
-        // public/templates에서 JSON 로드 (basePath 적용)
+        // 커스텀 템플릿인 경우 localStorage에서 로드
+        if (isCustomTemplateId(templateId)) {
+          const customTemplate = getCustomTemplateById(templateId)
+          if (!customTemplate) {
+            throw new Error('커스텀 템플릿을 찾을 수 없습니다')
+          }
+          const config = convertToTemplateConfig(customTemplate)
+          loadTemplate(config)
+          // 커스텀 템플릿 제목으로 설정
+          setTitle(customTemplate.title)
+          return
+        }
+
+        // 일반 템플릿: public/templates에서 JSON 로드 (basePath 적용)
         const response = await fetch(`${BASE_PATH}/templates/${templateId}.json`)
         if (!response.ok) {
           throw new Error('템플릿을 찾을 수 없습니다')

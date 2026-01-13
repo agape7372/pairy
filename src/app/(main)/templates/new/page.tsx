@@ -15,6 +15,7 @@ import {
 import { Button, useToast } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
 import { IS_DEMO_MODE } from '@/lib/supabase/client'
+import { saveCustomTemplate } from '@/lib/utils/customTemplateStorage'
 import PSDUploader from '@/components/editor/psd/PSDUploader'
 import PSDCanvas from '@/components/editor/psd/PSDCanvas'
 
@@ -246,10 +247,26 @@ export default function NewTemplatePage() {
     setIsSaving(true)
     try {
       if (IS_DEMO_MODE) {
-        // 데모 모드: 로컬 저장 시뮬레이션
-        await new Promise((resolve) => setTimeout(resolve, 1000))
-        toast.info('데모 모드에서는 템플릿이 저장되지 않습니다.')
-        router.push('/templates')
+        // 데모 모드: localStorage에 커스텀 템플릿 저장
+        const result = saveCustomTemplate({
+          title: title.trim(),
+          description: description.trim(),
+          emoji: selectedEmoji,
+          tags: selectedTags,
+          canvasSize,
+          compositeImage,
+          slots,
+          fields,
+          layers: psdLayers,
+        })
+
+        if (result.success && result.templateId) {
+          toast.success('템플릿이 저장되었습니다!')
+          // 저장된 템플릿으로 에디터 열기 (static export 호환)
+          router.push(`/canvas-editor/custom?id=${result.templateId}`)
+        } else {
+          toast.error(result.error || '저장에 실패했습니다.')
+        }
         return
       }
 
