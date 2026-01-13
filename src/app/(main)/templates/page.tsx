@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import {
   Search,
@@ -16,6 +16,9 @@ import {
   Pencil,
   Users,
   ScrollText,
+  Trash2,
+  FileImage,
+  Edit3,
 } from 'lucide-react'
 import { Button, Tag } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
@@ -27,6 +30,11 @@ import {
   type LicenseType,
   type Resource,
 } from '@/types/resources'
+import {
+  getCustomTemplates,
+  deleteCustomTemplate,
+  type CustomTemplate,
+} from '@/lib/utils/customTemplateStorage'
 
 // 카테고리 아이콘 매핑
 const categoryIcons: Record<ResourceCategory, typeof Image> = {
@@ -288,6 +296,23 @@ export default function ResourceHubPage() {
   const [sortBy, setSortBy] = useState<'popular' | 'recent' | 'downloads' | 'likes'>('popular')
   const [showAdvanced, setShowAdvanced] = useState(false)
 
+  // 커스텀 템플릿 상태
+  const [customTemplates, setCustomTemplates] = useState<CustomTemplate[]>([])
+
+  // 커스텀 템플릿 로드
+  useEffect(() => {
+    const templates = getCustomTemplates()
+    setCustomTemplates(templates)
+  }, [])
+
+  // 커스텀 템플릿 삭제
+  const handleDeleteCustomTemplate = (id: string) => {
+    if (window.confirm('정말 삭제하시겠습니까?')) {
+      deleteCustomTemplate(id)
+      setCustomTemplates(getCustomTemplates())
+    }
+  }
+
   // 현재 카테고리에 맞는 태그 목록
   const availableTags = useMemo(() => {
     if (selectedCategory === 'all') {
@@ -362,6 +387,100 @@ export default function ResourceHubPage() {
 
   return (
     <div className="animate-fade-in">
+      {/* 내 커스텀 템플릿 섹션 */}
+      {customTemplates.length > 0 && (
+        <section className="py-6 px-4 bg-gradient-to-b from-accent-50 to-white border-b border-accent-100">
+          <div className="max-w-[1200px] mx-auto">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <FileImage className="w-5 h-5 text-accent-500" />
+                <h2 className="text-lg font-bold text-gray-900">
+                  내 커스텀 템플릿
+                </h2>
+                <span className="px-2 py-0.5 bg-accent-100 text-accent-600 text-xs font-medium rounded-full">
+                  {customTemplates.length}개
+                </span>
+              </div>
+              <Link
+                href="/templates/new"
+                className="text-sm text-accent-600 hover:text-accent-700 font-medium"
+              >
+                + 새로 만들기
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {customTemplates.map((template) => (
+                <div
+                  key={template.id}
+                  className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow group"
+                >
+                  {/* 썸네일 */}
+                  <div className="aspect-video bg-gray-100 relative overflow-hidden">
+                    {template.compositeImage ? (
+                      <img
+                        src={template.compositeImage}
+                        alt={template.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary-100 to-accent-100">
+                        <span className="text-4xl">{template.emoji}</span>
+                      </div>
+                    )}
+                    {/* 호버 오버레이 */}
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                      <Link
+                        href={`/canvas-editor/custom?id=${template.id}`}
+                        className="p-2 bg-white rounded-lg text-gray-700 hover:bg-primary-100"
+                        title="에디터에서 열기"
+                      >
+                        <Edit3 className="w-5 h-5" />
+                      </Link>
+                      <button
+                        onClick={() => handleDeleteCustomTemplate(template.id)}
+                        className="p-2 bg-white rounded-lg text-gray-700 hover:bg-red-100 hover:text-red-600"
+                        title="삭제"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 정보 */}
+                  <div className="p-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-lg">{template.emoji}</span>
+                      <h3 className="font-semibold text-gray-900 truncate flex-1">
+                        {template.title}
+                      </h3>
+                    </div>
+                    <p className="text-xs text-gray-500 mb-2 line-clamp-1">
+                      {template.description || '설명 없음'}
+                    </p>
+                    <div className="flex items-center justify-between">
+                      <div className="flex gap-1">
+                        {template.tags.slice(0, 2).map((tag) => (
+                          <span
+                            key={tag}
+                            className="px-2 py-0.5 bg-gray-100 text-gray-600 text-[10px] rounded-full"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                      <span className="text-[10px] text-gray-400">
+                        {template.canvasSize.width}×{template.canvasSize.height}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Hero - 자료 허브 */}
       <section className="py-8 sm:py-12 px-4 bg-gradient-to-b from-primary-100 to-white">
         <div className="max-w-[1200px] mx-auto">
