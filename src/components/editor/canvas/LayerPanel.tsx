@@ -284,6 +284,17 @@ export function LayerPanel({ className }: LayerPanelProps) {
     }))
   }, [])
 
+  // 선택 핸들러 (hooks는 early return 전에 호출해야 함)
+  const handleSelect = useCallback((id: string, type: LayerType) => {
+    if (type === 'slot') {
+      selectSlot(id)
+    } else if (type === 'text') {
+      selectText(id)
+    } else if (type === 'sticker') {
+      selectSticker(id)
+    }
+  }, [selectSlot, selectText, selectSticker])
+
   if (!templateConfig) return null
 
   // 레이어 데이터 구성
@@ -326,17 +337,6 @@ export function LayerPanel({ className }: LayerPanelProps) {
   const getSelectedId = (): string | null => {
     return selectedSlotId || selectedTextId || selectedStickerId || null
   }
-
-  // 선택 핸들러
-  const handleSelect = useCallback((id: string, type: LayerType) => {
-    if (type === 'slot') {
-      selectSlot(id)
-    } else if (type === 'text') {
-      selectText(id)
-    } else if (type === 'sticker') {
-      selectSticker(id)
-    }
-  }, [selectSlot, selectText, selectSticker])
 
   return (
     <div className={cn('bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden', className)}>

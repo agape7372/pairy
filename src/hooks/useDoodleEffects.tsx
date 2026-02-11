@@ -48,6 +48,7 @@ export function useCursorTrail(options: CursorTrailOptions = {}) {
 
   useEffect(() => {
     if (!shouldRun) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsActive(false)
       // 변경 이유: ref 배열 정리하여 메모리 누수 방지
       dotsRef.current = []

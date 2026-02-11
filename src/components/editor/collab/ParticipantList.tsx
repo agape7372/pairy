@@ -123,6 +123,7 @@ export function ParticipantList({
                   userName={participant.userId.slice(0, 8)}
                   color={getUserColor(participantId)}
                   zone={participant.zone}
+                  // eslint-disable-next-line react-hooks/purity
                   isActive={Date.now() - participant.lastActivity < 5000}
                   isHost={false}
                 />

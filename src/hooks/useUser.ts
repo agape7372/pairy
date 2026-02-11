@@ -79,6 +79,7 @@ export function useUser(): UseUserReturn {
     // 데모 모드 체크
     if (!isSupabaseConfigured()) {
       console.log('[useUser] Demo mode - skipping auth')
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- 데모 모드 초기화: 비동기 작업 없이 즉시 완료
       setIsLoading(false)
       return
     }

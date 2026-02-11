@@ -252,7 +252,7 @@ export const useGamificationStore = create<GamificationState>()(
       currentStreak: 0,
       longestStreak: 0,
 
-      addXP: (amount, _activity) => {
+      addXP: (amount) => {
         const currentXP = get().xp
         const newXP = currentXP + amount
         const { level, name } = calculateLevel(newXP)

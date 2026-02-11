@@ -160,12 +160,23 @@ export function OnboardingTour({
   useEffect(() => {
     if (!isOpen) return
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     updatePosition()
 
     // 리사이즈 시 위치 재계산
     window.addEventListener('resize', updatePosition)
     return () => window.removeEventListener('resize', updatePosition)
   }, [isOpen, currentStep, updatePosition])
+
+  const handleComplete = () => {
+    markTourCompleted()
+    onComplete()
+  }
+
+  const handleSkip = () => {
+    markTourCompleted()
+    onClose()
+  }
 
   // 키보드 네비게이션
   useEffect(() => {
@@ -187,17 +198,7 @@ export function OnboardingTour({
 
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen, isFirstStep, isLastStep, onClose])
-
-  const handleComplete = () => {
-    markTourCompleted()
-    onComplete()
-  }
-
-  const handleSkip = () => {
-    markTourCompleted()
-    onClose()
-  }
+  }, [isOpen, isFirstStep, isLastStep, onClose, handleComplete])
 
   if (!isOpen || !step) return null
 
@@ -349,6 +350,7 @@ export function useOnboarding() {
       }, 1000)
       return () => clearTimeout(timer)
     }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setHasChecked(true)
   }, [])
 

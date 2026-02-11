@@ -152,6 +152,7 @@ export function Confetti({
   // 애니메이션 루프
   useEffect(() => {
     if (!isActive || prefersReducedMotion) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setParticles([])
       return
     }
@@ -198,6 +199,7 @@ export function Confetti({
 
   // 클라이언트 마운트 감지
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsMounted(true)
   }, [])
 

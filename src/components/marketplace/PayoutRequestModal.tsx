@@ -53,6 +53,7 @@ export function PayoutRequestModal({
   // availableAmount prop이 변경되면 amount state 동기화
   useEffect(() => {
     if (isOpen && step === 'form') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setAmount(availableAmount)
     }
   }, [availableAmount, isOpen, step])

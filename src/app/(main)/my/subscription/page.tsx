@@ -1,15 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import Link from 'next/link'
 import {
   Crown,
   Sparkles,
   Zap,
   Check,
-  Calendar,
-  CreditCard,
-  ArrowRight,
   AlertCircle,
   Gift,
   Heart,
@@ -18,7 +14,6 @@ import { Button } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
 import {
   useSubscriptionStore,
-  PRICING,
   TIER_LIMITS,
   type SubscriptionTier,
 } from '@/stores/subscriptionStore'

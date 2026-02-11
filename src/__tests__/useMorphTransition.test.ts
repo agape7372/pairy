@@ -331,7 +331,7 @@ describe('useLayoutMorph', () => {
       saveRect({ x: 100, y: 200, width: 300, height: 400 })
 
       expect(firstRect).not.toBeNull()
-      expect(firstRect?.x).toBe(100)
+      expect(firstRect!.x).toBe(100)
     })
 
     it('변화가 없을 때 애니메이션을 스킵해야 함', () => {

@@ -14,9 +14,6 @@ import {
   Search,
   Plus,
   Users,
-  Trash2,
-  Edit2,
-  Share2,
   Sparkles,
   HardDrive,
   CheckCircle,
@@ -118,14 +115,14 @@ function formatRelativeTime(dateStr: string): string {
 }
 
 export default function MyLibraryPage() {
-  const { subscription, usage } = useSubscriptionStore()
+  const { subscription } = useSubscriptionStore()
   const limits = TIER_LIMITS[subscription.tier]
   const toast = useToast()
 
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [activeTab, setActiveTab] = useState<'folders' | 'downloads' | 'favorites'>('folders')
   const [searchQuery, setSearchQuery] = useState('')
-  const [showNewFolderModal, setShowNewFolderModal] = useState(false)
+  const [, setShowNewFolderModal] = useState(false)
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null)
 
   // 스토리지 사용량 계산 (데모)

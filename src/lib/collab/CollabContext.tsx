@@ -25,7 +25,6 @@ import { isSupabaseConfigured } from '@/lib/supabase/client'
 import type {
   SyncState,
   CollabUser,
-  CollabState,
   UserEditingState,
   EditConflict,
   EditingZone,
@@ -86,7 +85,7 @@ export function CollabProvider({
 
   // 상태
   const [isConnected, setIsConnected] = useState(false)
-  const [isSyncing, setIsSyncing] = useState(false)
+  const [isSyncing] = useState(false)
   const [localUser, setLocalUser] = useState<CollabUser | null>(initialUser || null)
   const [remoteUsers, setRemoteUsers] = useState<Map<string, UserEditingState>>(new Map())
   const [myZone, setMyZone] = useState<EditingZone>(null)

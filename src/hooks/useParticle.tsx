@@ -152,30 +152,6 @@ function randomFromArray<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)]
 }
 
-/** 방향에 따른 각도 계산 */
-function getAngleForDirection(
-  direction: ParticleDirection,
-  index: number,
-  total: number
-): number {
-  switch (direction) {
-    case 'up':
-      return -90 + randomInRange(-30, 30)
-    case 'down':
-      return 90 + randomInRange(-30, 30)
-    case 'left':
-      return 180 + randomInRange(-30, 30)
-    case 'right':
-      return randomInRange(-30, 30)
-    case 'radial':
-      return (360 / total) * index + randomInRange(-15, 15)
-    case 'fountain':
-      return -90 + randomInRange(-45, 45)
-    default:
-      return randomInRange(0, 360)
-  }
-}
-
 /** 모션 감소 설정 확인 */
 function prefersReducedMotion(): boolean {
   if (typeof window === 'undefined') return false
@@ -249,12 +225,6 @@ export function useParticle(options: ParticleOptions = {}): UseParticleReturn {
       const particleColors = opts.colors || colors
 
       return Array.from({ length: particleCount }, (_, index) => {
-        const angle = getAngleForDirection(
-          opts.direction || direction,
-          index,
-          particleCount
-        )
-        const radians = (angle * Math.PI) / 180
         const distance = randomInRange(
           opts.distanceRange?.[0] || distanceRange[0],
           opts.distanceRange?.[1] || distanceRange[1]
@@ -514,7 +484,8 @@ function ParticleElement({ particle }: { particle: Particle }): React.ReactEleme
     distance,
   } = particle
 
-  // 방향에 따른 이동 좌표 계산
+  // 방향에 따른 이동 좌표 계산 (파티클은 의도적으로 랜덤 — 순수성 예외)
+  /* eslint-disable react-hooks/purity -- 파티클 애니메이션은 의도적으로 랜덤 값 사용 */
   const angle = useMemo(() => {
     switch (direction) {
       case 'up':
@@ -531,6 +502,9 @@ function ParticleElement({ particle }: { particle: Particle }): React.ReactEleme
         return Math.random() * 360
     }
   }, [direction])
+
+  const extraRotation = useMemo(() => Math.random() * 360, [])
+  /* eslint-enable react-hooks/purity */
 
   const radians = (angle * Math.PI) / 180
   const endX = Math.cos(radians) * distance
@@ -550,7 +524,7 @@ function ParticleElement({ particle }: { particle: Particle }): React.ReactEleme
     // CSS 변수로 이동 좌표 전달
     '--particle-x': `${endX}px`,
     '--particle-y': `${endY}px`,
-    '--particle-rotate': `${rotation + (Math.random() * 360)}deg`,
+    '--particle-rotate': `${rotation + extraRotation}deg`,
   } as React.CSSProperties
 
   // 타입별 렌더링

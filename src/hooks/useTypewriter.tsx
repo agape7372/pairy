@@ -331,6 +331,7 @@ export function useTypewriter(
   useEffect(() => {
     if (!startOnView || !ref.current) {
       if (autoStart && !hasStartedRef.current) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- 자동 시작: IntersectionObserver 불필요 시 즉시 실행
         start()
       }
       return
@@ -545,7 +546,7 @@ export function useHighlightTypewriter(
 
       return <span key={index}>{part}</span>
     })
-  }, [typewriterReturn.displayText, highlightWords, highlightClass])
+  }, [typewriterReturn, highlightWords, highlightClass])
 
   return {
     ...typewriterReturn,

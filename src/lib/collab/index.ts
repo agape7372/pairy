@@ -4,6 +4,7 @@
 
 export { CollabProvider, useCollab, useCollabOptional } from './CollabContext'
 export { SupabaseYjsProvider } from './yjsProvider'
+export { BroadcastChannelProvider } from './broadcastProvider'
 export type {
   SyncState,
   CollabUser,

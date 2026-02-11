@@ -107,6 +107,7 @@ export function DoodleStars({
   // 변경 이유: colors를 JSON.stringify로 비교하여 내용이 같으면 재계산 방지
   const colorsKey = JSON.stringify(colors)
 
+  /* eslint-disable react-hooks/purity */
   const stars = useMemo(() => {
     const starTypes: StarType[] = ['four', 'six', 'doodle', 'dot']
     const colorArray = JSON.parse(colorsKey) as string[]
@@ -123,6 +124,7 @@ export function DoodleStars({
       glow: Math.random() < glowRatio,
     }))
   }, [count, colorsKey, minSize, maxSize, glowRatio])
+  /* eslint-enable react-hooks/purity */
 
   return (
     <div className={cn('doodle-stars', className)}>
@@ -181,6 +183,7 @@ export function Sparkles({
   // 변경 이유: colors를 JSON.stringify로 비교
   const colorsKey = JSON.stringify(colors)
 
+  /* eslint-disable react-hooks/purity */
   const stars = useMemo(() => {
     const starTypes: StarType[] = ['four', 'six', 'doodle']
     const colorArray = JSON.parse(colorsKey) as string[]
@@ -197,10 +200,12 @@ export function Sparkles({
       glow: Math.random() < 0.3,
     }))
   }, [count, colorsKey, minSize, maxSize])
+  /* eslint-enable react-hooks/purity */
 
   return (
     <div className={cn('relative', className)}>
       {/* 반짝이 레이어 */}
+      {/* eslint-disable react-hooks/purity */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {stars.map((star) => {
           const StarComponent = STAR_TYPES[star.type]
@@ -233,6 +238,7 @@ export function Sparkles({
           )
         })}
       </div>
+      {/* eslint-enable react-hooks/purity */}
       {/* 컨텐츠 */}
       {children}
     </div>
@@ -257,6 +263,7 @@ export function Glitter({
   color = '#FFD9D9',
   className,
 }: GlitterProps) {
+  /* eslint-disable react-hooks/purity */
   const particles = useMemo(() => {
     return Array.from({ length: count }, (_, i) => ({
       id: `glitter-${i}`,
@@ -267,9 +274,11 @@ export function Glitter({
       duration: Math.random() * 2 + 0.5,
     }))
   }, [count])
+  /* eslint-enable react-hooks/purity */
 
   return (
     <div className={cn('absolute inset-0 overflow-hidden pointer-events-none', className)}>
+      {/* eslint-disable react-hooks/purity */}
       {particles.map((particle) => (
         <motion.div
           key={particle.id}
@@ -295,6 +304,7 @@ export function Glitter({
           }}
         />
       ))}
+      {/* eslint-enable react-hooks/purity */}
     </div>
   )
 }
@@ -371,6 +381,7 @@ export function HoverSparkles({
 
   useEffect(() => {
     if (!active) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSparkles([])
       return
     }

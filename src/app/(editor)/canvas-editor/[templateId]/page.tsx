@@ -1,7 +1,7 @@
 import { Suspense } from 'react'
 import { Loader2 } from 'lucide-react'
-import { CanvasEditor } from '@/components/editor/canvas'
 import { EditorErrorBoundary } from '@/components/editor'
+import CanvasEditorClient from './CanvasEditorClient'
 
 // Static export를 위한 미리 정의된 템플릿 ID
 export function generateStaticParams() {
@@ -30,7 +30,7 @@ export default async function CanvasEditorPage({ params }: PageProps) {
   return (
     <EditorErrorBoundary>
       <Suspense fallback={<EditorLoading />}>
-        <CanvasEditor templateId={templateId} />
+        <CanvasEditorClient templateId={templateId} />
       </Suspense>
     </EditorErrorBoundary>
   )

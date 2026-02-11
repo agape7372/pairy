@@ -71,7 +71,7 @@ export function useUserActivity(
   } = options
 
   const [status, setStatus] = useState<ActivityStatus>('active')
-  const [lastActivity, setLastActivity] = useState(Date.now())
+  const [lastActivity, setLastActivity] = useState(() => Date.now())
   const [idleTime, setIdleTime] = useState(0)
   const [isPageVisible, setIsPageVisible] = useState(true)
 
@@ -152,6 +152,7 @@ export function useUserActivity(
     })
 
     // 초기 활성 상태
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 이벤트 리스너 등록 직후 초기 활성 타이머 시작
     setActive()
 
     return () => {

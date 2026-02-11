@@ -17,7 +17,6 @@ import {
   PanelRight,
   Keyboard,
   Image as ImageIcon,
-  AlertCircle,
   Users,
 } from 'lucide-react'
 import { Button, useToast } from '@/components/ui'
@@ -26,7 +25,6 @@ import { useCanvasEditorStore } from '@/stores/canvasEditorStore'
 import EditorSidebar from './EditorSidebar'
 import KeyboardShortcutsModal from './KeyboardShortcutsModal'
 import { CollabOverlay } from './CollabOverlay'
-import { ZoneSelector } from './ZoneSelector'
 import { OnboardingTour, useOnboarding, DEFAULT_TOUR_STEPS } from './OnboardingTour'
 import { ContextMenu, useContextMenu, createContextMenuItems } from './ContextMenu'
 // 협업 확장 컴포넌트
@@ -35,6 +33,7 @@ import {
   ConnectionIndicator,
   ConnectionBanner,
   InviteShareModal,
+  ZoneSelector,
 } from '@/components/editor/collab'
 import { useCollabSession } from '@/hooks/useCollabSession'
 import { CollabProvider, useCollabOptional } from '@/lib/collab'
@@ -237,7 +236,7 @@ function CanvasEditorContent({
   const toast = useToast()
 
   // Sprint 34: 접근성 훅
-  const reducedMotion = useReducedMotion()
+  useReducedMotion()
   const announce = useAnnounce()
 
   // Local state
@@ -299,7 +298,7 @@ function CanvasEditorContent({
     return sanitizeFilenameUtil(filename)
   }, [])
 
-  // 슬롯 클릭 핸들러 (모바일에서 사이드바 자동 열기)
+  // 슬롯 클릭 핸들러 (모바일에서 사이드바 자동 열기 + 선택 공유)
   const handleSlotClick = useCallback((slotId: string | null) => {
     selectSlot(slotId)
     // 협업 상태 업데이트
@@ -310,7 +309,7 @@ function CanvasEditorContent({
     }
   }, [selectSlot, collab])
 
-  // 텍스트 클릭 핸들러 (모바일에서 사이드바 자동 열기)
+  // 텍스트 클릭 핸들러 (모바일에서 사이드바 자동 열기 + 선택 공유)
   const handleTextClick = useCallback((textId: string | null) => {
     selectText(textId)
     // 협업 상태 업데이트
@@ -850,6 +849,7 @@ function CanvasEditorContent({
     }
   }, [setZoom])
 
+
   // 이미지 내보내기 (포맷 및 스케일 지원)
   const handleExport = useCallback(async () => {
     const renderer = rendererRef.current
@@ -1189,6 +1189,7 @@ function CanvasEditorContent({
           <div
             className="min-h-full flex items-center justify-center p-4 md:p-8"
             data-tour="canvas-area"
+
             onContextMenu={(e) => {
               // 캔버스 빈 영역 우클릭
               if (e.target === e.currentTarget) {
@@ -1497,12 +1498,18 @@ function CanvasEditorContent({
         </div>
       )}
 
+      {/* 협업 확장: 영역 선택 */}
+      {sessionId && collab?.isConnected && (
+        <div className="fixed top-20 right-4 z-30">
+          <ZoneSelector />
+        </div>
+      )}
+
       {/* 협업 확장: 연결 끊김 배너 */}
       <ConnectionBanner
         sessionId={sessionId || null}
         isConnected={collab?.isConnected ?? false}
         onReconnect={() => {
-          // TODO: 재연결 로직
           if (sessionId && collab?.localUser) {
             collab.connect(sessionId, collab.localUser)
           }

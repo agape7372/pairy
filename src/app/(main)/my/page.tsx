@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import { Edit3, Check, X, Camera } from 'lucide-react'
+import { Edit3, Check, X } from 'lucide-react'
 import { Button, ImageUpload } from '@/components/ui'
 import { useUser } from '@/hooks/useUser'
 import { createClient } from '@/lib/supabase/client'

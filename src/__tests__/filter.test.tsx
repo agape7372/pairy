@@ -24,9 +24,9 @@ import {
 
 // 테스트 데이터
 const mockOptions: FilterOption[] = [
-  { value: 'option1', label: '옵션 1' },
-  { value: 'option2', label: '옵션 2' },
-  { value: 'option3', label: '옵션 3', count: 5 },
+  { id: 'option1', value: 'option1', label: '옵션 1' },
+  { id: 'option2', value: 'option2', label: '옵션 2' },
+  { id: 'option3', value: 'option3', label: '옵션 3', count: 5 },
 ]
 
 const mockFilterGroups: FilterGroup[] = [
@@ -34,25 +34,25 @@ const mockFilterGroups: FilterGroup[] = [
     id: 'category',
     label: '카테고리',
     options: [
-      { value: 'pair', label: '페어틀' },
-      { value: 'single', label: '솔로틀' },
+      { id: 'pair', value: 'pair', label: '페어틀' },
+      { id: 'single', value: 'single', label: '솔로틀' },
     ],
   },
   {
     id: 'price',
     label: '가격',
     options: [
-      { value: 'free', label: '무료' },
-      { value: 'paid', label: '유료' },
+      { id: 'free', value: 'free', label: '무료' },
+      { id: 'paid', value: 'paid', label: '유료' },
     ],
   },
 ]
 
 const mockSortOptions: SortOption[] = [
-  { value: 'latest', label: '최신순' },
-  { value: 'popular', label: '인기순' },
-  { value: 'price_asc', label: '가격 낮은순' },
-  { value: 'price_desc', label: '가격 높은순' },
+  { id: 'latest', value: 'latest', label: '최신순' },
+  { id: 'popular', value: 'popular', label: '인기순' },
+  { id: 'price_asc', value: 'price_asc', label: '가격 낮은순' },
+  { id: 'price_desc', value: 'price_desc', label: '가격 높은순' },
 ]
 
 // ============================================
@@ -476,10 +476,10 @@ describe('엣지 케이스', () => {
 
   it('특수 문자가 포함된 value도 처리된다', async () => {
     const handleChange = jest.fn()
-    const specialOptions = [
-      { value: 'option-with-dash', label: '대시 옵션' },
-      { value: 'option_with_underscore', label: '언더스코어 옵션' },
-      { value: 'option.with.dot', label: '점 옵션' },
+    const specialOptions: FilterOption[] = [
+      { id: 'option-with-dash', value: 'option-with-dash', label: '대시 옵션' },
+      { id: 'option_with_underscore', value: 'option_with_underscore', label: '언더스코어 옵션' },
+      { id: 'option.with.dot', value: 'option.with.dot', label: '점 옵션' },
     ]
 
     render(
@@ -498,9 +498,9 @@ describe('엣지 케이스', () => {
   })
 
   it('중복된 value가 있어도 처리된다', () => {
-    const duplicateOptions = [
-      { value: 'same', label: '옵션 1' },
-      { value: 'same', label: '옵션 2' },
+    const duplicateOptions: FilterOption[] = [
+      { id: 'same-1', value: 'same', label: '옵션 1' },
+      { id: 'same-2', value: 'same', label: '옵션 2' },
     ]
 
     render(
@@ -577,7 +577,8 @@ describe('접근성', () => {
 
 describe('성능', () => {
   it('많은 옵션도 렌더링된다', async () => {
-    const manyOptions = Array.from({ length: 100 }, (_, i) => ({
+    const manyOptions: FilterOption[] = Array.from({ length: 100 }, (_, i) => ({
+      id: `option${i}`,
       value: `option${i}`,
       label: `옵션 ${i}`,
     }))
@@ -598,12 +599,12 @@ describe('성능', () => {
   })
 
   it('많은 그룹도 렌더링된다', () => {
-    const manyGroups = Array.from({ length: 20 }, (_, i) => ({
+    const manyGroups: FilterGroup[] = Array.from({ length: 20 }, (_, i) => ({
       id: `group${i}`,
       label: `그룹 ${i}`,
       options: [
-        { value: 'a', label: 'A' },
-        { value: 'b', label: 'B' },
+        { id: `${i}-a`, value: 'a', label: 'A' },
+        { id: `${i}-b`, value: 'b', label: 'B' },
       ],
     }))
 

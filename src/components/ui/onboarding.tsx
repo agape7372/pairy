@@ -210,6 +210,7 @@ export function Onboarding({
 
   // 클라이언트 마운트
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsMounted(true)
   }, [])
 
@@ -432,6 +433,7 @@ export function useOnboarding(key: string = 'pairy-onboarding-completed') {
   useEffect(() => {
     // 로컬스토리지에서 완료 여부 확인
     const completed = localStorage.getItem(key)
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setHasCompleted(!!completed)
 
     // 완료하지 않았으면 자동으로 열기

@@ -7,6 +7,7 @@
 import * as Y from 'yjs'
 import { Awareness } from 'y-protocols/awareness'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
+import { BroadcastChannelProvider } from './broadcastProvider'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import type { SyncState, UserEditingState, CollabUser, EditingZone } from './types'
 
@@ -23,9 +24,10 @@ export class SupabaseYjsProvider {
   awareness: Awareness
 
   private channel: RealtimeChannel | null = null
+  private broadcastProvider: BroadcastChannelProvider | null = null
   private sessionId: string
   private user: CollabUser
-  private isConnected = false
+  isConnected = false
   private isSyncing = false
 
   // 콜백
@@ -64,10 +66,11 @@ export class SupabaseYjsProvider {
     this.setupObservers()
   }
 
-  /** Supabase Realtime 채널 연결 */
+  /** Supabase Realtime 또는 BroadcastChannel 연결 */
   async connect(): Promise<void> {
     if (!isSupabaseConfigured()) {
-      console.warn('[YjsProvider] Supabase not configured, running in offline mode')
+      // Demo 모드: BroadcastChannel 사용
+      this.connectViaBroadcastChannel()
       return
     }
 
@@ -146,6 +149,29 @@ export class SupabaseYjsProvider {
     }
   }
 
+  /** BroadcastChannel 모드 연결 (Demo/로컬) */
+  private connectViaBroadcastChannel(): void {
+    this.broadcastProvider = new BroadcastChannelProvider(this.sessionId, this.user)
+
+    // Yjs 업데이트 수신
+    this.broadcastProvider.on('yjs-update', (payload) => {
+      this.handleRemoteUpdate(payload as { update: number[]; userId: string })
+    })
+
+    // Awareness 업데이트 수신
+    this.broadcastProvider.on('awareness-update', (payload) => {
+      this.handleAwarenessUpdate(payload as { userId: string; state: Partial<UserEditingState> })
+    })
+
+    // Presence 변경 감지
+    this.broadcastProvider.on('presence-sync', () => {
+      this.syncRemoteUsersFromBroadcast()
+    })
+
+    this.broadcastProvider.connect()
+    this.isConnected = true
+  }
+
   /** 연결 해제 (안전한 정리) */
   disconnect(): void {
     try {
@@ -174,6 +200,10 @@ export class SupabaseYjsProvider {
       }
     } catch (error) {
       console.error('[YjsProvider] Error during disconnect:', error)
+    }
+    if (this.broadcastProvider) {
+      this.broadcastProvider.disconnect()
+      this.broadcastProvider = null
     }
   }
 
@@ -215,25 +245,34 @@ export class SupabaseYjsProvider {
 
   /** 로컬 변경사항 브로드캐스트 */
   broadcastUpdate(update: Uint8Array): void {
-    if (!this.channel || !this.isConnected) return
+    if (!this.isConnected) return
 
-    this.channel.send({
-      type: 'broadcast',
-      event: 'yjs-update',
-      payload: {
-        update: Array.from(update),
-        userId: this.user.id,
-        timestamp: Date.now(),
-      },
-    })
+    const payload = {
+      update: Array.from(update),
+      userId: this.user.id,
+      timestamp: Date.now(),
+    }
+
+    if (this.broadcastProvider) {
+      this.broadcastProvider.broadcastYjsUpdate(payload.update, payload.userId)
+    } else if (this.channel) {
+      this.channel.send({
+        type: 'broadcast',
+        event: 'yjs-update',
+        payload,
+      })
+    }
   }
 
   /** Awareness 상태 업데이트 */
   updateAwareness(state: Partial<UserEditingState>): void {
     this.awareness.setLocalStateField('editing', state)
 
-    // 브로드캐스트
-    if (this.channel && this.isConnected) {
+    if (!this.isConnected) return
+
+    if (this.broadcastProvider) {
+      this.broadcastProvider.broadcastAwareness(this.user.id, state)
+    } else if (this.channel) {
       this.channel.send({
         type: 'broadcast',
         event: 'awareness-update',
@@ -351,6 +390,29 @@ export class SupabaseYjsProvider {
       if (p.user_id && p.user_id !== this.user.id) {
         users.set(p.user_id, {
           userId: p.user_id,
+          zone: null,
+          selectedSlotId: null,
+          selectedTextId: null,
+          cursor: null,
+          lastActivity: Date.now(),
+        })
+      }
+    })
+
+    this.onRemoteUserChange?.(users)
+  }
+
+  /** BroadcastChannel Presence에서 원격 사용자 동기화 */
+  private syncRemoteUsersFromBroadcast(): void {
+    if (!this.broadcastProvider) return
+
+    const presenceState = this.broadcastProvider.getPresenceState()
+    const users = new Map<string, UserEditingState>()
+
+    presenceState.forEach((entry, userId) => {
+      if (userId !== this.user.id) {
+        users.set(userId, {
+          userId,
           zone: null,
           selectedSlotId: null,
           selectedTextId: null,

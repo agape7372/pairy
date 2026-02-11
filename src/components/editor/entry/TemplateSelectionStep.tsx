@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Package, BookHeart, Globe, Sparkles, Plus, Loader2, AlertCircle, RefreshCw } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
@@ -328,6 +329,7 @@ interface EmptyStateProps {
   tabId: TemplateSource
 }
 
+/* eslint-disable react-hooks/purity, react-hooks/static-components */
 function EmptyState({ message, tabId }: EmptyStateProps) {
   const getIcon = () => {
     switch (tabId) {
@@ -355,15 +357,16 @@ function EmptyState({ message, tabId }: EmptyStateProps) {
 
       {tabId === 'my-library' && (
         <Button variant="secondary" asChild>
-          <a href="/templates">자료 허브에서 템플릿 찾기</a>
+          <Link href="/templates">자료 허브에서 템플릿 찾기</Link>
         </Button>
       )}
 
       {tabId === 'hub' && (
         <Button variant="secondary" asChild>
-          <a href="/templates">자료 허브 둘러보기</a>
+          <Link href="/templates">자료 허브 둘러보기</Link>
         </Button>
       )}
     </motion.div>
   )
 }
+/* eslint-enable react-hooks/purity, react-hooks/static-components */

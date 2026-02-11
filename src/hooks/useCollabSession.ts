@@ -108,6 +108,7 @@ interface UseCollabSessionReturn {
 const SESSION_STORAGE_KEY = 'pairy-collab-session'
 const SESSION_EXPIRY_MS = 24 * 60 * 60 * 1000 // 24시간
 const INVITE_CODE_LENGTH = 6
+const SESSION_SYNC_CHANNEL = 'pairy-session-sync'
 
 // 사용자 색상 팔레트
 const USER_COLORS = [
@@ -149,7 +150,7 @@ export function useCollabSession(
   const [error, setError] = useState<string | null>(null)
   const [localUserId, setLocalUserId] = useState<string | null>(null)
 
-  // 세션 저장 (localStorage)
+  // 세션 저장 (localStorage + BroadcastChannel 알림)
   const saveSession = useCallback((sess: CollabSession | null) => {
     if (typeof window === 'undefined') return
 
@@ -158,6 +159,13 @@ export function useCollabSession(
     } else {
       localStorage.removeItem(SESSION_STORAGE_KEY)
     }
+
+    // 다른 탭에 세션 변경 알림
+    try {
+      const ch = new BroadcastChannel(SESSION_SYNC_CHANNEL)
+      ch.postMessage({ type: 'session-updated', session: sess })
+      ch.close()
+    } catch { /* BroadcastChannel not supported */ }
   }, [])
 
   // 세션 복원
@@ -177,6 +185,63 @@ export function useCollabSession(
       } catch {
         localStorage.removeItem(SESSION_STORAGE_KEY)
       }
+    }
+  }, [])
+
+  // 탭 간 세션 동기화 (storage 이벤트 + BroadcastChannel)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    // storage 이벤트: 다른 탭에서 localStorage 변경 시
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key !== SESSION_STORAGE_KEY) return
+
+      if (e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue) as Partial<CollabSession>
+          if (parsed.expiresAt && parsed.expiresAt > Date.now()) {
+            setSession(ensureCompatibility(parsed))
+          }
+        } catch { /* ignore */ }
+      } else {
+        // 세션이 삭제됨
+        setSession(null)
+        setLocalUserId(null)
+      }
+    }
+
+    // BroadcastChannel: 세션 존재 확인 요청/응답
+    let syncChannel: BroadcastChannel | null = null
+    try {
+      syncChannel = new BroadcastChannel(SESSION_SYNC_CHANNEL)
+      syncChannel.onmessage = (event: MessageEvent) => {
+        const msg = event.data as { type: string; session?: CollabSession }
+        if (msg.type === 'session-query') {
+          // 다른 탭이 세션을 물어봄 → 현재 세션 응답
+          const currentStored = localStorage.getItem(SESSION_STORAGE_KEY)
+          if (currentStored) {
+            syncChannel?.postMessage({
+              type: 'session-response',
+              session: JSON.parse(currentStored),
+            })
+          }
+        } else if (msg.type === 'session-response' && msg.session) {
+          // 응답을 받았다면 세션 설정
+          const sess = ensureCompatibility(msg.session)
+          if (sess.expiresAt > Date.now()) {
+            setSession(sess)
+          }
+        } else if (msg.type === 'session-updated' && msg.session) {
+          const sess = ensureCompatibility(msg.session)
+          setSession(sess)
+        }
+      }
+    } catch { /* BroadcastChannel not supported */ }
+
+    window.addEventListener('storage', handleStorageChange)
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+      syncChannel?.close()
     }
   }, [])
 

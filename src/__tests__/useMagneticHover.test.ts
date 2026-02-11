@@ -33,8 +33,7 @@ beforeEach(() => {
   })
 
   // window.ontouchstart 제거
-  // @ts-expect-error - ontouchstart may not exist on window in test environment
-  delete global.window.ontouchstart
+  delete (global.window as unknown as Record<string, unknown>).ontouchstart
 })
 
 afterEach(() => {

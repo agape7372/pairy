@@ -28,7 +28,6 @@ export function ExportDialog({
   onClose,
   canvasRef,
   title,
-  isPremium = false,
   creatorName,
   templateTitle,
 }: ExportDialogProps) {
@@ -61,7 +60,7 @@ export function ExportDialog({
   }
 
   // 트위터 공유 URL 생성
-  const getTwitterShareUrl = (imageUrl?: string) => {
+  const getTwitterShareUrl = () => {
     const text = creatorName
       ? `${templateTitle || '페어리'}로 만든 나의 작품! ✨\n\n틀 by @${creatorName}\n#페어리 #Pairy`
       : `페어리로 만든 나의 작품! ✨\n\n#페어리 #Pairy`

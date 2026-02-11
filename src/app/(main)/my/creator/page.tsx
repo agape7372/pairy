@@ -22,7 +22,7 @@ import {
   PayoutRequestModal,
 } from '@/components/marketplace'
 import { cn } from '@/lib/utils/cn'
-import { useSubscriptionStore, TIER_LIMITS } from '@/stores/subscriptionStore'
+import { useSubscriptionStore } from '@/stores/subscriptionStore'
 import { useCreatorEarnings, formatCurrency } from '@/hooks/useCreatorEarnings'
 
 // 내 틀 목록 (목업)

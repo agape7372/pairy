@@ -125,6 +125,7 @@ interface ActivityItemRowProps {
   index: number
 }
 
+/* eslint-disable react-hooks/purity, react-hooks/static-components */
 function ActivityItemRow({ activity, index }: ActivityItemRowProps) {
   const Icon = getActivityIcon(activity.type)
   const colorClasses = getActivityColor(activity.type)
@@ -164,6 +165,7 @@ function ActivityItemRow({ activity, index }: ActivityItemRowProps) {
     </motion.div>
   )
 }
+/* eslint-enable react-hooks/purity, react-hooks/static-components */
 
 // ============================================
 // 빈 상태
@@ -192,6 +194,7 @@ interface CompactActivityToastProps {
   onDismiss?: () => void
 }
 
+/* eslint-disable react-hooks/purity, react-hooks/static-components */
 export function CompactActivityToast({ activity, onDismiss }: CompactActivityToastProps) {
   const Icon = getActivityIcon(activity.type)
   const colorClasses = getActivityColor(activity.type)
@@ -237,3 +240,4 @@ export function CompactActivityToast({ activity, onDismiss }: CompactActivityToa
     </motion.div>
   )
 }
+/* eslint-enable react-hooks/purity, react-hooks/static-components */

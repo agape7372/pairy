@@ -20,7 +20,7 @@ import {
   FileImage,
   Edit3,
 } from 'lucide-react'
-import { Button, Tag } from '@/components/ui'
+import { Button } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
 import {
   RESOURCE_CATEGORIES,

@@ -1075,6 +1075,7 @@ export default function EditorSidebar({ isOpen = true, onClose }: EditorSidebarP
   // 버그 수정: 템플릿 변경 시 expandedSlots 동기화
   useEffect(() => {
     if (templateConfig?.layers.slots) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setExpandedSlots(new Set(templateConfig.layers.slots.map((s) => s.id)))
     }
   }, [templateConfig])
@@ -1083,6 +1084,7 @@ export default function EditorSidebar({ isOpen = true, onClose }: EditorSidebarP
   useEffect(() => {
     if (selectedSlotId && templateConfig) {
       // 슬롯 탭으로 전환
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setActiveTab('slots')
 
       // 해당 슬롯 펼치기
@@ -1111,6 +1113,7 @@ export default function EditorSidebar({ isOpen = true, onClose }: EditorSidebarP
       if (field) {
         if (field.slotId) {
           // 슬롯에 속한 필드면 슬롯 탭으로 이동
+          // eslint-disable-next-line react-hooks/set-state-in-effect
           setActiveTab('slots')
           setExpandedSlots((prev) => {
             const next = new Set(prev)
