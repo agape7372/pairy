@@ -5,6 +5,29 @@ import { Providers } from '@/components/providers/Providers'
 // 기본 URL (배포 환경에 맞게 설정)
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://pairy.app'
 
+// CSP: Supabase 도메인을 환경변수에서 추출 (빌드 타임에 인라인됨)
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseConnectSrc = supabaseUrl
+  ? (() => {
+      try {
+        const hostname = new URL(supabaseUrl).hostname
+        return `https://${hostname} wss://${hostname}`
+      } catch {
+        return ''
+      }
+    })()
+  : ''
+
+const contentSecurityPolicy = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline'",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "font-src 'self' https://fonts.gstatic.com",
+  "img-src 'self' https: data: blob:",
+  `connect-src 'self' ${supabaseConnectSrc} https://fonts.googleapis.com https://fonts.gstatic.com`.trim(),
+  "frame-ancestors 'none'",
+].join('; ')
+
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
@@ -67,7 +90,7 @@ export default function RootLayout({
         {/* Content Security Policy - XSS 방지 */}
         <meta
           httpEquiv="Content-Security-Policy"
-          content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https: data: blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://fonts.googleapis.com https://fonts.gstatic.com; frame-ancestors 'none';"
+          content={contentSecurityPolicy}
         />
         {/* 추가 보안 헤더 (meta tag로 설정 가능한 것들) */}
         <meta httpEquiv="X-Content-Type-Options" content="nosniff" />

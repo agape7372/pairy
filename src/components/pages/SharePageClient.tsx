@@ -93,7 +93,7 @@ export default function SharePageClient({ shareId }: SharePageClientProps) {
     const url = typeof window !== 'undefined' ? window.location.href : ''
     const text = work?.title || 'Pairy에서 만든 작품을 확인해보세요!'
     const shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`
-    window.open(shareUrl, '_blank', 'width=600,height=400')
+    window.open(shareUrl, '_blank', 'width=600,height=400,noopener,noreferrer')
   }, [work])
 
   // 카카오톡 공유 (링크 복사로 대체)

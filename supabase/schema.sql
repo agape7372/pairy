@@ -240,9 +240,13 @@ CREATE POLICY "Users can insert own works" ON works FOR INSERT WITH CHECK ((sele
 CREATE POLICY "Users can update own works" ON works FOR UPDATE USING ((select auth.uid()) = user_id);
 CREATE POLICY "Users can delete own works" ON works FOR DELETE USING ((select auth.uid()) = user_id);
 
--- 협업 세션: 호스트 + 참가자 접근 가능
--- [FIXED: 참가자도 세션 조회 가능하도록 수정 - 초대 코드는 난수라 추측 불가]
-CREATE POLICY "Users can select sessions by invite code or as host" ON collab_sessions FOR SELECT USING (true);
+-- 협업 세션: 호스트 + 참가자만 접근 가능
+-- 초대 코드로 세션 조회 시 lookup_session_by_invite_code() RPC 함수 사용
+CREATE POLICY "Users can select own or participated sessions" ON collab_sessions
+  FOR SELECT USING (
+    (select auth.uid()) = host_id
+    OR participants @> jsonb_build_array(jsonb_build_object('id', (select auth.uid())::text))
+  );
 CREATE POLICY "Users can insert own sessions" ON collab_sessions FOR INSERT WITH CHECK ((select auth.uid()) = host_id);
 CREATE POLICY "Users can update own sessions" ON collab_sessions FOR UPDATE USING ((select auth.uid()) = host_id);
 CREATE POLICY "Users can delete own sessions" ON collab_sessions FOR DELETE USING ((select auth.uid()) = host_id);

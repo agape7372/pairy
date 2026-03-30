@@ -76,7 +76,7 @@ export function InviteShareModal({
     } else {
       // 카카오톡 URL 스킴 사용
       const kakaoUrl = `https://story.kakao.com/share?url=${encodeURIComponent(inviteLink)}`
-      window.open(kakaoUrl, '_blank')
+      window.open(kakaoUrl, '_blank', 'noopener,noreferrer')
     }
   }, [inviteLink])
 

@@ -125,7 +125,7 @@ export function ExportDialog({
 
       // 트위터 공유 옵션이 선택된 경우
       if (shareToTwitter) {
-        window.open(getTwitterShareUrl(), '_blank', 'width=600,height=400')
+        window.open(getTwitterShareUrl(), '_blank', 'width=600,height=400,noopener,noreferrer')
       }
 
       onClose()

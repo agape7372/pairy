@@ -201,6 +201,7 @@ export const useSubscriptionStore = create<SubscriptionState>()(
       isDemoMode: true, // 기본적으로 데모 모드
 
       setTier: (tier) => {
+        if (process.env.NODE_ENV !== 'development') return
         set((state) => ({
           subscription: { ...state.subscription, tier },
         }))
@@ -454,10 +455,12 @@ export const useSubscriptionStore = create<SubscriptionState>()(
       },
 
       toggleDemoMode: () => {
+        if (process.env.NODE_ENV !== 'development') return
         set((state) => ({ isDemoMode: !state.isDemoMode }))
       },
 
       setDemoTier: (tier) => {
+        if (process.env.NODE_ENV !== 'development') return
         set((state) => ({
           subscription: { ...state.subscription, tier },
         }))

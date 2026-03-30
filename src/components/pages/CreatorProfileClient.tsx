@@ -218,7 +218,7 @@ export default function CreatorProfileClient({ username }: CreatorProfileClientP
     const text = `${creator.displayName}님의 페어리 프로필을 확인해보세요!\n\n${creator.stats.totalTemplates}개의 틀 | ${creator.stats.totalUses.toLocaleString()}회 사용\n\n#페어리 #Pairy`
     const url = window.location.href
     const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`
-    window.open(twitterUrl, '_blank', 'width=600,height=400')
+    window.open(twitterUrl, '_blank', 'width=600,height=400,noopener,noreferrer')
   }
 
   // 팔로워 수 (훅에서 가져온 값 또는 초기값)

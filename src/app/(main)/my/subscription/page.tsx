@@ -262,8 +262,8 @@ export default function SubscriptionPage() {
         )}
       </section>
 
-      {/* Demo Mode Tier Switcher */}
-      {isDemoMode && (
+      {/* Demo Mode Tier Switcher - 개발 환경에서만 표시 */}
+      {isDemoMode && process.env.NODE_ENV === 'development' && (
         <section className="p-4 bg-amber-50 border border-amber-200 rounded-xl">
           <div className="flex items-center gap-2 mb-3">
             <AlertCircle className="w-4 h-4 text-amber-500" />

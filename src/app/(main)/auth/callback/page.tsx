@@ -163,12 +163,19 @@ function AuthCallbackContent() {
     }, 2500)
   }
 
+  // OAuth 메타데이터 새니타이징 (방어적 코딩)
+  const sanitizeDisplayName = (name: string): string => {
+    return name.replace(/<[^>]*>/g, '').trim().slice(0, 50) || '사용자'
+  }
+
   // 리다이렉트 실행
   const redirectToDestination = (redirectTo: string, user: User | null, callbackType: CallbackType) => {
-    const userName = user?.user_metadata?.name ||
-                     user?.user_metadata?.full_name ||
-                     user?.email?.split('@')[0] ||
-                     '사용자'
+    const userName = sanitizeDisplayName(
+      user?.user_metadata?.name ||
+      user?.user_metadata?.full_name ||
+      user?.email?.split('@')[0] ||
+      '사용자'
+    )
 
     let message = `환영합니다, ${userName}님!`
     if (callbackType === 'link') {

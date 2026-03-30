@@ -441,7 +441,7 @@ export default function TemplateDetailClient({ templateId }: TemplateDetailClien
     const text = `${resource.title} by @${resource.creator.username}\n\n${resource.stats.downloads.toLocaleString()}회 다운로드된 인기 자료!\n\n#페어리 #Pairy #${categoryInfo.nameKo}`
     const url = window.location.href
     const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`
-    window.open(twitterUrl, '_blank', 'width=600,height=400')
+    window.open(twitterUrl, '_blank', 'width=600,height=400,noopener,noreferrer')
   }
 
   const handleDownload = () => {
