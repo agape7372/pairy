@@ -152,3 +152,21 @@ docs/
 - `"빠르게"` / `"간단히"` → 핵심만 빠르게 처리
 - `"ultrathink"` / `"꼼꼼히"` → 최고 품질 심층 분석
 - 기본 → 위 고품질 분석 모드 적용
+
+## AI 조직 · 모델 라우팅 (2026-07-06 신설)
+
+이 프로젝트는 Fable(두뇌)이 판단하고 하위 모델(Opus/Sonnet/Haiku)이 실행하는 조직 규약을 따른다. 정본: `docs/ai-org/`.
+
+- **작업 전 필독**: `docs/ai-org/strategy-genome.md`의 "안 할 것" 목록(스코프 스프롤 방지). 새 기능/요청은 게놈과 대조 후 진행.
+- **모델 라우팅**: 판단·아키텍처·보안설계·적대검증=Fable · 기능구현/리팩터/테스트=Sonnet · 대량 기계수정/탐색=Haiku · 난제=Opus. 상세 `docs/ai-org/routing.md`.
+- **사고 방식**: `docs/ai-org/thinking-protocol.md`(실패 먼저·사실/추정 구분·가정 반박·되돌림 기준·정직 보고·미배선부터 잇기).
+- **의사결정 기록**: 의미 있는 판단은 `docs/ai-org/decisions/DL-####.md`에 1결정=1파일("왜 안 했나"까지).
+- **기능별 밑작업**: 기능 착수 전 `docs/features/F-##`의 Fable 판정·다음작업 확인.
+
+### 품질 게이트 (커밋/PR 전 필수)
+- `npm run build` + `npm run lint` + `npm test` 통과 확인. (현재 CI는 build만 실행 — TOP50 #9로 test+lint 게이트 추가 예정.)
+- 보안: `docs/audit-2026-07-05/04-security.md`의 C-1~C-5·H-1~H-5 회귀 안 나는지. 특히 **클라이언트 신뢰(구독·수익·권한 localStorage) 확대 금지** — 서버 검증으로.
+- 커밋 말미 `Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>`.
+
+### 현재 최우선 (파운데이션 — 신기능보다 우선)
+1. 정적 export 결별(DL-0001) · 2. RLS 봉합(`supabase/migrations/20260706000000_tier0_security_hardening.sql` 적용) · 3. 클라이언트 신뢰 제거.
