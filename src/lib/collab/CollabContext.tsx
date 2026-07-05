@@ -21,7 +21,6 @@ import {
 } from 'react'
 import { SupabaseYjsProvider } from './yjsProvider'
 import { useCanvasEditorStore } from '@/stores/canvasEditorStore'
-import { isSupabaseConfigured } from '@/lib/supabase/client'
 import type {
   SyncState,
   CollabUser,
@@ -148,13 +147,7 @@ export function CollabProvider({
 
   // 연결 (에러 처리 포함)
   const connect = useCallback(async (sessionId: string, user: CollabUser) => {
-    // 데모 모드에서는 연결하지 않음
-    if (!isSupabaseConfigured()) {
-      console.log('[CollabProvider] Demo mode - skipping connection')
-      setLocalUser(user)
-      return
-    }
-
+    // Supabase 미설정(Demo) 시 provider가 내부적으로 BroadcastChannel로 분기한다.
     try {
       // 기존 연결 정리
       if (providerRef.current) {
@@ -197,7 +190,7 @@ export function CollabProvider({
       if (providerRef.current) {
         try {
           providerRef.current.disconnect()
-        } catch (e) {
+        } catch {
           // 무시
         }
         providerRef.current = null
@@ -302,7 +295,7 @@ export function CollabProvider({
 
   // 로컬 상태 변경 시 Yjs 업데이트 (디바운스)
   useEffect(() => {
-    if (!providerRef.current || !isConnected || isSyncing) return
+    if (!providerRef.current || !isConnected) return
 
     const timeoutId = setTimeout(() => {
       const stickers = templateConfig?.layers.stickers || []
@@ -316,7 +309,7 @@ export function CollabProvider({
     }, 100)
 
     return () => clearTimeout(timeoutId)
-  }, [formData, images, colors, slotTransforms, templateConfig, isConnected, isSyncing])
+  }, [formData, images, colors, slotTransforms, templateConfig, isConnected])
 
   const value: CollabContextValue = {
     isConnected,

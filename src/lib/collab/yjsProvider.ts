@@ -30,6 +30,10 @@ export class SupabaseYjsProvider {
   isConnected = false
   private isSyncing = false
 
+  // 원격 사용자 편집 상태(커서/선택/영역) 저장소 — presence(신원)와 별개로 유지
+  private remoteEditingStates = new Map<string, UserEditingState>()
+  private presentUserIds = new Set<string>()
+
   // 콜백
   private onSyncStateChange?: (state: SyncState) => void
   private onRemoteUserChange?: (users: Map<string, UserEditingState>) => void
@@ -168,8 +172,18 @@ export class SupabaseYjsProvider {
       this.syncRemoteUsersFromBroadcast()
     })
 
+    // 초기 상태 요청 수신 → 현재 문서 전체 상태를 응답
+    this.broadcastProvider.on('request-state', () => {
+      if (!this.broadcastProvider) return
+      const fullState = Y.encodeStateAsUpdate(this.doc)
+      this.broadcastProvider.broadcastYjsUpdate(Array.from(fullState), this.user.id)
+    })
+
     this.broadcastProvider.connect()
     this.isConnected = true
+
+    // 늦게 합류한 탭: 기존 참여자에게 문서 초기 상태 요청
+    this.broadcastProvider.broadcast('request-state', { userId: this.user.id })
   }
 
   /** 연결 해제 (안전한 정리) */
@@ -205,6 +219,8 @@ export class SupabaseYjsProvider {
       this.broadcastProvider.disconnect()
       this.broadcastProvider = null
     }
+    this.remoteEditingStates.clear()
+    this.presentUserIds.clear()
   }
 
   /** 초기 상태 설정 (로컬 스토어에서) */
@@ -366,62 +382,86 @@ export class SupabaseYjsProvider {
   }
 
   private handleAwarenessUpdate(payload: { userId: string; state: Partial<UserEditingState> }): void {
-    // 원격 사용자 편집 상태 처리
-    const remoteStates = this.awareness.getStates()
-    const currentState = remoteStates.get(this.awareness.clientID) as { editing?: UserEditingState } | undefined
+    const { userId, state } = payload
+    if (userId === this.user.id) return
 
-    // 충돌 감지
-    if (payload.state.selectedSlotId && currentState?.editing?.selectedSlotId === payload.state.selectedSlotId) {
-      this.onConflict?.(payload.state.selectedSlotId, null, payload.userId)
+    // 충돌 감지: 로컬 사용자가 이미 같은 대상을 선택 중인지
+    const localEditing = (
+      this.awareness.getStates().get(this.awareness.clientID) as { editing?: UserEditingState } | undefined
+    )?.editing
+    if (state.selectedSlotId && localEditing?.selectedSlotId === state.selectedSlotId) {
+      this.onConflict?.(state.selectedSlotId, null, userId)
     }
-    if (payload.state.selectedTextId && currentState?.editing?.selectedTextId === payload.state.selectedTextId) {
-      this.onConflict?.(null, payload.state.selectedTextId, payload.userId)
+    if (state.selectedTextId && localEditing?.selectedTextId === state.selectedTextId) {
+      this.onConflict?.(null, state.selectedTextId, userId)
     }
+
+    // 원격 편집 상태 병합(부분 업데이트 존중) 후 UI 반영
+    const prev = this.remoteEditingStates.get(userId)
+    this.remoteEditingStates.set(userId, {
+      userId,
+      zone: 'zone' in state ? (state.zone ?? null) : (prev?.zone ?? null),
+      selectedSlotId: 'selectedSlotId' in state ? (state.selectedSlotId ?? null) : (prev?.selectedSlotId ?? null),
+      selectedTextId: 'selectedTextId' in state ? (state.selectedTextId ?? null) : (prev?.selectedTextId ?? null),
+      cursor: 'cursor' in state ? (state.cursor ?? null) : (prev?.cursor ?? null),
+      lastActivity: state.lastActivity ?? Date.now(),
+    })
+    this.buildAndEmitRemoteUsers()
   }
 
+  /** Supabase Presence에서 접속 사용자 집합 갱신 */
   private syncRemoteUsers(): void {
     if (!this.channel) return
 
     const presenceState = this.channel.presenceState()
-    const users = new Map<string, UserEditingState>()
-
+    const present = new Set<string>()
     Object.values(presenceState).flat().forEach((presence: unknown) => {
-      const p = presence as { user_id?: string; user_name?: string }
-      if (p.user_id && p.user_id !== this.user.id) {
-        users.set(p.user_id, {
-          userId: p.user_id,
-          zone: null,
-          selectedSlotId: null,
-          selectedTextId: null,
-          cursor: null,
-          lastActivity: Date.now(),
-        })
-      }
+      const p = presence as { user_id?: string }
+      if (p.user_id && p.user_id !== this.user.id) present.add(p.user_id)
     })
-
-    this.onRemoteUserChange?.(users)
+    this.updatePresentUsers(present)
   }
 
-  /** BroadcastChannel Presence에서 원격 사용자 동기화 */
+  /** BroadcastChannel Presence에서 접속 사용자 집합 갱신 */
   private syncRemoteUsersFromBroadcast(): void {
     if (!this.broadcastProvider) return
 
-    const presenceState = this.broadcastProvider.getPresenceState()
-    const users = new Map<string, UserEditingState>()
+    const present = new Set<string>()
+    this.broadcastProvider.getPresenceState().forEach((_entry, userId) => {
+      if (userId !== this.user.id) present.add(userId)
+    })
+    this.updatePresentUsers(present)
+  }
 
-    presenceState.forEach((entry, userId) => {
-      if (userId !== this.user.id) {
-        users.set(userId, {
+  /** 접속 사용자 집합 갱신 + 이탈자 편집 상태 정리 후 emit */
+  private updatePresentUsers(present: Set<string>): void {
+    this.presentUserIds = present
+    this.remoteEditingStates.forEach((_state, id) => {
+      if (!present.has(id)) this.remoteEditingStates.delete(id)
+    })
+    this.buildAndEmitRemoteUsers()
+  }
+
+  /** presence(신원) ∪ awareness(편집 상태)를 병합해 원격 사용자 맵 방출 */
+  private buildAndEmitRemoteUsers(): void {
+    const ids = new Set<string>(this.presentUserIds)
+    this.remoteEditingStates.forEach((_state, id) => ids.add(id))
+
+    const users = new Map<string, UserEditingState>()
+    ids.forEach((userId) => {
+      if (userId === this.user.id) return
+      users.set(
+        userId,
+        this.remoteEditingStates.get(userId) ?? {
           userId,
           zone: null,
           selectedSlotId: null,
           selectedTextId: null,
           cursor: null,
           lastActivity: Date.now(),
-        })
-      }
+        }
+      )
     })
-
     this.onRemoteUserChange?.(users)
   }
 

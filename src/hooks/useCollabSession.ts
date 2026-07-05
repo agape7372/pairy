@@ -236,6 +236,11 @@ export function useCollabSession(
           setSession(sess)
         }
       }
+
+      // 세션이 없으면 다른 탭에 존재 여부 질의 (응답은 session-response로 수신)
+      if (!localStorage.getItem(SESSION_STORAGE_KEY)) {
+        syncChannel.postMessage({ type: 'session-query' })
+      }
     } catch { /* BroadcastChannel not supported */ }
 
     window.addEventListener('storage', handleStorageChange)

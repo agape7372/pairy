@@ -50,6 +50,7 @@ export class BroadcastChannelProvider {
   private user: CollabUser
   private presence = new Map<string, PresenceEntry>()
   private listeners = new Map<string, Array<(payload: unknown) => void>>()
+  private handleUnload: (() => void) | null = null
 
   isConnected = false
 
@@ -71,6 +72,12 @@ export class BroadcastChannelProvider {
     }
 
     this.isConnected = true
+
+    // 탭 강제 종료 시에도 퇴장 알림 (유령 참가자 방지)
+    if (typeof window !== 'undefined') {
+      this.handleUnload = () => this.disconnect()
+      window.addEventListener('beforeunload', this.handleUnload)
+    }
 
     // 자신의 Presence 등록
     this.presence.set(this.user.id, {
@@ -99,6 +106,11 @@ export class BroadcastChannelProvider {
   /** 연결 해제 */
   disconnect(): void {
     if (!this.channel) return
+
+    if (this.handleUnload && typeof window !== 'undefined') {
+      window.removeEventListener('beforeunload', this.handleUnload)
+      this.handleUnload = null
+    }
 
     // 퇴장 알림
     this.broadcast('presence-leave', {

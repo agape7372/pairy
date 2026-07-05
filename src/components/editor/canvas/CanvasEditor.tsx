@@ -39,6 +39,7 @@ import { useCollabSession } from '@/hooks/useCollabSession'
 import { CollabProvider, useCollabOptional } from '@/lib/collab'
 import type { CollabUser, EditingZone } from '@/lib/collab/types'
 import { useUser } from '@/hooks/useUser'
+import { IS_DEMO_MODE } from '@/lib/supabase/client'
 import { useReducedMotion, useAnnounce } from '@/hooks/useAccessibility'
 import type { TemplateConfig, TemplateRendererRef } from '@/types/template'
 import {
@@ -139,13 +140,37 @@ export default function CanvasEditor({
   // 사용자 정보 가져오기
   const { user, profile } = useUser()
 
-  // 협업 사용자 정보 생성
-  const collabUser: CollabUser | undefined = user ? {
-    id: user.id,
-    name: profile?.display_name || user.email?.split('@')[0] || '사용자',
-    color: generateUserColor(user.id),
-    avatar: profile?.avatar_url || undefined,
-  } : undefined
+  // Demo 모드: 탭별 게스트 신원 (탭마다 고유 → 듀오 협업 성립).
+  // hydration 안전: 초기 렌더는 undefined(서버와 일치), 마운트 후 effect로 주입.
+  const [demoGuest, setDemoGuest] = useState<CollabUser | undefined>(undefined)
+  useEffect(() => {
+    if (!IS_DEMO_MODE || user) return
+    try {
+      let gid = sessionStorage.getItem('pairy-demo-guest-id')
+      if (!gid) {
+        gid = 'guest-' + Math.random().toString(36).slice(2, 10)
+        sessionStorage.setItem('pairy-demo-guest-id', gid)
+      }
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- 클라이언트 전용 게스트 신원 초기화
+      setDemoGuest({
+        id: gid,
+        name: '게스트-' + gid.slice(-4),
+        color: generateUserColor(gid),
+      })
+    } catch {
+      // sessionStorage 사용 불가 환경은 무시
+    }
+  }, [user])
+
+  // 협업 사용자 정보 생성 (로그인 사용자 > Demo 게스트)
+  const collabUser: CollabUser | undefined = user
+    ? {
+        id: user.id,
+        name: profile?.display_name || user.email?.split('@')[0] || '사용자',
+        color: generateUserColor(user.id),
+        avatar: profile?.avatar_url || undefined,
+      }
+    : demoGuest
 
   // sessionId가 있으면 CollabProvider로 감싸기
   if (sessionId && collabUser) {
