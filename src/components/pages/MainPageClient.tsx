@@ -31,6 +31,8 @@ import {
   Pencil,
   ScrollText,
   ExternalLink,
+  Dices,
+  Terminal,
 } from 'lucide-react'
 import { Button, Tag } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
@@ -169,6 +171,8 @@ const categoryIcons: Record<ResourceCategory, typeof Image> = {
   tretle: Pencil,
   pairtl: Users,
   sessionlog: ScrollText,
+  cocofolia: Dices,
+  program: Terminal,
 }
 
 // ============================================

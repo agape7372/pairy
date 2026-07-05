@@ -19,6 +19,8 @@ import {
   Trash2,
   FileImage,
   Edit3,
+  Dices,
+  Terminal,
 } from 'lucide-react'
 import { Button } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
@@ -42,6 +44,8 @@ const categoryIcons: Record<ResourceCategory, typeof Image> = {
   tretle: Pencil,
   pairtl: Users,
   sessionlog: ScrollText,
+  cocofolia: Dices,
+  program: Terminal,
 }
 
 // 샘플 자료 데이터 (허브 형태)
@@ -494,7 +498,7 @@ export default function ResourceHubPage() {
               </p>
             </div>
             <Button asChild className="shrink-0 w-full sm:w-auto">
-              <Link href="/templates/new">
+              <Link href="/resources/new">
                 <Plus className="w-4 h-4 mr-1" />
                 자료 업로드
               </Link>
