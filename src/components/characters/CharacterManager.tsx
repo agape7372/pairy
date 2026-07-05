@@ -105,7 +105,7 @@ export function CharacterManager({
 
   // 캐릭터 생성 페이지로 이동
   const handleCreate = useCallback(() => {
-    if (!canCreateMore) return
+    if (!canCreateMore()) return
     router.push('/my/characters/new')
   }, [canCreateMore, router])
 
@@ -181,11 +181,11 @@ export function CharacterManager({
           </h2>
           <p className="text-sm text-gray-500 mt-1">
             {characters.length}개의 캐릭터
-            {!canCreateMore && ' (최대 개수 도달)'}
+            {!canCreateMore() && ' (최대 개수 도달)'}
           </p>
         </div>
 
-        <Button onClick={handleCreate} disabled={!canCreateMore || isSaving}>
+        <Button onClick={handleCreate} disabled={!canCreateMore() || isSaving}>
           <Plus className="w-4 h-4 mr-1" />
           새 캐릭터
         </Button>

@@ -3,12 +3,16 @@
 import { ReactNode } from 'react'
 import { ToastProvider } from '@/components/ui'
 import { ErrorBoundary } from '@/components/common'
+import { useThemeInitializer } from '@/stores/themeStore'
 
 interface ProvidersProps {
   children: ReactNode
 }
 
 export function Providers({ children }: ProvidersProps) {
+  // 저장된/시스템 테마를 <html> 에 적용(다크모드 실작동). 이전엔 미호출로 초기화 안 됨(F-32).
+  useThemeInitializer()
+
   return (
     <ErrorBoundary
       onError={(error) => {

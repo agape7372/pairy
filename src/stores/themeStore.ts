@@ -10,6 +10,7 @@
  * Pairy의 따뜻한 파스텔 톤을 유지하면서 눈의 피로를 줄입니다.
  */
 
+import { useEffect } from 'react'
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
@@ -97,18 +98,20 @@ export const useThemeStore = create<ThemeState>()(
  * 테마 초기화 훅 - 앱 시작 시 호출
  */
 export function useThemeInitializer() {
-  const { mode, animationMode, setMode, handleSystemThemeChange, setAnimationMode } = useThemeStore()
+  // getState() 로 비반응형 접근(스토어 구독 안 함 → 리렌더 없음).
+  // 마운트 시 1회 저장된 테마 적용 + 시스템 변경 리스너를 useEffect 로 등록/정리(누수 방지).
+  useEffect(() => {
+    const { mode, animationMode, setMode, setAnimationMode, handleSystemThemeChange } =
+      useThemeStore.getState()
 
-  // 클라이언트에서 한 번만 실행
-  if (typeof window !== 'undefined') {
-    // 시스템 테마 변경 리스너
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-    mediaQuery.addEventListener('change', (e) => {
-      handleSystemThemeChange(e.matches)
-    })
-
-    // 초기 테마 적용
+    // 저장된 테마 즉시 적용
     setMode(mode)
     setAnimationMode(animationMode)
-  }
+
+    // 시스템 테마 변경 반영(mode === 'system' 일 때만 내부에서 처리)
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+    const handler = (e: MediaQueryListEvent) => handleSystemThemeChange(e.matches)
+    mediaQuery.addEventListener('change', handler)
+    return () => mediaQuery.removeEventListener('change', handler)
+  }, [])
 }
