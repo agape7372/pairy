@@ -1,13 +1,14 @@
 'use client'
 
 /**
- * 위스퍼 데이터 훅
+ * ⚠️ DEPRECATED (데모 목업) — 정본은 `useWhisper.ts`(실 Supabase 구현).
  *
- * 기능:
- * - 받은/보낸 위스퍼 조회
- * - 데모 모드 목업 데이터 지원
- * - 로딩/에러/성공 상태 관리
- * - 페이지네이션 지원
+ * 이 훅은 모든 Supabase 경로가 TODO 스텁인 데모 전용 목업이다. 현재 `my/whispers/page.tsx`가
+ * 이 훅에 배선돼 있어(가짜 성공), 정본 `useWhisper`/`useWhisperCreator`(실 구현·realtime)는 소비처 0.
+ * Whisper 기능은 F-18에서 defer/축소 판정 — 페이지를 정본 훅으로 이관하고 이 파일을 제거하는 작업은
+ * Tier 0 파운데이션 이후로 보류한다. 결정 근거: docs/ai-org/decisions/DL-0003-whisper-hook-canonical.md
+ *
+ * 위스퍼 데이터 훅 (받은/보낸 조회, 데모 목업, 페이지네이션)
  *
  * @example
  * const { receivedWhispers, sentWhispers, isLoading, error } = useWhispers()

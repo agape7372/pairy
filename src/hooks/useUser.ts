@@ -78,7 +78,6 @@ export function useUser(): UseUserReturn {
   useEffect(() => {
     // 데모 모드 체크
     if (!isSupabaseConfigured()) {
-      console.log('[useUser] Demo mode - skipping auth')
       // eslint-disable-next-line react-hooks/set-state-in-effect -- 데모 모드 초기화: 비동기 작업 없이 즉시 완료
       setIsLoading(false)
       return
@@ -88,13 +87,12 @@ export function useUser(): UseUserReturn {
     const checkMounted = () => isMounted
     const supabase = createClient()
 
-    console.log('[useUser] Setting up auth listener...')
-
     // onAuthStateChange만 사용
     // INITIAL_SESSION은 localStorage에서 즉시 읽어오므로 네트워크 hang 없음
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        console.log('[useUser] Auth event:', event, session?.user?.email ?? 'no user')
+        // 프로덕션에서 유저 이메일 로깅 금지(개인정보). 개발 중에만 이벤트명 출력.
+        if (process.env.NODE_ENV !== 'production') console.log('[useUser] Auth event:', event)
 
         if (!isMounted) return
 

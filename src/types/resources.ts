@@ -1,5 +1,18 @@
 // 자료 카테고리 타입
-export type ResourceCategory = 'imeres' | 'tretle' | 'pairtl' | 'sessionlog'
+export type ResourceCategory =
+  | 'imeres'
+  | 'tretle'
+  | 'pairtl'
+  | 'sessionlog'
+  | 'cocofolia'
+  | 'program'
+
+/**
+ * 업로드 방식
+ * - media: 이미지 미리보기 + (선택)파일 업로드 — 시각 자료
+ * - file: 파일 전용 — 프로그램/세션 데이터 등
+ */
+export type UploadMode = 'media' | 'file'
 
 // 카테고리 정보
 export const RESOURCE_CATEGORIES: Record<ResourceCategory, {
@@ -10,6 +23,7 @@ export const RESOURCE_CATEGORIES: Record<ResourceCategory, {
   emoji: string
   color: string
   bgColor: string
+  uploadMode: UploadMode
 }> = {
   imeres: {
     id: 'imeres',
@@ -19,6 +33,7 @@ export const RESOURCE_CATEGORIES: Record<ResourceCategory, {
     emoji: '🖼️',
     color: 'text-blue-600',
     bgColor: 'bg-blue-100',
+    uploadMode: 'media',
   },
   tretle: {
     id: 'tretle',
@@ -28,6 +43,7 @@ export const RESOURCE_CATEGORIES: Record<ResourceCategory, {
     emoji: '✏️',
     color: 'text-purple-600',
     bgColor: 'bg-purple-100',
+    uploadMode: 'media',
   },
   pairtl: {
     id: 'pairtl',
@@ -37,6 +53,7 @@ export const RESOURCE_CATEGORIES: Record<ResourceCategory, {
     emoji: '💕',
     color: 'text-primary-600',
     bgColor: 'bg-primary-100',
+    uploadMode: 'media',
   },
   sessionlog: {
     id: 'sessionlog',
@@ -46,6 +63,27 @@ export const RESOURCE_CATEGORIES: Record<ResourceCategory, {
     emoji: '📜',
     color: 'text-amber-600',
     bgColor: 'bg-amber-100',
+    uploadMode: 'file',
+  },
+  cocofolia: {
+    id: 'cocofolia',
+    name: 'CoCoFolia',
+    nameKo: '코코포리아',
+    description: '코코포리아 세션룸, 코마, 꾸미기 파일',
+    emoji: '🎲',
+    color: 'text-teal-600',
+    bgColor: 'bg-teal-100',
+    uploadMode: 'file',
+  },
+  program: {
+    id: 'program',
+    name: 'Program',
+    nameKo: '프로그램',
+    description: '자캐/창작 지원 프로그램, 배포 툴',
+    emoji: '💻',
+    color: 'text-indigo-600',
+    bgColor: 'bg-indigo-100',
+    uploadMode: 'file',
   },
 }
 
@@ -161,6 +199,8 @@ export const CATEGORY_TAGS: Record<ResourceCategory, string[]> = {
   tretle: ['전신', '반신', '얼굴', '손', '포즈', '의상', '소품', '동물'],
   pairtl: ['커플', '친구', '관계도', '프로필', '2인용', '3인용+', 'OC', '팬아트'],
   sessionlog: ['TRPG', '캐릭터시트', '세션기록', '월드빌딩', 'NPC', '아이템', '맵'],
+  cocofolia: ['세션룸', '코마', '배경', 'BGM', '판넬', '스탠딩', '이펙트', '다이스'],
+  program: ['자동화', '에디터', '뷰어', '생성기', '유틸', '확장프로그램', '웹앱', '오픈소스'],
 }
 
 // 정렬 옵션

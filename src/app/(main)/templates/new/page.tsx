@@ -270,18 +270,9 @@ export default function NewTemplatePage() {
         return
       }
 
-      // TODO: Supabase에 템플릿 저장
-      const templateData = {
-        title,
-        description,
-        emoji: selectedEmoji,
-        tags: selectedTags,
-        slots,
-        fields,
-      }
-      console.log('Template data:', templateData)
-      toast.success('템플릿이 저장되었습니다!')
-      router.push('/templates')
+      // 실서버 저장 미구현(F-16a). 가짜 성공 토스트로 작업을 침묵 소실시키지 않도록 정직하게 안내하고 페이지를 유지한다.
+      // TODO: Supabase templates insert — preview_url 은 compositeImage 를 storage 업로드 후 URL, editor_data 에 slots/fields 매핑.
+      toast.warning('아직 실서버 저장은 준비 중이에요. 작업 유실을 막기 위해 저장하지 않았습니다.')
     } catch (err) {
       console.error('Failed to save template:', err)
       toast.error('저장에 실패했습니다. 다시 시도해주세요.')

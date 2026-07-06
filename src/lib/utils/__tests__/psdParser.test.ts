@@ -307,7 +307,7 @@ describe('convertToTemplateData', () => {
     expect(hasAge).toBe(false)
   })
 
-  it('캐릭터 매핑은 슬롯으로 변환', () => {
+  it('캐릭터 마커 매핑은 "캐릭터 {마커명}" 라벨 슬롯으로 변환', () => {
     const mappings: LayerMappingSuggestion[] = [
       {
         layerId: 'layer_1',
@@ -325,10 +325,11 @@ describe('convertToTemplateData', () => {
     })
 
     expect(result.slots.length).toBeGreaterThan(0)
-    expect(result.slots[0].label).toBe('A')
+    // 슬롯 라벨은 기본 슬롯('캐릭터 A/B')과 일관되게 '캐릭터 ' 접두어를 붙인다
+    expect(result.slots[0].label).toBe('캐릭터 A')
   })
 
-  it('슬롯이 없으면 기본 슬롯 생성', () => {
+  it('캐릭터 마커가 없으면 좌/우 기본 페어 슬롯 2개 생성', () => {
     const mappings: LayerMappingSuggestion[] = [
       {
         layerId: 'layer_2',
@@ -345,8 +346,10 @@ describe('convertToTemplateData', () => {
       height: 500,
     })
 
-    expect(result.slots.length).toBe(1)
-    expect(result.slots[0].label).toBe('슬롯 1')
+    // 페어(2인) 틀이 기본이므로 마커가 없으면 좌/우 2슬롯을 만든다
+    expect(result.slots.length).toBe(2)
+    expect(result.slots[0].label).toBe('캐릭터 A')
+    expect(result.slots[1].label).toBe('캐릭터 B')
   })
 
   it('이미지 URL 유지', () => {
@@ -409,7 +412,7 @@ describe('Edge Cases', () => {
     expect(suggestions).toEqual([])
 
     const result = convertToTemplateData([], [], { width: 500, height: 500 })
-    expect(result.slots.length).toBe(1) // 기본 슬롯
+    expect(result.slots.length).toBe(2) // 기본 페어 슬롯 (좌/우)
     expect(result.fields.length).toBe(0)
   })
 
@@ -482,8 +485,8 @@ describe('Edge Cases', () => {
     const suggestions = generateMappingSuggestions(specialLayers)
     expect(suggestions.length).toBe(2)
 
-    // '이름' 포함으로 info 카테고리 인식
-    expect(suggestions[0].suggestedCategory).toBe('info')
+    // 매핑 규칙은 first-match: '캐릭터' 키워드가 '이름'보다 우선순위가 높다
+    expect(suggestions[0].suggestedCategory).toBe('character')
     // '@출처'로 meta 카테고리 인식
     expect(suggestions[1].suggestedCategory).toBe('meta')
   })

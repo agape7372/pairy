@@ -30,8 +30,8 @@ export default function NewCharacterPage() {
     return result
   }, [createCharacter])
 
-  // 최대 개수 도달 시
-  if (!canCreateMore) {
+  // 최대 개수 도달 시 (canCreateMore 는 함수 — 반드시 호출해서 평가)
+  if (!canCreateMore()) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-8 max-w-md text-center">

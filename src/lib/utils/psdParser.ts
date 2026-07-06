@@ -639,6 +639,7 @@ export function convertToTemplateData(
         y: minY,
         width: Math.max(maxX - minX, 100),
         height: Math.max(maxY - minY, 100),
+        imageDataUrl: markerLayer.imageDataUrl,
       })
 
       // 해당 영역의 텍스트 필드들 추가
