@@ -1,6 +1,12 @@
 'use client'
 
 /**
+ * ✅ 정본(canonical) Whisper 훅 — 실 Supabase 구현(realtime 구독·낙관적 업데이트 포함).
+ *
+ * 현재 소비처 0: UI(`my/whispers/page.tsx`)는 데모 목업 `useWhispers.ts`에 배선돼 있다.
+ * Whisper 기능이 F-18에서 defer 판정이라, 페이지를 이 훅으로 이관하는 작업은 파운데이션 이후로 보류.
+ * 중복 훅 정리 결정: docs/ai-org/decisions/DL-0003-whisper-hook-canonical.md
+ *
  * Sprint 35: Whisper 관리 훅
  *
  * 기능:
