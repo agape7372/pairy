@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -16,7 +17,32 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # 품질 게이트: lint + test. push/PR 모두에서 실행되어 회귀를 배포 전에 차단한다. (TOP50 #9)
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
+
   build:
+    # PR에서는 빌드/배포를 건너뛰고 품질 게이트만 돌린다. 실제 배포는 main push 에서만.
+    if: github.event_name != 'pull_request'
+    needs: quality
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -48,6 +74,7 @@ jobs:
           path: "./out"
 
   deploy:
+    if: github.event_name != 'pull_request'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
