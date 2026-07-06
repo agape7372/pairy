@@ -45,6 +45,18 @@ global.ResizeObserver = jest.fn().mockImplementation(() => ({
 global.URL.createObjectURL = jest.fn(() => 'blob:mock-url')
 global.URL.revokeObjectURL = jest.fn()
 
+// jsdom은 Blob.prototype.arrayBuffer를 구현하지 않아 FileReader로 폴리필
+if (typeof Blob !== 'undefined' && !Blob.prototype.arrayBuffer) {
+  Blob.prototype.arrayBuffer = function arrayBuffer() {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(reader.result)
+      reader.onerror = () => reject(reader.error)
+      reader.readAsArrayBuffer(this)
+    })
+  }
+}
+
 // IntersectionObserver mock
 const mockIntersectionObserver = jest.fn()
 mockIntersectionObserver.mockReturnValue({

@@ -20,6 +20,7 @@ const customJestConfig = {
     '<rootDir>/node_modules/',
     '<rootDir>/.next/',
     '<rootDir>/e2e/', // Playwright E2E 테스트 제외
+    '<rootDir>/.claude/', // 로컬 git worktree 복사본 제외
   ],
   collectCoverageFrom: [
     'src/**/*.{js,jsx,ts,tsx}',

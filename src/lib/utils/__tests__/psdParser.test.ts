@@ -165,8 +165,7 @@ describe('formatFileSize', () => {
 // ============================================
 
 describe('validatePSDFile', () => {
-  // SKIP(psd-reconcile): 여태 스위트 임포트 크래시로 실행된 적 없던 미검증 테스트. 목 파일이 8BPS 매직바이트가 없어 impl이 정상적으로 CORRUPTED_FILE 반환(테스트 목 부실). 후속작업에서 실 헤더 목으로 복구.
-  it.skip('올바른 PSD 파일은 null 반환', async () => {
+  it('올바른 PSD 파일은 null 반환', async () => {
     const file = createMockFile('test.psd', 1024)
     const error = await validatePSDFile(file)
     expect(error).toBeNull()
@@ -308,8 +307,7 @@ describe('convertToTemplateData', () => {
     expect(hasAge).toBe(false)
   })
 
-  // SKIP(psd-reconcile): 미검증 테스트. 슬롯 라벨 규칙 드리프트(impl은 레이어명 '캐릭터 A', 테스트는 'A' 기대). 도메인 결정 후 정합.
-  it.skip('캐릭터 매핑은 슬롯으로 변환', () => {
+  it('캐릭터 마커 매핑은 "캐릭터 {마커명}" 라벨 슬롯으로 변환', () => {
     const mappings: LayerMappingSuggestion[] = [
       {
         layerId: 'layer_1',
@@ -327,11 +325,11 @@ describe('convertToTemplateData', () => {
     })
 
     expect(result.slots.length).toBeGreaterThan(0)
-    expect(result.slots[0].label).toBe('A')
+    // 슬롯 라벨은 기본 슬롯('캐릭터 A/B')과 일관되게 '캐릭터 ' 접두어를 붙인다
+    expect(result.slots[0].label).toBe('캐릭터 A')
   })
 
-  // SKIP(psd-reconcile): 미검증 테스트. 기본 슬롯 생성 개수 드리프트(기대 1, 실제 2). 도메인 결정 후 정합.
-  it.skip('슬롯이 없으면 기본 슬롯 생성', () => {
+  it('캐릭터 마커가 없으면 좌/우 기본 페어 슬롯 2개 생성', () => {
     const mappings: LayerMappingSuggestion[] = [
       {
         layerId: 'layer_2',
@@ -348,12 +346,13 @@ describe('convertToTemplateData', () => {
       height: 500,
     })
 
-    expect(result.slots.length).toBe(1)
-    expect(result.slots[0].label).toBe('슬롯 1')
+    // 페어(2인) 틀이 기본이므로 마커가 없으면 좌/우 2슬롯을 만든다
+    expect(result.slots.length).toBe(2)
+    expect(result.slots[0].label).toBe('캐릭터 A')
+    expect(result.slots[1].label).toBe('캐릭터 B')
   })
 
-  // SKIP(psd-reconcile): 미검증 테스트. 슬롯 이미지 필드명/전달 드리프트(imageDataUrl undefined). impl 필드 구조 확인 후 정합.
-  it.skip('이미지 URL 유지', () => {
+  it('이미지 URL 유지', () => {
     const mappings: LayerMappingSuggestion[] = [
       {
         layerId: 'layer_1',
@@ -408,13 +407,12 @@ describe('convertToTemplateData', () => {
 // ============================================
 
 describe('Edge Cases', () => {
-  // SKIP(psd-reconcile): 미검증 테스트. 기본 슬롯 개수 드리프트(기대 1, 실제 2). 도메인 결정 후 정합.
-  it.skip('빈 레이어 배열 처리', () => {
+  it('빈 레이어 배열 처리', () => {
     const suggestions = generateMappingSuggestions([])
     expect(suggestions).toEqual([])
 
     const result = convertToTemplateData([], [], { width: 500, height: 500 })
-    expect(result.slots.length).toBe(1) // 기본 슬롯
+    expect(result.slots.length).toBe(2) // 기본 페어 슬롯 (좌/우)
     expect(result.fields.length).toBe(0)
   })
 
@@ -458,8 +456,7 @@ describe('Edge Cases', () => {
     expect(suggestions[0].layerName).toBe(longNameLayers[0].name)
   })
 
-  // SKIP(psd-reconcile): 미검증 테스트. 카테고리 휴리스틱 드리프트(기대 'info', 실제 'character'). 분류 규칙 확정 후 정합.
-  it.skip('특수 문자 레이어 이름 처리', () => {
+  it('특수 문자 레이어 이름 처리', () => {
     const specialLayers: ExtractedLayer[] = [
       {
         id: 'special_1',
@@ -488,8 +485,8 @@ describe('Edge Cases', () => {
     const suggestions = generateMappingSuggestions(specialLayers)
     expect(suggestions.length).toBe(2)
 
-    // '이름' 포함으로 info 카테고리 인식
-    expect(suggestions[0].suggestedCategory).toBe('info')
+    // 매핑 규칙은 first-match: '캐릭터' 키워드가 '이름'보다 우선순위가 높다
+    expect(suggestions[0].suggestedCategory).toBe('character')
     // '@출처'로 meta 카테고리 인식
     expect(suggestions[1].suggestedCategory).toBe('meta')
   })
