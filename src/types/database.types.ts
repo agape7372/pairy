@@ -99,6 +99,7 @@ export interface Database {
           subscription_tier: SubscriptionTierServer
           /** 구독 만료 시각. null=무기한/미구독 */
           subscription_valid_until: string | null
+          settings: Json
           created_at: string
           updated_at: string
         }
@@ -116,6 +117,7 @@ export interface Database {
           pending_payout?: number
           subscription_tier?: SubscriptionTierServer
           subscription_valid_until?: string | null
+          settings?: Json
           created_at?: string
           updated_at?: string
         }
@@ -133,6 +135,7 @@ export interface Database {
           pending_payout?: number
           subscription_tier?: SubscriptionTierServer
           subscription_valid_until?: string | null
+          settings?: Json
           created_at?: string
           updated_at?: string
         }
