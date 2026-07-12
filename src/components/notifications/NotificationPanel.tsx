@@ -27,53 +27,8 @@ export interface Notification {
   link?: string
 }
 
-// 목업 알림 데이터
-const mockNotifications: Notification[] = [
-  {
-    id: '1',
-    type: 'like',
-    title: '좋아요',
-    message: '딸기크림님이 "커플 프로필 틀"을 좋아합니다',
-    createdAt: '2025-12-28T10:30:00',
-    read: false,
-    link: '/templates/1',
-  },
-  {
-    id: '2',
-    type: 'use',
-    title: '틀 사용',
-    message: '누군가 "친구 관계도" 틀을 사용했어요! (+3)',
-    createdAt: '2025-12-28T09:15:00',
-    read: false,
-    link: '/my/creator',
-  },
-  {
-    id: '3',
-    type: 'follow',
-    title: '새 팔로워',
-    message: '페어리님이 회원님을 팔로우하기 시작했습니다',
-    createdAt: '2025-12-27T18:45:00',
-    read: true,
-  },
-  {
-    id: '4',
-    type: 'premium',
-    title: '프리미엄',
-    message: '무료 체험 기간이 3일 남았어요. 지금 업그레이드하세요!',
-    createdAt: '2025-12-27T12:00:00',
-    read: true,
-    link: '/premium',
-  },
-  {
-    id: '5',
-    type: 'system',
-    title: '시스템',
-    message: '새로운 기능이 추가되었어요! 크리에이터 대시보드를 확인해보세요.',
-    createdAt: '2025-12-26T10:00:00',
-    read: true,
-    link: '/my/creator',
-  },
-]
+// 알림은 F-31(실 이벤트원 필요)로 defer — 목데이터 제거, 빈 목록
+const mockNotifications: Notification[] = []
 
 const notificationIcons: Record<NotificationType, { icon: typeof Heart; color: string; bgColor: string }> = {
   like: { icon: Heart, color: 'text-red-500', bgColor: 'bg-red-100' },

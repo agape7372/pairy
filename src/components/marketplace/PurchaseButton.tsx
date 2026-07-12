@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { ShoppingCart, Download, Loader2, Check, Lock } from 'lucide-react'
 import { Button } from '@/components/ui'
 import { usePurchase, formatPrice } from '@/hooks/usePurchase'
+import { IS_DEMO_MODE } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils/cn'
 import type { PricingType } from '@/stores/marketplaceStore'
 
@@ -120,9 +121,11 @@ export function PurchaseButton({
       {error && (
         <span className="text-xs text-center text-red-500">{error}</span>
       )}
-      <span className="text-xs text-center text-gray-400">
-        데모 모드: 실제 결제 없이 구매됩니다
-      </span>
+      {IS_DEMO_MODE && (
+        <span className="text-xs text-center text-gray-400">
+          데모 모드: 실제 결제 없이 구매됩니다
+        </span>
+      )}
     </div>
   )
 }

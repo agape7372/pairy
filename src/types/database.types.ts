@@ -39,6 +39,8 @@ export type SubscriptionTierServer = 'free' | 'premium'
 /** 결제 상태(payments.status enum — 20260712000003) */
 export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'canceled'
 
+export type PayoutStatus = 'pending' | 'processing' | 'completed' | 'rejected'
+
 export interface Database {
   public: {
     Tables: {
@@ -53,6 +55,8 @@ export interface Database {
           amount: number
           status: PaymentStatus
           grant_days: number
+          /** 결제 대상 틀 (null = 구독 결제, M4) */
+          template_id: string | null
           created_at: string
           updated_at: string
         }
@@ -65,6 +69,7 @@ export interface Database {
           amount: number
           status?: PaymentStatus
           grant_days?: number
+          template_id?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -77,8 +82,46 @@ export interface Database {
           amount?: number
           status?: PaymentStatus
           grant_days?: number
+          template_id?: string | null
           created_at?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      /** 정산 신청 서버 원장 (20260712000009, M4/C-4) */
+      payout_requests: {
+        Row: {
+          id: string
+          user_id: string
+          amount: number
+          bank_name: string
+          account_number: string
+          account_holder: string
+          status: PayoutStatus
+          processed_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          amount: number
+          bank_name: string
+          account_number: string
+          account_holder: string
+          status?: PayoutStatus
+          processed_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          amount?: number
+          bank_name?: string
+          account_number?: string
+          account_holder?: string
+          status?: PayoutStatus
+          processed_at?: string | null
+          created_at?: string
         }
         Relationships: []
       }
@@ -254,6 +297,115 @@ export interface Database {
             foreignKeyName: 'character_relationships_character_b_fkey'
             columns: ['character_b_id']
             referencedRelation: 'characters'
+            referencedColumns: ['id']
+          }
+        ]
+      }
+      /** 자료 허브 게시글 테이블 (M5, 20260712000010) */
+      resources: {
+        Row: {
+          id: string
+          author_id: string
+          title: string
+          description: string
+          category: string
+          tags: string[]
+          license: string
+          price: number
+          thumbnail_url: string | null
+          file_url: string | null
+          file_name: string | null
+          file_size_kb: number | null
+          external_url: string | null
+          view_count: number
+          download_count: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          author_id: string
+          title: string
+          description?: string
+          category: string
+          tags?: string[]
+          license?: string
+          price?: number
+          thumbnail_url?: string | null
+          file_url?: string | null
+          file_name?: string | null
+          file_size_kb?: number | null
+          external_url?: string | null
+          view_count?: number
+          download_count?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          author_id?: string
+          title?: string
+          description?: string
+          category?: string
+          tags?: string[]
+          license?: string
+          price?: number
+          thumbnail_url?: string | null
+          file_url?: string | null
+          file_name?: string | null
+          file_size_kb?: number | null
+          external_url?: string | null
+          view_count?: number
+          download_count?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'resources_author_id_fkey'
+            columns: ['author_id']
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          }
+        ]
+      }
+      /** 라이브러리 폴더 테이블 (M3) */
+      library_folders: {
+        Row: {
+          id: string
+          user_id: string
+          /** 폴더 이름 (최대 50자) */
+          name: string
+          /** 폴더 이모지 */
+          emoji: string
+          /** 듀오 공유 폴더 여부 (duo 동결 중 — 예약 컬럼) */
+          is_shared: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          name: string
+          emoji?: string
+          is_shared?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          name?: string
+          emoji?: string
+          is_shared?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'library_folders_user_id_fkey'
+            columns: ['user_id']
+            referencedRelation: 'profiles'
             referencedColumns: ['id']
           }
         ]
@@ -799,6 +951,20 @@ export type CharacterWithRelations = Character & {
 export type CharacterWithMetadata = Omit<Character, 'metadata'> & {
   metadata: CharacterMetadata
 }
+
+// ============================================
+// 라이브러리 폴더 헬퍼 타입 (M3)
+// ============================================
+
+export type ResourceRow = Database['public']['Tables']['resources']['Row']
+export type ResourceInsert = Database['public']['Tables']['resources']['Insert']
+
+export type LibraryFolder = Database['public']['Tables']['library_folders']['Row']
+export type LibraryFolderInsert = Database['public']['Tables']['library_folders']['Insert']
+export type LibraryFolderUpdate = Database['public']['Tables']['library_folders']['Update']
+
+/** 폴더 이름 최대 길이 (DB check 와 일치) */
+export const FOLDER_NAME_MAX_LENGTH = 50
 
 // ============================================
 // 작품 공유 관련 헬퍼 타입

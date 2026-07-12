@@ -5,7 +5,8 @@
  * 협업 세션 초대 코드 및 링크 공유
  */
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
+import QRCode from 'qrcode'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   X,
@@ -38,10 +39,21 @@ export function InviteShareModal({
 }: InviteShareModalProps) {
   const [copied, setCopied] = useState<'code' | 'link' | null>(null)
   const [showQR, setShowQR] = useState(false)
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null)
 
   const inviteLink = typeof window !== 'undefined'
     ? `${window.location.origin}/collab/${inviteCode}`
     : `/collab/${inviteCode}`
+
+  // QR 실 생성 (M6) — 열 때 한 번 생성, 링크 바뀌면 갱신
+  useEffect(() => {
+    if (!showQR) return
+    let cancelled = false
+    QRCode.toDataURL(inviteLink, { width: 320, margin: 1 })
+      .then((url) => { if (!cancelled) setQrDataUrl(url) })
+      .catch(() => { if (!cancelled) setQrDataUrl(null) })
+    return () => { cancelled = true }
+  }, [showQR, inviteLink])
 
   const copyToClipboard = useCallback(async (text: string, type: 'code' | 'link') => {
     try {
@@ -69,16 +81,26 @@ export function InviteShareModal({
     }
   }, [inviteCode, inviteLink])
 
-  const shareViaKakao = useCallback(() => {
-    // 카카오톡 공유 (카카오 SDK 필요)
-    if (typeof window !== 'undefined' && (window as Window & { Kakao?: unknown }).Kakao) {
-      // TODO: 카카오톡 SDK 연동
-    } else {
-      // 카카오톡 URL 스킴 사용
-      const kakaoUrl = `https://story.kakao.com/share?url=${encodeURIComponent(inviteLink)}`
-      window.open(kakaoUrl, '_blank')
+  // 카카오톡 공유 — SDK(앱 키) 없이는 직접 열기가 불가.
+  // 모바일이면 OS 공유 시트(카카오톡 선택 가능), 아니면 링크 복사로 정직하게 안내.
+  const [kakaoHint, setKakaoHint] = useState(false)
+  const shareViaKakao = useCallback(async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: '페어리 협업 초대',
+          text: `함께 페어틀을 만들어요! 초대 코드: ${inviteCode}`,
+          url: inviteLink,
+        })
+        return
+      } catch (err) {
+        if ((err as Error).name === 'AbortError') return
+      }
     }
-  }, [inviteLink])
+    await copyToClipboard(inviteLink, 'link')
+    setKakaoHint(true)
+    setTimeout(() => setKakaoHint(false), 3000)
+  }, [inviteCode, inviteLink, copyToClipboard])
 
   if (!isOpen) return null
 
@@ -195,7 +217,14 @@ export function InviteShareModal({
               />
             </div>
 
-            {/* QR 코드 */}
+            {/* 카카오톡 폴백 안내 */}
+            {kakaoHint && (
+              <p className="text-xs text-center text-gray-500 -mt-2">
+                링크를 복사했어요 — 카카오톡에 붙여넣어 공유하세요
+              </p>
+            )}
+
+            {/* QR 코드 (실 생성, M6) */}
             <AnimatePresence>
               {showQR && (
                 <motion.div
@@ -205,10 +234,14 @@ export function InviteShareModal({
                   className="overflow-hidden"
                 >
                   <div className="p-4 bg-white border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center">
-                    {/* 간단한 QR 코드 플레이스홀더 - 실제로는 qrcode 라이브러리 사용 */}
-                    <div className="w-40 h-40 bg-gray-100 rounded-lg flex items-center justify-center">
-                      <QrCode className="w-20 h-20 text-gray-300" />
-                    </div>
+                    {qrDataUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element -- data URL QR, next/image 불필요
+                      <img src={qrDataUrl} alt={`초대 링크 QR 코드 (${inviteLink})`} className="w-40 h-40 rounded-lg" />
+                    ) : (
+                      <div className="w-40 h-40 bg-gray-100 rounded-lg flex items-center justify-center">
+                        <QrCode className="w-20 h-20 text-gray-300 animate-pulse" />
+                      </div>
+                    )}
                     <p className="text-sm text-gray-500 mt-2">
                       QR 코드를 스캔하여 참여
                     </p>

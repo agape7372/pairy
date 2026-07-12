@@ -1,7 +1,8 @@
 'use client'
 
-import { useMemo } from 'react'
-import { useMarketplaceStore, Sale, PayoutRequest } from '@/stores/marketplaceStore'
+import { useEffect, useMemo, useState } from 'react'
+import { createClient, IS_DEMO_MODE } from '@/lib/supabase/client'
+import { useMarketplaceStore, PayoutRequest } from '@/stores/marketplaceStore'
 
 export interface CreatorStats {
   totalEarnings: number
@@ -23,9 +24,86 @@ export interface MonthlyData {
 
 export function useCreatorEarnings() {
   const sales = useMarketplaceStore((state) => state.sales)
-  const payoutRequests = useMarketplaceStore((state) => state.payoutRequests)
-  const requestPayout = useMarketplaceStore((state) => state.requestPayout)
+  const demoPayoutRequests = useMarketplaceStore((state) => state.payoutRequests)
+  const demoRequestPayout = useMarketplaceStore((state) => state.requestPayout)
   const getMonthlySalesData = useMarketplaceStore((state) => state.getMonthlySalesData)
+
+  // 프로덕션: 정산 신청은 서버 원장(payout_requests, M4/C-4)
+  const [serverPayoutRequests, setServerPayoutRequests] = useState<PayoutRequest[]>([])
+
+  useEffect(() => {
+    if (IS_DEMO_MODE) return
+    let cancelled = false
+    ;(async () => {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user || cancelled) return
+      const { data } = await supabase
+        .from('payout_requests')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+      if (cancelled || !data) return
+      setServerPayoutRequests(data.map((row) => ({
+        id: row.id,
+        amount: row.amount,
+        status: row.status,
+        requestedAt: row.created_at,
+        processedAt: row.processed_at,
+        bankInfo: {
+          bankName: row.bank_name,
+          accountNumber: row.account_number,
+          accountHolder: row.account_holder,
+        },
+      })))
+    })()
+    return () => { cancelled = true }
+  }, [])
+
+  const payoutRequests = IS_DEMO_MODE ? demoPayoutRequests : serverPayoutRequests
+
+  /** 정산 신청 — 프로덕션은 서버 원장 insert, 데모는 localStorage. 성공 여부 반환. */
+  const requestPayout = async (
+    amount: number,
+    bankInfo: PayoutRequest['bankInfo']
+  ): Promise<boolean> => {
+    if (IS_DEMO_MODE) {
+      demoRequestPayout(amount, bankInfo)
+      return true
+    }
+
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return false
+
+      const { data, error } = await supabase
+        .from('payout_requests')
+        .insert({
+          user_id: user.id,
+          amount,
+          bank_name: bankInfo.bankName,
+          account_number: bankInfo.accountNumber,
+          account_holder: bankInfo.accountHolder,
+        })
+        .select()
+        .single()
+
+      if (error || !data) return false
+
+      setServerPayoutRequests((prev) => [{
+        id: data.id,
+        amount: data.amount,
+        status: data.status,
+        requestedAt: data.created_at,
+        processedAt: data.processed_at,
+        bankInfo,
+      }, ...prev])
+      return true
+    } catch {
+      return false
+    }
+  }
 
   const stats: CreatorStats = useMemo(() => {
     const now = new Date()

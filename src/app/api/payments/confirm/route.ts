@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
   // pending 결제 조회 — 소유자·금액을 서버 기록과 대조(클라 값 신뢰 안 함).
   const { data: payment } = await admin
     .from('payments')
-    .select('id, user_id, amount, status, grant_days')
+    .select('id, user_id, amount, status, grant_days, template_id')
     .eq('order_id', orderId)
     .maybeSingle()
 
@@ -38,7 +38,12 @@ export async function POST(req: NextRequest) {
   }
   // 멱등: 이미 확정된 주문이면 부여 반복 없이 성공만 반환.
   if (payment.status === 'paid') {
-    return NextResponse.json({ ok: true, alreadyProcessed: true })
+    return NextResponse.json({
+      ok: true,
+      alreadyProcessed: true,
+      kind: payment.template_id ? 'template' : 'subscription',
+      templateId: payment.template_id ?? undefined,
+    })
   }
   // 금액 위조 차단: 클라가 보낸 amount 도, Toss 로 보낼 amount 도 서버 기록값으로 강제.
   if (payment.amount !== amount) {
@@ -70,6 +75,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: '결제 기록 갱신 실패' }, { status: 500 })
   }
 
+  // ── 부여: 단건구매면 purchases 확정 기록, 아니면 구독 부여 ──
+  if (payment.template_id) {
+    // pending→paid 가드로 exactly-once, unique index 는 이중 안전망
+    const { error: purchaseError } = await admin.from('purchases').insert({
+      buyer_id: user.id,
+      template_id: payment.template_id,
+      amount: payment.amount,
+      currency: 'KRW',
+      status: 'completed',
+    })
+    // 23505(unique) = 이미 기록됨 — 멱등 성공으로 취급
+    if (purchaseError && purchaseError.code !== '23505') {
+      return NextResponse.json({ error: '구매 기록 저장 실패' }, { status: 500 })
+    }
+    return NextResponse.json({ ok: true, kind: 'template', templateId: payment.template_id })
+  }
+
   const { error: grantError } = await admin.rpc('grant_subscription', {
     p_uid: user.id,
     p_days: payment.grant_days,
@@ -78,5 +100,5 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: '구독 부여 실패' }, { status: 500 })
   }
 
-  return NextResponse.json({ ok: true })
+  return NextResponse.json({ ok: true, kind: 'subscription' })
 }

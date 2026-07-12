@@ -37,6 +37,8 @@ import {
   deleteCustomTemplate,
   type CustomTemplate,
 } from '@/lib/utils/customTemplateStorage'
+import { useResources } from '@/hooks/useResources'
+import { IS_DEMO_MODE } from '@/lib/supabase/client'
 
 // 카테고리 아이콘 매핑
 const categoryIcons: Record<ResourceCategory, typeof Image> = {
@@ -338,10 +340,14 @@ export default function ResourceHubPage() {
     setSelectedTags([])
   }
 
+  // 자료 목록 — 프로덕션: 서버 resources(M5) / 데모: 샘플
+  const { resources: serverResources } = useResources()
+  const allResources = IS_DEMO_MODE ? sampleResources : serverResources
+
   // 필터링 및 정렬
   const filteredResources = useMemo(() => {
     // 필터링
-    const filtered = sampleResources.filter((resource) => {
+    const filtered = allResources.filter((resource) => {
       const matchesSearch =
         searchQuery === '' ||
         resource.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -376,7 +382,7 @@ export default function ResourceHubPage() {
           return bScore - aScore
       }
     })
-  }, [searchQuery, selectedCategory, selectedTags, sortBy])
+  }, [allResources, searchQuery, selectedCategory, selectedTags, sortBy])
 
   // 필터 초기화
   const resetFilters = () => {

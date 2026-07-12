@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import {
   Folder,
@@ -17,23 +17,18 @@ import {
   Sparkles,
   HardDrive,
   CheckCircle,
+  Pencil,
+  Trash2,
+  X,
 } from 'lucide-react'
-import { Button, useToast } from '@/components/ui'
+import { Button, useToast, EmptyState } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
 import { useSubscriptionStore, TIER_LIMITS, PRICING } from '@/stores/subscriptionStore'
+import { useLibraryFolders } from '@/hooks/useLibraryFolders'
 import { RESOURCE_CATEGORIES, type ResourceCategory } from '@/types/resources'
+import { FOLDER_NAME_MAX_LENGTH, type LibraryFolder } from '@/types/database.types'
 
-// 폴더 타입
-interface LibraryFolder {
-  id: string
-  name: string
-  emoji: string
-  itemCount: number
-  isShared: boolean // 듀오 공유 폴더
-  createdAt: string
-}
-
-// 다운로드 기록 타입
+// 다운로드 기록 타입 (실 배선은 M5 resources — 그때까지 빈 목록)
 interface DownloadItem {
   id: string
   resourceId: string
@@ -44,62 +39,10 @@ interface DownloadItem {
   folderId: string | null
 }
 
-// 샘플 폴더 데이터
-const sampleFolders: LibraryFolder[] = [
-  { id: '1', name: '커플 자료', emoji: '💕', itemCount: 12, isShared: false, createdAt: '2025-01-25' },
-  { id: '2', name: '트레이싱', emoji: '✏️', itemCount: 8, isShared: false, createdAt: '2025-01-20' },
-  { id: '3', name: 'TRPG 세션', emoji: '🎲', itemCount: 5, isShared: true, createdAt: '2025-01-15' },
-  { id: '4', name: '배경 모음', emoji: '🌸', itemCount: 15, isShared: false, createdAt: '2025-01-10' },
-]
+const downloads: DownloadItem[] = [] // 다운로드 이력 실 배선은 M5(resources)
 
-// 샘플 다운로드 기록
-const sampleDownloads: DownloadItem[] = [
-  {
-    id: '1',
-    resourceId: '1',
-    resourceTitle: '커플 프로필 틀',
-    resourceCategory: 'pairtl',
-    creatorName: '딸기크림',
-    downloadedAt: '2025-01-28T10:30:00',
-    folderId: '1',
-  },
-  {
-    id: '2',
-    resourceId: '3',
-    resourceTitle: '전신 포즈 트레틀',
-    resourceCategory: 'tretle',
-    creatorName: '문라이트',
-    downloadedAt: '2025-01-27T15:20:00',
-    folderId: '2',
-  },
-  {
-    id: '3',
-    resourceId: '2',
-    resourceTitle: '벚꽃 이메레스 세트',
-    resourceCategory: 'imeres',
-    creatorName: '체리블라썸',
-    downloadedAt: '2025-01-26T09:15:00',
-    folderId: '4',
-  },
-  {
-    id: '4',
-    resourceId: '4',
-    resourceTitle: 'TRPG 캐릭터 시트',
-    resourceCategory: 'sessionlog',
-    creatorName: '다이스마스터',
-    downloadedAt: '2025-01-25T14:45:00',
-    folderId: '3',
-  },
-  {
-    id: '5',
-    resourceId: '5',
-    resourceTitle: '친구 관계도',
-    resourceCategory: 'pairtl',
-    creatorName: '페어리',
-    downloadedAt: '2025-01-24T11:00:00',
-    folderId: null,
-  },
-]
+// 폴더 이모지 선택지
+const FOLDER_EMOJIS = ['📁', '🎨', '💕', '⭐', '🌸', '🎀', '📌', '✨'] as const
 
 // 상대 시간 포맷
 function formatRelativeTime(dateStr: string): string {
@@ -114,27 +57,193 @@ function formatRelativeTime(dateStr: string): string {
   return date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })
 }
 
+// ============================================
+// 폴더 생성/이름변경 모달
+// ============================================
+
+interface FolderModalProps {
+  mode: 'create' | 'rename'
+  initialName?: string
+  initialEmoji?: string
+  isSaving: boolean
+  onClose: () => void
+  onSubmit: (name: string, emoji: string) => void
+}
+
+// 조건부 렌더 + key 로 마운트 시점에 초기값 주입 (effect 내 setState 회피)
+function FolderModal({
+  mode,
+  initialName = '',
+  initialEmoji = '📁',
+  isSaving,
+  onClose,
+  onSubmit,
+}: FolderModalProps) {
+  const [name, setName] = useState(initialName)
+  const [emoji, setEmoji] = useState(initialEmoji)
+
+  const canSubmit = name.trim().length > 0 && name.trim().length <= FOLDER_NAME_MAX_LENGTH && !isSaving
+
+  return (
+    <>
+      <div
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 animate-fade-in"
+        onClick={onClose}
+      />
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+        <div className="w-full max-w-sm bg-white rounded-2xl shadow-xl p-6 pointer-events-auto animate-fade-in">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-gray-900">
+              {mode === 'create' ? '새 폴더' : '폴더 이름 변경'}
+            </h2>
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+              aria-label="닫기"
+            >
+              <X className="w-4 h-4 text-gray-500" />
+            </button>
+          </div>
+
+          {/* 이모지 선택 */}
+          <div className="flex items-center gap-1.5 mb-4 flex-wrap">
+            {FOLDER_EMOJIS.map((e) => (
+              <button
+                key={e}
+                onClick={() => setEmoji(e)}
+                className={cn(
+                  'w-9 h-9 rounded-lg text-lg flex items-center justify-center transition-colors',
+                  emoji === e
+                    ? 'bg-primary-100 ring-2 ring-primary-400'
+                    : 'bg-gray-50 hover:bg-gray-100'
+                )}
+                aria-label={`이모지 ${e}`}
+              >
+                {e}
+              </button>
+            ))}
+          </div>
+
+          <input
+            autoFocus
+            type="text"
+            placeholder="폴더 이름"
+            value={name}
+            maxLength={FOLDER_NAME_MAX_LENGTH}
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && canSubmit) onSubmit(name.trim(), emoji)
+              if (e.key === 'Escape') onClose()
+            }}
+            className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 mb-4"
+          />
+
+          <div className="flex items-center justify-end gap-2">
+            <Button variant="ghost" size="sm" onClick={onClose}>
+              취소
+            </Button>
+            <Button
+              size="sm"
+              disabled={!canSubmit}
+              onClick={() => onSubmit(name.trim(), emoji)}
+            >
+              {isSaving ? '저장 중...' : mode === 'create' ? '만들기' : '변경'}
+            </Button>
+          </div>
+        </div>
+      </div>
+    </>
+  )
+}
+
+// ============================================
+// 페이지
+// ============================================
+
 export default function MyLibraryPage() {
   const { subscription } = useSubscriptionStore()
   const limits = TIER_LIMITS[subscription.tier]
   const toast = useToast()
+  const { folders, isLoading, createFolder, renameFolder, deleteFolder } = useLibraryFolders()
 
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [activeTab, setActiveTab] = useState<'folders' | 'downloads' | 'favorites'>('folders')
   const [searchQuery, setSearchQuery] = useState('')
-  const [, setShowNewFolderModal] = useState(false)
+  const [modalState, setModalState] = useState<
+    | { mode: 'create' }
+    | { mode: 'rename'; folder: LibraryFolder }
+    | null
+  >(null)
+  const [isSaving, setIsSaving] = useState(false)
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null)
+  const [menuFolderId, setMenuFolderId] = useState<string | null>(null)
 
-  // 스토리지 사용량 계산 (데모)
-  const usedStorageMB = 156
+  // ⋮ 메뉴 바깥 클릭 시 닫기
+  useEffect(() => {
+    if (!menuFolderId) return
+    const close = () => setMenuFolderId(null)
+    document.addEventListener('click', close)
+    return () => document.removeEventListener('click', close)
+  }, [menuFolderId])
+
+  // 스토리지 사용량 — 실 집계는 M5(리소스/스토리지 배선) 후. 그때까지 0 표기(가짜 수치 금지)
+  const usedStorageMB = 0
   const maxStorageMB = limits.cloudStorageMB
 
-  // 폴더 수 제한 체크
-  const canCreateFolder = sampleFolders.length < limits.maxLibraryFolders
+  // 폴더 수 제한 (UX 용 — 서버 트리거가 최종 강제)
+  const canCreateFolder = folders.length < limits.maxLibraryFolders
 
   // 듀오 구독 체크
   const isDuo = subscription.tier === 'duo'
   const duoPartner = subscription.duoPartner
+
+  // 검색 필터
+  const query = searchQuery.trim().toLowerCase()
+  const filteredFolders = query
+    ? folders.filter((f) => f.name.toLowerCase().includes(query))
+    : folders
+  const filteredDownloads = query
+    ? downloads.filter(
+        (d) =>
+          d.resourceTitle.toLowerCase().includes(query) ||
+          d.creatorName.toLowerCase().includes(query)
+      )
+    : downloads
+
+  // 모달 제출
+  const handleModalSubmit = async (name: string, emoji: string) => {
+    if (!modalState) return
+    setIsSaving(true)
+    try {
+      if (modalState.mode === 'create') {
+        const created = await createFolder(name, emoji)
+        if (created) {
+          toast.success('폴더를 만들었어요!')
+          setModalState(null)
+        } else {
+          toast.error('폴더 생성에 실패했어요. 로그인 상태를 확인해주세요.')
+        }
+      } else {
+        const ok = await renameFolder(modalState.folder.id, name)
+        if (ok) {
+          toast.success('폴더 이름을 변경했어요!')
+          setModalState(null)
+        } else {
+          toast.error('이름 변경에 실패했어요.')
+        }
+      }
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  // 폴더 삭제
+  const handleDelete = async (folder: LibraryFolder) => {
+    if (!window.confirm(`'${folder.name}' 폴더를 삭제할까요?`)) return
+    const ok = await deleteFolder(folder.id)
+    if (ok) toast.success('폴더를 삭제했어요.')
+    else toast.error('폴더 삭제에 실패했어요.')
+  }
 
   return (
     <div className="py-8 px-4 animate-fade-in">
@@ -223,7 +332,7 @@ export default function MyLibraryPage() {
                   {duoPartner.displayName}님과 함께하는 서재
                 </h3>
                 <p className="text-sm text-gray-500">
-                  공유 폴더 {sampleFolders.filter(f => f.isShared).length}개 · 듀오 크레딧 {subscription.duoCredits}개
+                  공유 폴더 {folders.filter(f => f.is_shared).length}개 · 듀오 크레딧 {subscription.duoCredits}개
                 </p>
               </div>
             </div>
@@ -233,9 +342,9 @@ export default function MyLibraryPage() {
         {/* Tabs */}
         <div className="flex items-center gap-1 mb-6 border-b border-gray-200">
           {[
-            { id: 'folders', label: '폴더', icon: Folder, count: sampleFolders.length },
-            { id: 'downloads', label: '다운로드', icon: Download, count: sampleDownloads.length },
-            { id: 'favorites', label: '즐겨찾기', icon: Heart, count: 7 },
+            { id: 'folders', label: '폴더', icon: Folder, count: folders.length },
+            { id: 'downloads', label: '다운로드', icon: Download, count: downloads.length },
+            { id: 'favorites', label: '즐겨찾기', icon: Heart, count: 0 },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -262,14 +371,14 @@ export default function MyLibraryPage() {
             {/* Folders Header */}
             <div className="flex items-center justify-between mb-4">
               <p className="text-sm text-gray-500">
-                {sampleFolders.length}개 폴더
+                {folders.length}개 폴더
                 {limits.maxLibraryFolders !== Infinity && (
                   <span className="text-gray-400"> / 최대 {limits.maxLibraryFolders}개</span>
                 )}
               </p>
               <Button
                 size="sm"
-                onClick={() => setShowNewFolderModal(true)}
+                onClick={() => setModalState({ mode: 'create' })}
                 disabled={!canCreateFolder}
               >
                 <FolderPlus className="w-4 h-4 mr-1" />
@@ -284,7 +393,7 @@ export default function MyLibraryPage() {
                 ? 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4'
                 : 'flex flex-col'
             )}>
-              {sampleFolders.map((folder) => (
+              {filteredFolders.map((folder) => (
                 <div
                   key={folder.id}
                   onClick={() => setSelectedFolder(folder.id)}
@@ -307,12 +416,12 @@ export default function MyLibraryPage() {
                       <h3 className="font-semibold text-gray-900 line-clamp-1">
                         {folder.name}
                       </h3>
-                      {folder.isShared && (
+                      {folder.is_shared && (
                         <Users className="w-3.5 h-3.5 text-pink-500" />
                       )}
                     </div>
                     <p className="text-xs text-gray-500">
-                      {folder.itemCount}개 항목
+                      {formatRelativeTime(folder.created_at)} 생성
                     </p>
                   </div>
 
@@ -320,22 +429,56 @@ export default function MyLibraryPage() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation()
-                      // 폴더 메뉴 열기
+                      setMenuFolderId(menuFolderId === folder.id ? null : folder.id)
                     }}
                     className={cn(
                       'p-1.5 rounded-lg hover:bg-gray-100 opacity-0 group-hover:opacity-100 transition-opacity',
+                      menuFolderId === folder.id && 'opacity-100 bg-gray-100',
                       viewMode === 'grid' ? 'absolute top-3 right-3' : ''
                     )}
+                    aria-label="폴더 메뉴"
                   >
                     <MoreVertical className="w-4 h-4 text-gray-500" />
                   </button>
+
+                  {/* ⋮ 드롭다운 메뉴 */}
+                  {menuFolderId === folder.id && (
+                    <div
+                      onClick={(e) => e.stopPropagation()}
+                      className={cn(
+                        'absolute z-10 w-36 bg-white rounded-xl border border-gray-200 shadow-lg py-1 animate-fade-in',
+                        viewMode === 'grid' ? 'top-10 right-3' : 'top-12 right-3'
+                      )}
+                    >
+                      <button
+                        onClick={() => {
+                          setMenuFolderId(null)
+                          setModalState({ mode: 'rename', folder })
+                        }}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                        이름 변경
+                      </button>
+                      <button
+                        onClick={() => {
+                          setMenuFolderId(null)
+                          handleDelete(folder)
+                        }}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        삭제
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
 
               {/* Create Folder Card */}
-              {canCreateFolder && viewMode === 'grid' && (
+              {canCreateFolder && viewMode === 'grid' && !query && (
                 <button
-                  onClick={() => setShowNewFolderModal(true)}
+                  onClick={() => setModalState({ mode: 'create' })}
                   className="p-4 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-300 hover:border-primary-400 hover:bg-primary-50 transition-all group"
                 >
                   <div className="w-full aspect-square flex flex-col items-center justify-center">
@@ -347,6 +490,16 @@ export default function MyLibraryPage() {
                 </button>
               )}
             </div>
+
+            {/* 검색 결과 없음 */}
+            {query && filteredFolders.length === 0 && !isLoading && (
+              <EmptyState
+                compact
+                icon={Search}
+                title="검색 결과가 없어요"
+                description={`'${searchQuery}' 와 일치하는 폴더가 없습니다`}
+              />
+            )}
 
             {/* Folder Limit Warning */}
             {!canCreateFolder && (
@@ -363,8 +516,18 @@ export default function MyLibraryPage() {
         )}
 
         {activeTab === 'downloads' && (
+          filteredDownloads.length === 0 ? (
+            <EmptyState
+              compact
+              icon={Download}
+              title="다운로드 기록이 없어요"
+              description="자료 허브에서 다운로드한 자료가 여기에 표시됩니다"
+              actionLabel="자료 허브 둘러보기"
+              actionHref="/templates"
+            />
+          ) : (
           <div className="space-y-3">
-            {sampleDownloads.map((item) => {
+            {filteredDownloads.map((item) => {
               const categoryInfo = RESOURCE_CATEGORIES[item.resourceCategory]
               return (
                 <Link
@@ -403,7 +566,7 @@ export default function MyLibraryPage() {
                       {item.folderId && (
                         <span className="flex items-center gap-1">
                           <Folder className="w-3 h-3" />
-                          {sampleFolders.find(f => f.id === item.folderId)?.name}
+                          {folders.find(f => f.id === item.folderId)?.name}
                         </span>
                       )}
                     </div>
@@ -425,6 +588,7 @@ export default function MyLibraryPage() {
               )
             })}
           </div>
+          )
         )}
 
         {activeTab === 'favorites' && (
@@ -484,6 +648,19 @@ export default function MyLibraryPage() {
           </div>
         )}
       </div>
+
+      {/* 폴더 생성/이름변경 모달 */}
+      {modalState && (
+        <FolderModal
+          key={modalState.mode === 'rename' ? `rename-${modalState.folder.id}` : 'create'}
+          mode={modalState.mode}
+          initialName={modalState.mode === 'rename' ? modalState.folder.name : ''}
+          initialEmoji={modalState.mode === 'rename' ? modalState.folder.emoji : '📁'}
+          isSaving={isSaving}
+          onClose={() => setModalState(null)}
+          onSubmit={handleModalSubmit}
+        />
+      )}
     </div>
   )
 }

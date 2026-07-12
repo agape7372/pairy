@@ -187,6 +187,10 @@ export interface Resource {
   thumbnailUrl: string
   previewUrls: string[]
 
+  // 실 다운로드 대상 (M5 서버 자료 — 샘플엔 없음)
+  downloadUrl?: string
+  externalUrl?: string
+
   // 메타데이터
   createdAt: string
   updatedAt: string
