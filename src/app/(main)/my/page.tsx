@@ -77,6 +77,7 @@ export default function MyProfilePage() {
             shape="circle"
             size="lg"
             placeholder="사진 추가"
+            enableCrop
           />
           <div className="flex-1">
             <p className="text-sm text-gray-600 mb-2">

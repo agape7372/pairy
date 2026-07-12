@@ -1,8 +1,9 @@
 'use client'
 
-import { useRef, useState, useCallback } from 'react'
+import { useRef, useState, useCallback, useEffect } from 'react'
 import { Upload, X, Loader2, Image as ImageIcon } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
+import { AvatarCropModal } from './avatar-crop-modal'
 
 interface ImageUploadProps {
   value?: string | null
@@ -13,6 +14,8 @@ interface ImageUploadProps {
   shape?: 'square' | 'circle'
   size?: 'sm' | 'md' | 'lg'
   disabled?: boolean
+  /** 업로드 전 크롭·줌·위치조정 모달을 띄운다(프로필/캐릭터 사진용) */
+  enableCrop?: boolean
 }
 
 export function ImageUpload({
@@ -24,11 +27,19 @@ export function ImageUpload({
   shape = 'square',
   size = 'md',
   disabled = false,
+  enableCrop = false,
 }: ImageUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [dragActive, setDragActive] = useState(false)
+  // 크롭 대상 원본(objectURL). 설정되면 크롭 모달이 뜬다.
+  const [cropState, setCropState] = useState<{ src: string; name: string } | null>(null)
+
+  // 크롭 모달이 닫힐 때 objectURL 해제(메모리 누수 방지)
+  useEffect(() => {
+    return () => { if (cropState) URL.revokeObjectURL(cropState.src) }
+  }, [cropState])
 
   const sizes = {
     sm: 'w-20 h-20',
@@ -54,12 +65,32 @@ export function ImageUpload({
     }
   }, [onUpload, onChange])
 
+  // 파일 선택 → 크롭 활성 시 모달, 아니면 바로 업로드
+  const acceptFile = useCallback((file: File) => {
+    if (enableCrop) {
+      setError(null)
+      setCropState({ src: URL.createObjectURL(file), name: file.name })
+    } else {
+      handleFile(file)
+    }
+  }, [enableCrop, handleFile])
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      handleFile(file)
+      acceptFile(file)
     }
+    // 같은 파일 재선택 허용
+    e.target.value = ''
   }
+
+  const handleCropped = useCallback((file: File) => {
+    setCropState((prev) => {
+      if (prev) URL.revokeObjectURL(prev.src)
+      return null
+    })
+    handleFile(file)
+  }, [handleFile])
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault()
@@ -81,7 +112,7 @@ export function ImageUpload({
 
     const file = e.dataTransfer.files?.[0]
     if (file && file.type.startsWith('image/')) {
-      handleFile(file)
+      acceptFile(file)
     } else {
       setError('이미지 파일만 업로드할 수 있습니다.')
     }
@@ -162,6 +193,19 @@ export function ImageUpload({
 
       {error && (
         <p className="text-xs text-red-500 mt-1">{error}</p>
+      )}
+
+      {cropState && (
+        <AvatarCropModal
+          imageSrc={cropState.src}
+          fileName={cropState.name}
+          cropShape={shape === 'circle' ? 'round' : 'rect'}
+          onCancel={() => setCropState((prev) => {
+            if (prev) URL.revokeObjectURL(prev.src)
+            return null
+          })}
+          onCropped={handleCropped}
+        />
       )}
     </div>
   )
