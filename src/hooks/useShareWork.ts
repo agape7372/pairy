@@ -432,20 +432,13 @@ export function useShareWork(): UseShareWorkReturn {
 
       const supabase = createClient()
 
-      // 조회수 증가 (단순 read-then-write 방식)
-      // 참고: 동시성 이슈가 발생할 수 있지만, 조회수의 경우 약간의 오차는 허용 가능
-      const { data } = await supabase
-        .from('works')
-        .select('view_count')
-        .eq('share_id', shareId)
-        .single()
+      // 조회수 증가 — SECURITY DEFINER RPC (20260712 마이그레이션).
+      // 익명 방문자는 works UPDATE 권한이 없어(RLS) 기존 read-then-write 는 침묵 실패였음.
+      const { error: rpcError } = await supabase.rpc('increment_share_view', {
+        p_share_id: shareId,
+      })
 
-      if (data) {
-        await supabase
-          .from('works')
-          .update({ view_count: (data.view_count || 0) + 1 })
-          .eq('share_id', shareId)
-      }
+      if (rpcError) throw new Error(rpcError.message)
 
       return true
     } catch (err) {

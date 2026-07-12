@@ -20,7 +20,7 @@ async function fetchSharedWorkForOg(shareId: string) {
       .from('works')
       .select('title, og_image_url, thumbnail_url, share_status')
       .eq('share_id', shareId)
-      .eq('share_status', 'published')
+      .in('share_status', ['unlisted', 'public'])
       .maybeSingle()
     return data
   } catch {
