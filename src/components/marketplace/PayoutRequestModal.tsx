@@ -10,7 +10,8 @@ interface PayoutRequestModalProps {
   isOpen: boolean
   onClose: () => void
   availableAmount: number
-  onSubmit: (amount: number, bankInfo: BankInfo) => void
+  /** 신청 처리 — false 반환 시 실패로 표시 (M4: 서버 원장 기록) */
+  onSubmit: (amount: number, bankInfo: BankInfo) => Promise<boolean> | boolean
 }
 
 interface BankInfo {
@@ -91,11 +92,17 @@ export function PayoutRequestModal({
 
   const handleSubmit = async () => {
     setIsSubmitting(true)
-    // 데모: 1초 지연
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-    onSubmit(amount, bankInfo)
-    setIsSubmitting(false)
-    setStep('success')
+    try {
+      const ok = await onSubmit(amount, bankInfo)
+      if (ok) {
+        setStep('success')
+      } else {
+        setErrors({ amount: '정산 신청에 실패했어요. 잠시 후 다시 시도해주세요.' })
+        setStep('form')
+      }
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const handleClose = () => {

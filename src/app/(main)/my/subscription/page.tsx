@@ -86,7 +86,9 @@ export default function SubscriptionPage() {
   }
 
   const handleCancelSubscription = () => {
-    cancelSubscription()
+    // 데모 전용 — 프로덕션 구독은 일회성 30일(자동결제 없음)이라 "해지"할 결제가 없다.
+    // 서버 진실(profiles.subscription_valid_until)이 만료 시 자동으로 무료 전환.
+    if (isDemoMode) cancelSubscription()
     setShowCancelConfirm(false)
   }
 
@@ -126,21 +128,23 @@ export default function SubscriptionPage() {
               <Button onClick={() => setShowUpgradeModal(true)}>
                 업그레이드
               </Button>
-            ) : (
+            ) : isDemoMode ? (
               <Button
                 variant="outline"
                 onClick={() => setShowCancelConfirm(true)}
               >
                 구독 해지
               </Button>
-            )}
+            ) : null}
           </div>
 
           {/* Subscription Details */}
           {subscription.tier !== 'free' && (
             <div className="pt-4 border-t border-gray-200">
               <p className="text-sm text-gray-500 mb-1">
-                {subscription.isTrialActive ? '체험 종료일' : '다음 결제일'}
+                {subscription.isTrialActive
+                  ? '체험 종료일'
+                  : isDemoMode ? '다음 결제일' : '이용 기간 만료일'}
               </p>
               <p className="font-medium text-gray-900">
                 {formatDate(subscription.isTrialActive
@@ -148,6 +152,11 @@ export default function SubscriptionPage() {
                   : subscription.endDate
                 )}
               </p>
+              {!isDemoMode && !subscription.isTrialActive && (
+                <p className="text-xs text-gray-400 mt-1">
+                  자동 결제가 없어요 — 만료되면 무료 플랜으로 자동 전환됩니다.
+                </p>
+              )}
             </div>
           )}
         </div>

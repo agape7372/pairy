@@ -24,6 +24,8 @@ import {
 import { cn } from '@/lib/utils/cn'
 import { useSubscriptionStore } from '@/stores/subscriptionStore'
 import { useCreatorEarnings, formatCurrency } from '@/hooks/useCreatorEarnings'
+import { useUser } from '@/hooks/useUser'
+import { IS_DEMO_MODE } from '@/lib/supabase/client'
 
 // 내 틀 목록 (목업)
 const myTemplates = [
@@ -61,7 +63,9 @@ const myTemplates = [
 
 export default function CreatorDashboardPage() {
   const { subscription } = useSubscriptionStore()
-  const isCreator = subscription.tier === 'creator'
+  const { isCreator: isServerCreator } = useUser()
+  // 데모: creator 티어 스위처 / 프로덕션: 서버 role 기반 (creator 상품화는 동결, DL-0004)
+  const isCreator = IS_DEMO_MODE ? subscription.tier === 'creator' : isServerCreator
   const { stats, monthlyData, recentSales, payoutRequests, requestPayout } = useCreatorEarnings()
   const [showPayoutModal, setShowPayoutModal] = useState(false)
 
@@ -91,7 +95,7 @@ export default function CreatorDashboardPage() {
   }
 
   const handlePayoutRequest = (amount: number, bankInfo: { bankName: string; accountNumber: string; accountHolder: string }) => {
-    requestPayout(amount, bankInfo)
+    return requestPayout(amount, bankInfo)
   }
 
   return (

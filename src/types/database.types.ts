@@ -39,6 +39,8 @@ export type SubscriptionTierServer = 'free' | 'premium'
 /** 결제 상태(payments.status enum — 20260712000003) */
 export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'canceled'
 
+export type PayoutStatus = 'pending' | 'processing' | 'completed' | 'rejected'
+
 export interface Database {
   public: {
     Tables: {
@@ -53,6 +55,8 @@ export interface Database {
           amount: number
           status: PaymentStatus
           grant_days: number
+          /** 결제 대상 틀 (null = 구독 결제, M4) */
+          template_id: string | null
           created_at: string
           updated_at: string
         }
@@ -65,6 +69,7 @@ export interface Database {
           amount: number
           status?: PaymentStatus
           grant_days?: number
+          template_id?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -77,8 +82,46 @@ export interface Database {
           amount?: number
           status?: PaymentStatus
           grant_days?: number
+          template_id?: string | null
           created_at?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      /** 정산 신청 서버 원장 (20260712000009, M4/C-4) */
+      payout_requests: {
+        Row: {
+          id: string
+          user_id: string
+          amount: number
+          bank_name: string
+          account_number: string
+          account_holder: string
+          status: PayoutStatus
+          processed_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          amount: number
+          bank_name: string
+          account_number: string
+          account_holder: string
+          status?: PayoutStatus
+          processed_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          amount?: number
+          bank_name?: string
+          account_number?: string
+          account_holder?: string
+          status?: PayoutStatus
+          processed_at?: string | null
+          created_at?: string
         }
         Relationships: []
       }
