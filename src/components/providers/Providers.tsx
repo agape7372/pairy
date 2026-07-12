@@ -2,7 +2,7 @@
 
 import { ReactNode } from 'react'
 import { ToastProvider } from '@/components/ui'
-import { ErrorBoundary } from '@/components/common'
+import { ErrorBoundary, DemoModeBanner } from '@/components/common'
 import { useThemeInitializer } from '@/stores/themeStore'
 
 interface ProvidersProps {
@@ -21,6 +21,7 @@ export function Providers({ children }: ProvidersProps) {
       }}
     >
       <ToastProvider>
+        <DemoModeBanner />
         {children}
       </ToastProvider>
     </ErrorBoundary>

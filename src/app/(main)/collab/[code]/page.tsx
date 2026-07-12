@@ -1,11 +1,5 @@
 import CollabJoinClient from '@/components/pages/CollabJoinClient'
 
-export function generateStaticParams() {
-  return [
-    { code: 'DEMO' },
-  ]
-}
-
 interface PageProps {
   params: Promise<{ code: string }>
 }

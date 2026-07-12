@@ -98,8 +98,8 @@ interface CanvasEditorProps {
 // 메인 컴포넌트
 // ============================================
 
-// basePath for GitHub Pages (static export)
-const BASE_PATH = process.env.NODE_ENV === 'production' ? '/pairy' : ''
+// 배포 경로 프리픽스 — Vercel 이전(DL-0001)으로 기본 '' (@/lib/constants 와 동일 규칙)
+const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH || ''
 
 // 사용자 색상 생성
 function generateUserColor(userId: string): string {
