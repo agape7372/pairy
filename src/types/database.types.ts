@@ -258,6 +258,47 @@ export interface Database {
           }
         ]
       }
+      /** 라이브러리 폴더 테이블 (M3) */
+      library_folders: {
+        Row: {
+          id: string
+          user_id: string
+          /** 폴더 이름 (최대 50자) */
+          name: string
+          /** 폴더 이모지 */
+          emoji: string
+          /** 듀오 공유 폴더 여부 (duo 동결 중 — 예약 컬럼) */
+          is_shared: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          name: string
+          emoji?: string
+          is_shared?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          name?: string
+          emoji?: string
+          is_shared?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'library_folders_user_id_fkey'
+            columns: ['user_id']
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          }
+        ]
+      }
       templates: {
         Row: {
           id: string
@@ -799,6 +840,17 @@ export type CharacterWithRelations = Character & {
 export type CharacterWithMetadata = Omit<Character, 'metadata'> & {
   metadata: CharacterMetadata
 }
+
+// ============================================
+// 라이브러리 폴더 헬퍼 타입 (M3)
+// ============================================
+
+export type LibraryFolder = Database['public']['Tables']['library_folders']['Row']
+export type LibraryFolderInsert = Database['public']['Tables']['library_folders']['Insert']
+export type LibraryFolderUpdate = Database['public']['Tables']['library_folders']['Update']
+
+/** 폴더 이름 최대 길이 (DB check 와 일치) */
+export const FOLDER_NAME_MAX_LENGTH = 50
 
 // ============================================
 // 작품 공유 관련 헬퍼 타입
