@@ -3,7 +3,7 @@ User-agent: *
 Allow: /
 
 # Sitemap
-Sitemap: https://pairy.app/sitemap.xml
+Sitemap: https://pairy-six.vercel.app/sitemap.xml
 
 # Disallow editor routes (dynamic content)
 Disallow: /editor/

@@ -1,9 +1,10 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import { Providers } from '@/components/providers/Providers'
+import { SITE_URL } from '@/lib/constants'
 
-// 기본 URL (배포 환경에 맞게 설정)
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://pairy.app'
+// 기본 URL — env(NEXT_PUBLIC_SITE_URL) > Vercel 프로덕션 도메인 > 로컬 (constants 단일 규칙)
+const siteUrl = SITE_URL
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),

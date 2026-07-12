@@ -1,8 +1,18 @@
 # DL-0001 · 정적 export 결별 방향
 
-- 상태: **OPEN (스파이크로 결정 — 사용자 지시 2026-07-05)**
-- 날짜: 2026-07-06
-- 결정권자: Fable (최종 방향은 스파이크 결과 + 사용자 승인)
+- 상태: **CLOSED — 옵션 A(Vercel 이전) 확정·실행 (사용자 승인 2026-07-12)**
+- 날짜: 2026-07-06 (결정 확정·실행: 2026-07-12)
+- 결정권자: Fable (스파이크 권고) + 사용자 (비용 트레이드오프 승인)
+
+## 실행 결과 (2026-07-12)
+
+- 사용자가 옵션 A 승인(비용: Hobby 무료 시작, 수익화 시 Pro 전환 인지). GitHub Pages 데모는 폐기·Vercel 단일화.
+- `output:'export'`·`basePath:'/pairy'`·`trailingSlash` 제거, UGC 동적 라우트 4종(share/collab/creator/templates) 온디맨드 렌더 전환.
+- share OG 는 `generateMetadata` 서버 실데이터(제목/썸네일) + 제네릭 폴백.
+- H-5 동반 해소: 프로덕션 빌드 env 가드 + 데모모드 배너.
+- 배포: Vercel `jirings-projects/pairy`, GitHub 저장소 연동(main push=프로덕션, PR=프리뷰). **프로덕션 도메인: https://pairy-six.vercel.app**.
+- 검증: 임의 실 ID 로 4개 라우트 200 응답(구 Pages 404 소멸), og:url 프로덕션 도메인 반영.
+- 잔여(이 결정 밖): 결제 웹훅 Route Handler 신설(Tier 0 #6), 이미지 최적화(remotePatterns) 별도 결정, 커스텀 도메인.
 
 ## 문제
 페어리는 `output:'export'`(정적 GitHub Pages)인데 UGC·거래 플랫폼을 지향한다. 이 불일치가 4대 치명 중 3개의 뿌리:

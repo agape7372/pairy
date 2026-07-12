@@ -3,7 +3,7 @@
  * Open Redirect 취약점 방지를 위한 검증 로직 포함
  */
 
-import { BASE_PATH } from '@/lib/constants'
+import { SITE_URL, getFullUrl as buildFullUrl } from '@/lib/constants'
 
 /**
  * 허용된 리다이렉트 URL인지 검증합니다.
@@ -50,7 +50,7 @@ export function validateRedirectUrl(url: string | null | undefined, fallback = '
       const parsedUrl = new URL(trimmedUrl)
       const currentOrigin = typeof window !== 'undefined'
         ? window.location.origin
-        : 'https://agape7372.github.io'
+        : new URL(SITE_URL).origin
 
       // 동일 origin인 경우에만 허용
       if (parsedUrl.origin === currentOrigin) {
@@ -102,17 +102,10 @@ function normalizePath(path: string): string | null {
 /**
  * 전체 URL을 생성합니다 (basePath 포함)
  * SSR과 CSR 모두에서 안전하게 동작합니다.
+ * 구현은 @/lib/constants 의 getFullUrl 로 단일화(중복 제거).
  */
 export function getFullUrl(path: string): string {
-  if (path.startsWith('http')) return path
-
-  const cleanPath = path.startsWith('/') ? path : `/${path}`
-
-  if (typeof window !== 'undefined') {
-    return `${window.location.origin}${BASE_PATH}${cleanPath}`
-  }
-
-  return `https://agape7372.github.io${BASE_PATH}${cleanPath}`
+  return buildFullUrl(path)
 }
 
 /**

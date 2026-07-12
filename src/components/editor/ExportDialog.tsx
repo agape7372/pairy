@@ -12,6 +12,7 @@ import {
   generateFilename,
 } from '@/lib/utils/export'
 import { useSubscriptionStore, TIER_LIMITS } from '@/stores/subscriptionStore'
+import { SITE_URL } from '@/lib/constants'
 
 interface ExportDialogProps {
   isOpen: boolean
@@ -64,8 +65,7 @@ export function ExportDialog({
     const text = creatorName
       ? `${templateTitle || '페어리'}로 만든 나의 작품! ✨\n\n틀 by @${creatorName}\n#페어리 #Pairy`
       : `페어리로 만든 나의 작품! ✨\n\n#페어리 #Pairy`
-    const url = 'https://pairy.app'
-    return `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`
+    return `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(SITE_URL)}`
   }
 
   const handleExport = async () => {
