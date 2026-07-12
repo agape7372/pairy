@@ -28,6 +28,7 @@ import {
 } from 'lucide-react'
 import { Button, Tag } from '@/components/ui'
 import { useScrollReveal, useCountUp, useMouseFollow } from '@/hooks/useScrollReveal'
+import { useStartHref } from '@/hooks/useStartHref'
 import { PRICING } from '@/stores/subscriptionStore'
 
 // ============================================
@@ -401,6 +402,7 @@ function PricingCard({ plan, index }: { plan: typeof pricingPlans[0]; index: num
 
 function HeroSection() {
   const { ref, position, isHovering } = useMouseFollow()
+  const startHref = useStartHref()
 
   return (
     <section
@@ -454,7 +456,7 @@ function HeroSection() {
             </Link>
           </Button>
           <Button variant="outline" size="lg" asChild>
-            <Link href="/login">무료로 시작하기</Link>
+            <Link href={startHref}>무료로 시작하기</Link>
           </Button>
         </div>
 
@@ -534,6 +536,7 @@ function HeroSection() {
 
 function CTASection() {
   const { ref, isVisible } = useScrollReveal({ threshold: 0.3 })
+  const startHref = useStartHref()
 
   return (
     <section className="py-12 sm:py-20 px-4">
@@ -567,7 +570,7 @@ function CTASection() {
           </p>
           <div className="flex flex-wrap gap-3 sm:gap-4 justify-center relative">
             <Button size="lg" asChild>
-              <Link href="/login">
+              <Link href={startHref}>
                 무료로 시작하기
                 <ArrowRight className="w-4 sm:w-5 h-4 sm:h-5 ml-2" strokeWidth={1.5} />
               </Link>
@@ -717,7 +720,7 @@ export default function HomeClient() {
                   </Link>
                 </li>
                 <li>
-                  <Link href="/pricing" className="hover:text-primary-400 transition-colors link-underline">
+                  <Link href="/premium" className="hover:text-primary-400 transition-colors link-underline">
                     요금제
                   </Link>
                 </li>
@@ -733,12 +736,12 @@ export default function HomeClient() {
                   </Link>
                 </li>
                 <li>
-                  <Link href="/contact" className="hover:text-primary-400 transition-colors link-underline">
+                  <Link href="/help" className="hover:text-primary-400 transition-colors link-underline">
                     문의하기
                   </Link>
                 </li>
                 <li>
-                  <Link href="/faq" className="hover:text-primary-400 transition-colors link-underline">
+                  <Link href="/help" className="hover:text-primary-400 transition-colors link-underline">
                     FAQ
                   </Link>
                 </li>

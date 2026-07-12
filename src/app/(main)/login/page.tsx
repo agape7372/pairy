@@ -1,8 +1,9 @@
 'use client'
 
-import { Suspense, useState, useCallback, useMemo } from 'react'
+import { Suspense, useState, useCallback, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
+import { useUser } from '@/hooks/useUser'
 import { Mail, Lock, Eye, EyeOff, AlertCircle, CheckCircle, ShieldAlert } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui'
@@ -49,10 +50,18 @@ const LOGIN_RATE_LIMIT = {
 
 function LoginContent() {
   const searchParams = useSearchParams()
+  const { user, isLoading: isUserLoading } = useUser()
 
   // URL 파라미터 안전하게 처리 (Open Redirect 방지)
   const redirectTo = validateRedirectUrl(searchParams.get('redirectTo'))
   const urlError = searchParams.get('error')
+
+  // 이미 로그인한 유저가 로그인 페이지에 오면 목적지로 보낸다(다시 로그인창 뜨는 문제 해소).
+  useEffect(() => {
+    if (!isUserLoading && user) {
+      window.location.href = getFullUrl(redirectTo)
+    }
+  }, [user, isUserLoading, redirectTo])
 
   // 폼 상태
   const [form, setForm] = useState<FormState>({

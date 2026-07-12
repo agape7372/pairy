@@ -40,9 +40,41 @@ interface DeleteModalState {
   error: string | null
 }
 
+// 설정 키 → 기본값
+const SETTING_DEFAULTS: Record<string, boolean> = {
+  'email-notifications': true,
+  'marketing-notifications': false,
+  'profile-public': true,
+  'work-public': false,
+}
+
 export default function MySettingsPage() {
   const router = useRouter()
   const { user, signOut } = useUser()
+
+  // 사용자 설정(profiles.settings) — 로컬 state 대신 서버 영속
+  const [settings, setSettings] = useState<Record<string, boolean>>(SETTING_DEFAULTS)
+
+  useEffect(() => {
+    if (!user?.id || !isSupabaseConfigured()) return
+    let active = true
+    ;(async () => {
+      const supabase = createClient()
+      const { data } = await supabase.from('profiles').select('settings').eq('id', user.id).maybeSingle()
+      if (active && data?.settings) {
+        setSettings({ ...SETTING_DEFAULTS, ...(data.settings as Record<string, boolean>) })
+      }
+    })()
+    return () => { active = false }
+  }, [user?.id])
+
+  const updateSetting = useCallback(async (key: string, value: boolean) => {
+    setSettings((prev) => ({ ...prev, [key]: value })) // 낙관적
+    if (!user?.id || !isSupabaseConfigured()) return
+    const supabase = createClient()
+    const next = { ...settings, [key]: value }
+    await supabase.from('profiles').update({ settings: next }).eq('id', user.id)
+  }, [user?.id, settings])
 
   // 연결된 계정 상태
   const [linkedAccounts, setLinkedAccounts] = useState<LinkedAccount[]>([])
@@ -330,13 +362,15 @@ export default function MySettingsPage() {
             id="email-notifications"
             label="이메일 알림"
             description="새로운 댓글, 좋아요 등을 이메일로 받아요"
-            defaultChecked={true}
+            checked={settings['email-notifications']}
+            onChange={(v) => updateSetting('email-notifications', v)}
           />
           <ToggleSetting
             id="marketing-notifications"
             label="마케팅 알림"
             description="이벤트, 업데이트 소식을 받아요"
-            defaultChecked={false}
+            checked={settings['marketing-notifications']}
+            onChange={(v) => updateSetting('marketing-notifications', v)}
           />
         </div>
       </section>
@@ -353,13 +387,15 @@ export default function MySettingsPage() {
             id="profile-public"
             label="프로필 공개"
             description="다른 사용자가 내 프로필을 볼 수 있어요"
-            defaultChecked={true}
+            checked={settings['profile-public']}
+            onChange={(v) => updateSetting('profile-public', v)}
           />
           <ToggleSetting
             id="work-public"
             label="작업 기본 공개"
             description="새 작업을 기본적으로 공개로 설정해요"
-            defaultChecked={false}
+            checked={settings['work-public']}
+            onChange={(v) => updateSetting('work-public', v)}
           />
         </div>
       </section>
@@ -566,14 +602,16 @@ function ToggleSetting({
   id,
   label,
   description,
-  defaultChecked,
+  checked,
+  onChange,
 }: {
   id: string
   label: string
   description: string
-  defaultChecked: boolean
+  checked: boolean
+  onChange: (value: boolean) => void
 }) {
-  const [isChecked, setIsChecked] = useState(defaultChecked)
+  const isChecked = checked
 
   return (
     <div className="flex items-center justify-between">
@@ -587,7 +625,7 @@ function ToggleSetting({
         id={id}
         role="switch"
         aria-checked={isChecked}
-        onClick={() => setIsChecked(!isChecked)}
+        onClick={() => onChange(!isChecked)}
         className={cn(
           'w-12 h-7 rounded-full transition-colors relative focus:outline-none focus:ring-2 focus:ring-primary-300 focus:ring-offset-2',
           isChecked ? 'bg-primary-400' : 'bg-gray-200'

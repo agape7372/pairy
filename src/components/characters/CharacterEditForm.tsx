@@ -517,6 +517,7 @@ export function CharacterEditForm({
                 size="lg"
                 placeholder="사진 추가"
                 disabled={isDisabled}
+                enableCrop
               />
 
               {/* 사진이 없을 때 기본 아바타 표시 */}

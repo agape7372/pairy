@@ -9,6 +9,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { createClient, IS_DEMO_MODE } from '@/lib/supabase/client'
+import { isValidUUID } from '@/lib/utils/validation'
 import {
   getStorageSet,
   saveStorageSet,
@@ -83,6 +84,13 @@ export function useFollow(targetUserId: string): UseFollowReturn {
     const loadFollowStatus = async () => {
       setIsLoading(true)
 
+      // 가짜 ID(데모 크리에이터 'creator-1' 등)면 실 쿼리 스킵 — 22P02 방지.
+      // 실 유저 프로필(F-22)이 실 UUID 를 넘기기 전까지의 우아한 폴백.
+      if (!IS_DEMO_MODE && !isValidUUID(targetUserId)) {
+        setIsLoading(false)
+        return
+      }
+
       if (IS_DEMO_MODE) {
         // 데모 모드: localStorage에서 팔로우 상태 로드
         const demoFollows = getDemoFollows()
@@ -116,7 +124,7 @@ export function useFollow(targetUserId: string): UseFollowReturn {
           .select('follower_id')
           .eq('follower_id', user.id)
           .eq('following_id', targetUserId)
-          .single()
+          .maybeSingle()
 
         setIsFollowing(!!followData)
 
@@ -125,7 +133,7 @@ export function useFollow(targetUserId: string): UseFollowReturn {
           .from('profiles')
           .select('follower_count, following_count')
           .eq('id', targetUserId)
-          .single()
+          .maybeSingle()
 
         if (profileData) {
           setFollowerCount(profileData.follower_count || 0)
@@ -158,7 +166,7 @@ export function useFollow(targetUserId: string): UseFollowReturn {
       return true
     }
 
-    if (!currentUserId) {
+    if (!currentUserId || !isValidUUID(targetUserId)) {
       isProcessingRef.current = false
       return false
     }
@@ -218,7 +226,7 @@ export function useFollow(targetUserId: string): UseFollowReturn {
       return true
     }
 
-    if (!currentUserId) {
+    if (!currentUserId || !isValidUUID(targetUserId)) {
       isProcessingRef.current = false
       return false
     }

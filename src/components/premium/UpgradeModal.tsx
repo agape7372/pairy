@@ -11,6 +11,7 @@ import {
   TIER_LIMITS,
   type SubscriptionTier,
 } from '@/stores/subscriptionStore'
+import { useSubscriptionCheckout } from '@/hooks/useSubscriptionCheckout'
 
 interface UpgradeModalProps {
   isOpen: boolean
@@ -29,6 +30,7 @@ export function UpgradeModal({
     requiredTier === 'creator' ? 'creator' : requiredTier === 'duo' ? 'duo' : 'premium'
   )
   const { subscribe, startTrial, isDemoMode } = useSubscriptionStore()
+  const { startCheckout } = useSubscriptionCheckout()
   const toast = useToast()
 
   if (!isOpen) return null
@@ -42,16 +44,26 @@ export function UpgradeModal({
       const tierName = selectedTier === 'premium' ? '프리미엄' : selectedTier === 'duo' ? '듀오' : '크리에이터'
       toast.success(`${tierName} 구독이 활성화되었습니다!`)
       onClose()
+    } else if (selectedTier === 'premium') {
+      // 프로덕션: 실 결제(Toss). 구독은 premium 만(DL-0004)
+      onClose()
+      startCheckout()
     } else {
-      // 실제 모드: 결제 페이지로 이동 (추후 구현)
-      toast.info('결제 기능은 준비 중입니다.')
+      // duo/creator 는 동결 — 아직 정식 상품 아님
+      toast.info('아직 준비 중인 상품이에요.')
     }
   }
 
   const handleStartTrial = () => {
-    startTrial()
-    toast.success('7일 무료 체험이 시작되었습니다!')
-    onClose()
+    if (isDemoMode) {
+      startTrial()
+      toast.success('7일 무료 체험이 시작되었습니다!')
+      onClose()
+    } else {
+      // 프로덕션: 체험도 결제/서버 부여 필요 — 거짓 성공 토스트 제거
+      onClose()
+      startCheckout()
+    }
   }
 
   const features = {

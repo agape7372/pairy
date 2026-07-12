@@ -6,18 +6,7 @@ import { ArrowLeft, Users } from 'lucide-react'
 import { Button } from '@/components/ui'
 import { FollowButton } from '@/components/social'
 import { useFollowers } from '@/hooks/useFollow'
-
-// 크리에이터 정보 (임시 - 실제로는 API에서 가져옴)
-const creatorsData: Record<string, { id: string; displayName: string; avatarEmoji: string }> = {
-  strawberry123: { id: 'creator-1', displayName: '딸기크림', avatarEmoji: '🍓' },
-  fairy_art: { id: 'creator-2', displayName: '페어리', avatarEmoji: '🧚' },
-  moonlight: { id: 'creator-3', displayName: '문라이트', avatarEmoji: '🌙' },
-  mintchoco: { id: 'creator-4', displayName: '민트초코', avatarEmoji: '🍀' },
-  roseberry: { id: 'creator-5', displayName: '로즈베리', avatarEmoji: '🌹' },
-  skyblue: { id: 'creator-6', displayName: '스카이블루', avatarEmoji: '☁️' },
-  cherryblossom: { id: 'creator-7', displayName: '체리블라썸', avatarEmoji: '🌸' },
-  coconut: { id: 'creator-8', displayName: '코코넛', avatarEmoji: '🥥' },
-}
+import { useCreatorProfile } from '@/hooks/useCreatorProfile'
 
 interface FollowersClientProps {
   username: string
@@ -25,10 +14,10 @@ interface FollowersClientProps {
 
 export default function FollowersClient({ username }: FollowersClientProps) {
   const router = useRouter()
-  const creator = creatorsData[username]
+  const { creator, notFound } = useCreatorProfile(username)
   const { followers, isLoading } = useFollowers(creator?.id || '')
 
-  if (!creator) {
+  if (notFound || !creator) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center px-4">
         <div className="text-6xl mb-4">🤔</div>
@@ -53,8 +42,13 @@ export default function FollowersClient({ username }: FollowersClientProps) {
             뒤로 가기
           </button>
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center text-2xl">
-              {creator.avatarEmoji}
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center text-2xl overflow-hidden">
+              {creator.avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={creator.avatarUrl} alt={creator.displayName} className="w-full h-full object-cover" />
+              ) : (
+                '🎨'
+              )}
             </div>
             <div>
               <h1 className="text-xl font-bold text-gray-900">
