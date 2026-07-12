@@ -172,5 +172,10 @@ docs/
 ~~1. 정적 export 결별~~ ✅ 2026-07-12 완료(DL-0001 CLOSED — Vercel 이전, 프로덕션 https://pairy-six.vercel.app, Pages 폐기)
 ~~2. RLS 봉합~~ ✅ 2026-07-12 완료 — **Supabase 새 프로젝트 `bbvuqbzbniappgsxajkd`(서울) 클린 재구축**(구 프로젝트 90일 초과 정지). 마이그레이션 6종 적용·anon 실검증 통과. DB 비밀번호는 로컬 `.remember/tmp/new-db-password.txt`(사용자 보관 필요).
 ~~3. 클라이언트 신뢰 제거(C-3)~~ ✅ 2026-07-12 부분완료(DL-0004) — 구독 진실을 `profiles.subscription_tier` 서버 컬럼으로, 클라 tier 자가승격 42501 차단, `syncFromServer` 배선. **잔여**: 결제 웹훅으로 실 부여 경로(C-4 수익/구매 서버검증)·F-28 프리미엄 콘텐츠 RLS(편집데이터 서버서빙 배선 선행).
-4. **결제 백엔드(Toss 웹훅 Route Handler) — Tier 0 #6** (다음 최우선). 이게 C-4·F-24·F-27·F-28 실배선의 공통 선행.
+~~4. 결제 백엔드(Tier 0 #6)~~ ✅ 2026-07-12 완료(DL-0005) — 구독 1회성 결제 스캐폴드(Toss 테스트모드): `app/api/payments/{prepare,confirm,webhook}` + payments 테이블 + grant_subscription. 금액 서버강제·멱등·부여 service_role만. **실 활성화 게이트**: 상점 계약→Toss 실키 교체 + `SUPABASE_SERVICE_ROLE_KEY` env(서버 부여 필수, RLS 우회라 민감).
+5. **다음**: C-4 수익/구매 서버검증(F-27 단건은 payments 재사용)·F-28 콘텐츠 RLS(editor_data 서버화 선행)·성능 스윕(#10·#11).
+
+### 결제 env (Route Handler 필수)
+- `NEXT_PUBLIC_TOSS_CLIENT_KEY`·`TOSS_SECRET_KEY`: Toss 키(현재 공개 테스트키, Vercel prod+preview 주입됨).
+- `SUPABASE_SERVICE_ROLE_KEY`: 서버 부여용(service_role). **NEXT_PUBLIC_ 아님 — 클라 번들 유출 금지.** 로컬 `.env.local`·Vercel 에 사용자가 직접 주입(대시보드 Settings→API).
 - 주의: 컬럼 REVOKE 는 테이블 레벨 GRANT 가 살아있으면 무효 — `20260712000001_fix_column_privileges.sql` 패턴(테이블 REVOKE 후 허용 컬럼만 GRANT) 준수..

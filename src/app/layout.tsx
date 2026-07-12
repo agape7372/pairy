@@ -68,7 +68,7 @@ export default function RootLayout({
         {/* Content Security Policy - XSS 방지 */}
         <meta
           httpEquiv="Content-Security-Policy"
-          content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https: data: blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://fonts.googleapis.com https://fonts.gstatic.com; frame-ancestors 'none';"
+          content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.tosspayments.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https: data: blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://fonts.googleapis.com https://fonts.gstatic.com https://api.tosspayments.com https://*.tosspayments.com; frame-src https://*.tosspayments.com; frame-ancestors 'none';"
         />
         {/* 추가 보안 헤더 (meta tag로 설정 가능한 것들) */}
         <meta httpEquiv="X-Content-Type-Options" content="nosniff" />

@@ -1,12 +1,13 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import Link from 'next/link'
 import { Check, Sparkles, Crown, ArrowRight, Users, Gift, Heart, Star, Palette, MessageCircle, Leaf, Cherry, TrendingUp } from 'lucide-react'
 import { Button, useToast } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
 import { useSubscriptionStore, PRICING, type SubscriptionTier } from '@/stores/subscriptionStore'
 import { UpgradeModal } from '@/components/premium/UpgradeModal'
+import { useSubscriptionCheckout } from '@/hooks/useSubscriptionCheckout'
 import styles from '@/styles/particles.module.css'
 
 /**
@@ -137,9 +138,15 @@ export default function PremiumPage() {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [selectedTier, setSelectedTier] = useState<'premium' | 'creator' | 'duo'>('premium')
   const { subscription, subscribe, isDemoMode } = useSubscriptionStore()
+  const { startCheckout, error: checkoutError } = useSubscriptionCheckout()
   const toast = useToast()
   const containerRef = useRef<HTMLDivElement>(null)
   const confettiContainerRef = useRef<HTMLDivElement>(null)
+
+  // 결제 시작 실패(설정 누락·네트워크) 안내
+  useEffect(() => {
+    if (checkoutError) toast.error(checkoutError)
+  }, [checkoutError, toast])
 
   // 새로운 CSS 기반 Confetti Shower 효과
   const emitConfettiShower = useCallback((originX: number, originY: number) => {
@@ -201,7 +208,11 @@ export default function PremiumPage() {
         setTimeout(() => emitConfettiShower(x - 40, y), 100)
         setTimeout(() => emitConfettiShower(x + 40, y), 200)
       }
+    } else if (tier === 'premium') {
+      // 프로덕션 실결제: 서버 prepare → Toss 결제창(구독은 premium 만, DL-0004)
+      startCheckout()
     } else {
+      // creator/duo 는 동결(게놈) — 아직 정식 상품 아님. 안내 모달만.
       setSelectedTier(tier as 'premium' | 'creator' | 'duo')
       setShowUpgradeModal(true)
     }
