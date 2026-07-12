@@ -30,6 +30,7 @@ import {
 import { Button, Input, ImageUpload, ColorPicker } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
 import { uploadFile } from '@/lib/supabase/storage'
+import { useUser } from '@/hooks/useUser'
 import { addRecentColor } from '@/lib/utils/color'
 import type {
   Character,
@@ -307,6 +308,7 @@ export function CharacterEditForm({
   validationError,
 }: CharacterEditFormProps) {
   const router = useRouter()
+  const { user } = useUser()
   const [formData, setFormData] = useState<FormData>(initialFormData)
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({})
   const [isUploading, setIsUploading] = useState(false)
@@ -376,9 +378,11 @@ export function CharacterEditForm({
   const handleImageUpload = useCallback(async (file: File): Promise<string | null> => {
     setIsUploading(true)
     try {
+      if (!user?.id) throw new Error('로그인이 필요합니다.')
       const timestamp = Date.now()
       const fileExt = file.name.split('.').pop() || 'jpg'
-      const path = `characters/${timestamp}.${fileExt}`
+      // 소유 검증되는 경로: avatars 버킷 RLS 가 첫 폴더=uid 를 강제(M-5)
+      const path = `${user.id}/characters/${timestamp}.${fileExt}`
 
       const result = await uploadFile({
         bucket: 'avatars',
