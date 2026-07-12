@@ -1,13 +1,14 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import { Plus, MoreVertical, Trash2, Edit2, Share2, Clock, Eye, EyeOff, X, Check, AlertTriangle } from 'lucide-react'
 import { Button, Tag } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
 import { copyToClipboard } from '@/lib/utils/clipboard'
+import { useWorks } from '@/hooks/useWorks'
 
-// 작품 타입 정의
+// 화면 표시용 작품 뷰모델(DB works Row 를 매핑)
 interface Work {
   id: string
   title: string
@@ -16,44 +17,26 @@ interface Work {
   status: 'completed' | 'draft'
   isPublic: boolean
   updatedAt: string
+  shareId: string | null
 }
-
-// 초기 샘플 데이터
-const initialWorks: Work[] = [
-  {
-    id: '1',
-    title: '우리 커플 프로필',
-    templateTitle: '커플 프로필 틀',
-    emoji: '💕',
-    status: 'completed',
-    isPublic: true,
-    updatedAt: '2025-01-20',
-  },
-  {
-    id: '2',
-    title: '친구들 관계도',
-    templateTitle: '친구 관계도',
-    emoji: '✨',
-    status: 'draft',
-    isPublic: false,
-    updatedAt: '2025-01-18',
-  },
-  {
-    id: '3',
-    title: '내 OC 소개',
-    templateTitle: 'OC 소개 카드',
-    emoji: '🌙',
-    status: 'draft',
-    isPublic: false,
-    updatedAt: '2025-01-15',
-  },
-]
 
 type WorkStatus = 'all' | 'completed' | 'draft'
 
 export default function MyWorksPage() {
-  // 데모 모드에서는 로컬 상태로 작품 관리
-  const [works, setWorks] = useState<Work[]>(initialWorks)
+  // 실 works 테이블(useWorks) — 로컬 샘플 제거
+  const { works: dbWorks, isLoading, updateWork, deleteWork } = useWorks()
+
+  const works: Work[] = useMemo(() => dbWorks.map((w) => ({
+    id: w.id,
+    title: w.title,
+    templateTitle: '내 작품',
+    emoji: '🎨',
+    status: w.is_complete ? 'completed' : 'draft',
+    isPublic: w.share_status !== 'private',
+    updatedAt: (w.updated_at || w.created_at || '').slice(0, 10),
+    shareId: w.share_id,
+  })), [dbWorks])
+
   const [filter, setFilter] = useState<WorkStatus>('all')
   const [menuOpen, setMenuOpen] = useState<string | null>(null)
 
@@ -81,26 +64,20 @@ export default function MyWorksPage() {
   }
 
   // 이름 변경 저장
-  const saveRename = () => {
+  const saveRename = async () => {
     if (!editingWork || !editTitle.trim()) return
-
-    setWorks(prev => prev.map(w =>
-      w.id === editingWork.id ? { ...w, title: editTitle.trim() } : w
-    ))
+    const ok = await updateWork(editingWork.id, { title: editTitle.trim() })
     setEditingWork(null)
-    showToast('이름이 변경되었어요')
+    showToast(ok ? '이름이 변경되었어요' : '변경에 실패했어요', ok ? 'success' : 'error')
   }
 
-  // 공개/비공개 토글
-  const toggleVisibility = (workId: string) => {
-    setWorks(prev => prev.map(w => {
-      if (w.id === workId) {
-        const newIsPublic = !w.isPublic
-        showToast(newIsPublic ? '공개로 전환되었어요' : '비공개로 전환되었어요')
-        return { ...w, isPublic: newIsPublic }
-      }
-      return w
-    }))
+  // 공개/비공개 토글 (share_status 전환)
+  const toggleVisibility = async (workId: string) => {
+    const work = works.find(w => w.id === workId)
+    if (!work) return
+    const nextPublic = !work.isPublic
+    const ok = await updateWork(workId, { share_status: nextPublic ? 'public' : 'private' })
+    if (ok) showToast(nextPublic ? '공개로 전환되었어요' : '비공개로 전환되었어요')
     setMenuOpen(null)
   }
 
@@ -111,17 +88,21 @@ export default function MyWorksPage() {
   }
 
   // 삭제 실행
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (!deletingWork) return
-
-    setWorks(prev => prev.filter(w => w.id !== deletingWork.id))
+    const ok = await deleteWork(deletingWork.id)
     setDeletingWork(null)
-    showToast('작업이 삭제되었어요')
+    showToast(ok ? '작업이 삭제되었어요' : '삭제에 실패했어요', ok ? 'success' : 'error')
   }
 
-  // 공유하기
+  // 공유하기 — share_id 기반 공유 링크(공개 상태여야 열림)
   const handleShare = async (work: Work) => {
-    const shareUrl = `${window.location.origin}/works/${work.id}`
+    if (!work.shareId) {
+      showToast('공개로 전환하면 공유 링크가 생겨요')
+      setMenuOpen(null)
+      return
+    }
+    const shareUrl = `${window.location.origin}/share/${work.shareId}`
 
     if (navigator.share) {
       navigator.share({
@@ -199,7 +180,11 @@ export default function MyWorksPage() {
       </div>
 
       {/* Works Grid */}
-      {filteredWorks.length > 0 ? (
+      {isLoading ? (
+        <div className="flex justify-center py-16">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary-300 border-t-transparent" />
+        </div>
+      ) : filteredWorks.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredWorks.map((work) => (
             <div

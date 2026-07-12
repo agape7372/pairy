@@ -3,61 +3,40 @@
 import Link from 'next/link'
 import { Heart, Bookmark, BookmarkX } from 'lucide-react'
 import { Button, Tag } from '@/components/ui'
-
-// 샘플 데이터
-const sampleBookmarks = [
-  {
-    id: '1',
-    title: '커플 프로필 틀',
-    creator: '딸기크림',
-    likeCount: 1234,
-    tags: ['커플', '2인용'],
-    emoji: '💕',
-  },
-  {
-    id: '4',
-    title: '베프 케미 틀',
-    creator: '민트초코',
-    likeCount: 2341,
-    tags: ['친구', '2인용'],
-    emoji: '🍀',
-  },
-  {
-    id: '7',
-    title: '팬아트 커플 틀',
-    creator: '체리블라썸',
-    likeCount: 3456,
-    tags: ['팬아트', '커플', '2인용'],
-    emoji: '🌸',
-  },
-]
+import { useBookmarks } from '@/hooks/useBookmarks'
 
 export default function MyBookmarksPage() {
-  const handleRemoveBookmark = (id: string) => {
-    // TODO: Implement bookmark removal
-    console.log('Remove bookmark:', id)
-  }
+  const { bookmarks, isLoading, removeBookmark } = useBookmarks()
 
   return (
     <div>
       {/* Header */}
       <div className="flex items-center gap-2 mb-6">
         <h2 className="text-lg font-bold text-gray-900">북마크한 틀</h2>
-        <span className="text-sm text-gray-500">({sampleBookmarks.length})</span>
+        <span className="text-sm text-gray-500">({bookmarks.length})</span>
       </div>
 
       {/* Bookmarks Grid */}
-      {sampleBookmarks.length > 0 ? (
+      {isLoading ? (
+        <div className="flex justify-center py-16">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary-300 border-t-transparent" />
+        </div>
+      ) : bookmarks.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {sampleBookmarks.map((template) => (
+          {bookmarks.map((template) => (
             <div
               key={template.id}
               className="bg-white rounded-[20px] border border-gray-200 overflow-hidden hover:shadow-md transition-all group"
             >
               {/* Preview */}
               <Link href={`/templates/${template.id}`}>
-                <div className="aspect-[4/3] bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center text-5xl">
-                  {template.emoji}
+                <div className="aspect-[4/3] bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center text-5xl overflow-hidden">
+                  {template.preview_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={template.preview_url} alt={template.title} className="w-full h-full object-cover" />
+                  ) : (
+                    '🎨'
+                  )}
                 </div>
               </Link>
 
@@ -72,22 +51,22 @@ export default function MyBookmarksPage() {
                 <div className="flex items-center gap-3 text-sm text-gray-500 mb-3">
                   <span className="flex items-center gap-1">
                     <Heart className="w-4 h-4" />
-                    {template.likeCount.toLocaleString()}
+                    {(template.like_count || 0).toLocaleString()}
                   </span>
-                  <span>by {template.creator}</span>
+                  {template.creator?.display_name && <span>by {template.creator.display_name}</span>}
                 </div>
 
                 <div className="flex items-center justify-between">
                   <div className="flex flex-wrap gap-1">
                     {template.tags.slice(0, 2).map((tag, idx) => (
-                      <Tag key={tag} variant={idx === 0 ? 'primary' : 'accent'}>
-                        {tag}
+                      <Tag key={tag.id} variant={idx === 0 ? 'primary' : 'accent'}>
+                        {tag.name}
                       </Tag>
                     ))}
                   </div>
 
                   <button
-                    onClick={() => handleRemoveBookmark(template.id)}
+                    onClick={() => removeBookmark(template.id)}
                     className="p-2 text-accent-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
                     title="북마크 해제"
                   >

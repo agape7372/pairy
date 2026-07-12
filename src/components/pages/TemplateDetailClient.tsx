@@ -36,6 +36,7 @@ import {
   type Resource,
 } from '@/types/resources'
 import { useSubscriptionStore } from '@/stores/subscriptionStore'
+import { useBookmarks } from '@/hooks/useBookmarks'
 import styles from '@/styles/particles.module.css'
 
 // 라이선스를 가격 타입으로 변환
@@ -340,7 +341,9 @@ export default function TemplateDetailClient({ templateId }: TemplateDetailClien
   const hasPurchased = useMarketplaceStore((state) => state.hasPurchased(templateId))
 
   // isLiked state moved to LikeButton component
-  const [isBookmarked, setIsBookmarked] = useState(false)
+  // 북마크는 실 useBookmarks 로 배선(로컬 state 제거)
+  const { isBookmarked: checkBookmarked, addBookmark, removeBookmark } = useBookmarks()
+  const isBookmarked = checkBookmarked(templateId)
   const [showShareToast, setShowShareToast] = useState(false)
   const [showAddToLibrary, setShowAddToLibrary] = useState(false)
   const [isDownloading, setIsDownloading] = useState(false)
@@ -396,13 +399,13 @@ export default function TemplateDetailClient({ templateId }: TemplateDetailClien
     }
   }, [])
 
-  const handleBookmarkClick = () => {
+  const handleBookmarkClick = async () => {
     const wasBookmarked = isBookmarked
-    setIsBookmarked(!isBookmarked)
-
-    // 북마크 활성화 시에만 Shooting Star 효과
-    if (!wasBookmarked) {
-      emitShootingStar()
+    if (wasBookmarked) {
+      await removeBookmark(templateId)
+    } else {
+      await addBookmark(templateId)
+      emitShootingStar() // 활성화 시에만 Shooting Star
     }
   }
 
