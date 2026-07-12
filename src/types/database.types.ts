@@ -36,9 +36,52 @@ export type ShareStatus = 'private' | 'unlisted' | 'public'
 /** 서버 구독 등급(profiles.subscription_tier enum — 2티어). 클라 SubscriptionTier(4종)와 별개. */
 export type SubscriptionTierServer = 'free' | 'premium'
 
+/** 결제 상태(payments.status enum — 20260712000003) */
+export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'canceled'
+
 export interface Database {
   public: {
     Tables: {
+      /** 결제 이력 (20260712000003 — 구독 결제 스캐폴드) */
+      payments: {
+        Row: {
+          id: string
+          user_id: string
+          order_id: string
+          payment_key: string | null
+          tier: SubscriptionTierServer
+          amount: number
+          status: PaymentStatus
+          grant_days: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          order_id: string
+          payment_key?: string | null
+          tier?: SubscriptionTierServer
+          amount: number
+          status?: PaymentStatus
+          grant_days?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          order_id?: string
+          payment_key?: string | null
+          tier?: SubscriptionTierServer
+          amount?: number
+          status?: PaymentStatus
+          grant_days?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           id: string
@@ -641,6 +684,11 @@ export interface Database {
       is_premium_active: {
         Args: { p_uid: string }
         Returns: boolean
+      }
+      /** 구독 부여 (SECURITY DEFINER, service_role 전용 — 20260712000003) */
+      grant_subscription: {
+        Args: { p_uid: string; p_days: number }
+        Returns: undefined
       }
     }
     Enums: {
