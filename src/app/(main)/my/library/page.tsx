@@ -45,61 +45,10 @@ interface DownloadItem {
 }
 
 // 샘플 폴더 데이터
-const sampleFolders: LibraryFolder[] = [
-  { id: '1', name: '커플 자료', emoji: '💕', itemCount: 12, isShared: false, createdAt: '2025-01-25' },
-  { id: '2', name: '트레이싱', emoji: '✏️', itemCount: 8, isShared: false, createdAt: '2025-01-20' },
-  { id: '3', name: 'TRPG 세션', emoji: '🎲', itemCount: 5, isShared: true, createdAt: '2025-01-15' },
-  { id: '4', name: '배경 모음', emoji: '🌸', itemCount: 15, isShared: false, createdAt: '2025-01-10' },
-]
+const sampleFolders: LibraryFolder[] = [] // 라이브러리 폴더 실 배선은 M3(folders 테이블)까지 빈 상태
 
 // 샘플 다운로드 기록
-const sampleDownloads: DownloadItem[] = [
-  {
-    id: '1',
-    resourceId: '1',
-    resourceTitle: '커플 프로필 틀',
-    resourceCategory: 'pairtl',
-    creatorName: '딸기크림',
-    downloadedAt: '2025-01-28T10:30:00',
-    folderId: '1',
-  },
-  {
-    id: '2',
-    resourceId: '3',
-    resourceTitle: '전신 포즈 트레틀',
-    resourceCategory: 'tretle',
-    creatorName: '문라이트',
-    downloadedAt: '2025-01-27T15:20:00',
-    folderId: '2',
-  },
-  {
-    id: '3',
-    resourceId: '2',
-    resourceTitle: '벚꽃 이메레스 세트',
-    resourceCategory: 'imeres',
-    creatorName: '체리블라썸',
-    downloadedAt: '2025-01-26T09:15:00',
-    folderId: '4',
-  },
-  {
-    id: '4',
-    resourceId: '4',
-    resourceTitle: 'TRPG 캐릭터 시트',
-    resourceCategory: 'sessionlog',
-    creatorName: '다이스마스터',
-    downloadedAt: '2025-01-25T14:45:00',
-    folderId: '3',
-  },
-  {
-    id: '5',
-    resourceId: '5',
-    resourceTitle: '친구 관계도',
-    resourceCategory: 'pairtl',
-    creatorName: '페어리',
-    downloadedAt: '2025-01-24T11:00:00',
-    folderId: null,
-  },
-]
+const sampleDownloads: DownloadItem[] = [] // 다운로드 이력 실 배선 전까지 빈 상태
 
 // 상대 시간 포맷
 function formatRelativeTime(dateStr: string): string {
