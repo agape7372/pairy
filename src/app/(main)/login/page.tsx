@@ -290,7 +290,7 @@ function LoginContent() {
             </div>
           )}
 
-          {/* Social Login Buttons */}
+          {/* Social Login Buttons — 구글만 활성(DL-0002 개정: 구글 소셜 허용, X/기타 미도입) */}
           <div className="space-y-3">
             {/* Google */}
             <button
@@ -305,21 +305,6 @@ function LoginContent() {
                 <GoogleIcon />
               )}
               <span>Google로 계속하기</span>
-            </button>
-
-            {/* Twitter/X */}
-            <button
-              onClick={() => handleSocialLogin('twitter')}
-              disabled={isDisabled}
-              aria-label="X 계정으로 로그인"
-              className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-black text-white rounded-full font-medium hover:bg-gray-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
-            >
-              {ui.isLoading === 'twitter' ? (
-                <LoadingSpinner />
-              ) : (
-                <XIcon />
-              )}
-              <span>X로 계속하기</span>
             </button>
           </div>
 
@@ -623,10 +608,3 @@ function GoogleIcon() {
   )
 }
 
-function XIcon() {
-  return (
-    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-    </svg>
-  )
-}

@@ -1,0 +1,20 @@
+# Supabase 프로젝트 설정 (원격 반영: `supabase config push`)
+# 시크릿(구글 client secret 등)은 여기 직접 쓰지 말고 env() 참조 — 리포에 커밋 안 되게.
+project_id = "bbvuqbzbniappgsxajkd"
+
+[auth]
+# OAuth·매직링크 리다이렉트의 기준 도메인(프로덕션).
+site_url = "https://pairy-six.vercel.app"
+# OAuth 콜백·프리뷰·로컬 허용 목록. 여기 없는 redirect_to 는 거부된다.
+additional_redirect_urls = [
+  "https://pairy-six.vercel.app/**",
+  "http://localhost:3000/**",
+]
+
+[auth.external.google]
+enabled = true
+# 구글 클라우드 콘솔 OAuth 클라이언트 값 — env 로 주입(대시보드 직접 입력도 가능).
+client_id = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID)"
+secret = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET)"
+# Supabase 가 받는 콜백. 구글 콘솔 "승인된 리디렉션 URI" 에 이 값을 등록해야 함.
+redirect_uri = "https://bbvuqbzbniappgsxajkd.supabase.co/auth/v1/callback"
