@@ -621,7 +621,11 @@ export interface Database {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      /** 공유 조회수 증가 (SECURITY DEFINER — 20260712 마이그레이션) */
+      increment_share_view: {
+        Args: { p_share_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

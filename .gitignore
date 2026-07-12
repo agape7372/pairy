@@ -43,3 +43,6 @@ next-env.d.ts
 
 # Playwright MCP 세션 캐시
 .playwright-mcp/
+
+# supabase CLI local state
+supabase/.temp/
