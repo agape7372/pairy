@@ -7,6 +7,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { createClient, IS_DEMO_MODE } from '@/lib/supabase/client'
+import { isValidUUID } from '@/lib/utils/validation'
 import type { CommentWithUser } from '@/types/database.types'
 
 // Supabase 쿼리 결과 타입
@@ -153,7 +154,7 @@ export function useComments(templateId: string): UseCommentsReturn {
     setIsLoading(true)
     setError(null)
 
-    if (IS_DEMO_MODE) {
+    if (IS_DEMO_MODE || !isValidUUID(templateId)) {
       const demoComments = getDemoComments(templateId)
       const likes = getDemoCommentLikes()
 
@@ -266,7 +267,7 @@ export function useComments(templateId: string): UseCommentsReturn {
     isProcessingRef.current = true
 
     try {
-      if (IS_DEMO_MODE) {
+      if (IS_DEMO_MODE || !isValidUUID(templateId)) {
         const newComment: CommentWithUser = {
           id: `demo-${Date.now()}`,
           template_id: templateId,
@@ -337,7 +338,7 @@ export function useComments(templateId: string): UseCommentsReturn {
     isProcessingRef.current = true
 
     try {
-      if (IS_DEMO_MODE) {
+      if (IS_DEMO_MODE || !isValidUUID(templateId)) {
         setComments(prev => prev.map(c => {
           if (c.id === commentId) {
             return { ...c, content, is_edited: true, updated_at: new Date().toISOString() }
@@ -387,7 +388,7 @@ export function useComments(templateId: string): UseCommentsReturn {
     isProcessingRef.current = true
 
     try {
-      if (IS_DEMO_MODE) {
+      if (IS_DEMO_MODE || !isValidUUID(templateId)) {
         setComments(prev => {
           // 최상위 댓글인 경우
           const filtered = prev.filter(c => c.id !== commentId)
@@ -430,7 +431,7 @@ export function useComments(templateId: string): UseCommentsReturn {
     isProcessingRef.current = true
 
     try {
-      if (IS_DEMO_MODE) {
+      if (IS_DEMO_MODE || !isValidUUID(templateId)) {
         const likes = getDemoCommentLikes()
         likes.add(commentId)
         saveDemoCommentLikes(likes)
@@ -500,7 +501,7 @@ export function useComments(templateId: string): UseCommentsReturn {
     isProcessingRef.current = true
 
     try {
-      if (IS_DEMO_MODE) {
+      if (IS_DEMO_MODE || !isValidUUID(templateId)) {
         const likes = getDemoCommentLikes()
         likes.delete(commentId)
         saveDemoCommentLikes(likes)

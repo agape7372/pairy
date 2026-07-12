@@ -41,6 +41,7 @@ import {
   type ResourceCategory,
 } from '@/types/resources'
 import { useLikes } from '@/hooks/useLikes'
+import { useStartHref } from '@/hooks/useStartHref'
 
 // ============================================
 // 커스텀 훅: Scroll Reveal
@@ -206,6 +207,7 @@ function CardSkeleton() {
 // ============================================
 
 function BannerSlider() {
+  const startHref = useStartHref()
   const [currentSlide, setCurrentSlide] = useState(0)
   const [isPaused, setIsPaused] = useState(false)
   const [isTransitioning, setIsTransitioning] = useState(false)
@@ -293,7 +295,7 @@ function BannerSlider() {
               </div>
             </div>
             <Button asChild size="lg" className="group">
-              <Link href={banner.href}>
+              <Link href={banner.id === 1 ? startHref : banner.href}>
                 {banner.cta}
                 <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
               </Link>
@@ -864,6 +866,7 @@ function StatsBanner() {
 
 // 변경 이유: 과도한 glassmorphism + 그라데이션 → 깔끔한 단색 배경
 function CTASection() {
+  const startHref = useStartHref()
   return (
     <section className="py-16 px-4">
       <div className="max-w-[800px] mx-auto">
@@ -884,7 +887,7 @@ function CTASection() {
 
           <div className="flex flex-wrap gap-4 justify-center">
             <Button size="lg" asChild className="group">
-              <Link href="/login">
+              <Link href={startHref}>
                 무료로 시작하기
                 <ArrowRight className="w-5 h-5 ml-2 transition-transform group-hover:translate-x-1" />
               </Link>

@@ -182,6 +182,15 @@ export function isValidEmail(email: string): boolean {
   return EMAIL_REGEX.test(email)
 }
 
+/**
+ * UUID(v4 형식) 유효성 — 데모 샘플 ID('1', 'creator-1')를 실 Supabase 쿼리에
+ * 넘겨 22P02(invalid uuid)로 실패하는 것을 막는 가드.
+ */
+export function isValidUUID(id: string | null | undefined): boolean {
+  if (!id) return false
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+}
+
 // ============================================
 // 이미지 URL 검증
 // ============================================
