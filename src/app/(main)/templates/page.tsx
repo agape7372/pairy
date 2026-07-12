@@ -774,12 +774,6 @@ export default function ResourceHubPage() {
             </div>
           )}
 
-          {/* Load More */}
-          {filteredResources.length > 0 && filteredResources.length >= 8 && (
-            <div className="text-center mt-8 sm:mt-12">
-              <Button variant="outline">더 보기</Button>
-            </div>
-          )}
         </div>
       </section>
 
