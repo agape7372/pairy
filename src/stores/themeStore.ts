@@ -86,6 +86,9 @@ export const useThemeStore = create<ThemeState>()(
     }),
     {
       name: 'pairy-theme',
+      // TOP50 #15 · 스키마 변경 시 여기서 버전 올리고 migrate 로 변환 (v0=버전 표기 이전 데이터)
+      version: 1,
+      migrate: (persistedState) => persistedState,
       partialize: (state) => ({
         mode: state.mode,
         animationMode: state.animationMode,
