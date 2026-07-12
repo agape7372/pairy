@@ -16,7 +16,8 @@ import { useEffect, useState, useCallback } from 'react'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { createTimeoutController } from '@/lib/utils/network'
 import type { User } from '@supabase/supabase-js'
-import type { UserRole } from '@/types/database.types'
+import type { UserRole, SubscriptionTierServer } from '@/types/database.types'
+import { useSubscriptionStore } from '@/stores/subscriptionStore'
 
 export type { UserRole }
 
@@ -26,6 +27,8 @@ interface Profile {
   avatar_url: string | null
   bio: string | null
   role: UserRole
+  subscription_tier: SubscriptionTierServer
+  subscription_valid_until: string | null
 }
 
 interface UseUserReturn {
@@ -54,7 +57,7 @@ export function useUser(): UseUserReturn {
       const supabase = createClient()
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, display_name, avatar_url, bio, role')
+        .select('id, display_name, avatar_url, bio, role, subscription_tier, subscription_valid_until')
         .eq('id', userId)
         .abortSignal(signal)
         .single()
@@ -63,6 +66,11 @@ export function useUser(): UseUserReturn {
 
       if (!error && data && isMounted()) {
         setProfile(data as Profile)
+        // C-3: 서버 구독 상태가 진실 — 스토어 tier 를 서버값으로 강제 동기화(localStorage 캐시 강등).
+        useSubscriptionStore.getState().syncFromServer(
+          data.subscription_tier,
+          data.subscription_valid_until,
+        )
       }
     } catch (err) {
       clear()
@@ -103,6 +111,8 @@ export function useUser(): UseUserReturn {
         } else {
           setUser(null)
           setProfile(null)
+          // 비로그인/로그아웃: 구독 진실 없음 → free 로 강등(잔존 캐시가 프리미엄인 채 남지 않게)
+          useSubscriptionStore.getState().syncFromServer('free', null)
         }
 
         // 모든 이벤트에서 로딩 완료

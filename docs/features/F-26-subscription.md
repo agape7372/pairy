@@ -16,3 +16,14 @@
 3. `subscribe()`를 서버 검증 경로(결제 완료 웹훅 확인 후에만 티어 변경)로 교체, localStorage는 캐시로 강등 — AC: localStorage 직접 조작으로 티어 변경 불가. (Opus, 결제 백엔드 선행)
 
 **의존·순서**: 1번(Fable 판단)이 최우선 선행 — 이후 2·3번. 3번은 결제 백엔드(F-24~28 전체가 공유하는 선행조건) 완료 후. F-17(캐릭터 프리미엄 제한)도 이 티어 구조에 종속.
+
+---
+
+## 갱신 · 2026-07-12 (C-3 부분 봉합 — 서버 entitlement)
+
+**상태 변화**: demo(C-3) → **서버 진실 + 클라 동기화**(결제 웹훅은 여전히 후속).
+
+- **티어 결정 CLOSED**(사용자 승인): 서버 진실 = **free + premium 2티어**. creator 는 `is_creator` 플래그로 분리, duo/creator 구독 티어는 게놈대로 **동결**(클라 `SubscriptionTier` 4종 타입·훅은 파손 방지 위해 유지하되 신규 경로 안 씀).
+- **C-3 봉합**: 구독 진실을 `profiles.subscription_tier`·`subscription_valid_until` 서버 컬럼으로 이전(`20260712000002`). 클라 UPDATE 는 컬럼 GRANT 제외로 차단 — anon PATCH `subscription_tier` → **42501**(라이브 검증). tier 부여는 결제 웹훅/service_role 만.
+- **클라 동기화**: `useUser` 가 로그인 시 서버 구독을 읽어 `subscriptionStore.syncFromServer()` 로 주입(서버=진실). 비로그인/로그아웃은 free 강등. 프로덕션에선 subscription 을 localStorage persist 에서 제외 → 복원으로 프리미엄 되살리는 경로 원천 차단. `subscribe()`/`startTrial()`/`setDemoTier()`/`toggleDemoMode()` 는 IS_DEMO_MODE 에서만 동작(프로덕션 no-op).
+- **잔여**: 실 구독 부여 경로(결제 웹훅 → profiles 갱신)는 Tier 0 #6. 가격 정본화(#13)는 이미 완료.

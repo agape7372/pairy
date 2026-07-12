@@ -33,6 +33,9 @@ export type CharacterRelationType =
 /** 공유 상태 */
 export type ShareStatus = 'private' | 'unlisted' | 'public'
 
+/** 서버 구독 등급(profiles.subscription_tier enum — 2티어). 클라 SubscriptionTier(4종)와 별개. */
+export type SubscriptionTierServer = 'free' | 'premium'
+
 export interface Database {
   public: {
     Tables: {
@@ -49,6 +52,10 @@ export interface Database {
           following_count: number
           total_earnings: number
           pending_payout: number
+          /** 구독 등급(서버 진실). 클라 변경 불가 — 결제 웹훅/service_role 만 (20260712000002) */
+          subscription_tier: SubscriptionTierServer
+          /** 구독 만료 시각. null=무기한/미구독 */
+          subscription_valid_until: string | null
           created_at: string
           updated_at: string
         }
@@ -64,6 +71,8 @@ export interface Database {
           following_count?: number
           total_earnings?: number
           pending_payout?: number
+          subscription_tier?: SubscriptionTierServer
+          subscription_valid_until?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -79,6 +88,8 @@ export interface Database {
           following_count?: number
           total_earnings?: number
           pending_payout?: number
+          subscription_tier?: SubscriptionTierServer
+          subscription_valid_until?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -625,6 +636,11 @@ export interface Database {
       increment_share_view: {
         Args: { p_share_id: string }
         Returns: undefined
+      }
+      /** 구독 유효성 판정 (SECURITY DEFINER — 20260712000002) */
+      is_premium_active: {
+        Args: { p_uid: string }
+        Returns: boolean
       }
     }
     Enums: {

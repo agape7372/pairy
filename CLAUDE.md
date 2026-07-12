@@ -169,4 +169,8 @@ docs/
 - 커밋 말미 `Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>`.
 
 ### 현재 최우선 (파운데이션 — 신기능보다 우선)
-1. 정적 export 결별(DL-0001) · 2. RLS 봉합(`supabase/migrations/20260706000000_tier0_security_hardening.sql` 적용) · 3. 클라이언트 신뢰 제거.
+~~1. 정적 export 결별~~ ✅ 2026-07-12 완료(DL-0001 CLOSED — Vercel 이전, 프로덕션 https://pairy-six.vercel.app, Pages 폐기)
+~~2. RLS 봉합~~ ✅ 2026-07-12 완료 — **Supabase 새 프로젝트 `bbvuqbzbniappgsxajkd`(서울) 클린 재구축**(구 프로젝트 90일 초과 정지). 마이그레이션 6종 적용·anon 실검증 통과. DB 비밀번호는 로컬 `.remember/tmp/new-db-password.txt`(사용자 보관 필요).
+~~3. 클라이언트 신뢰 제거(C-3)~~ ✅ 2026-07-12 부분완료(DL-0004) — 구독 진실을 `profiles.subscription_tier` 서버 컬럼으로, 클라 tier 자가승격 42501 차단, `syncFromServer` 배선. **잔여**: 결제 웹훅으로 실 부여 경로(C-4 수익/구매 서버검증)·F-28 프리미엄 콘텐츠 RLS(편집데이터 서버서빙 배선 선행).
+4. **결제 백엔드(Toss 웹훅 Route Handler) — Tier 0 #6** (다음 최우선). 이게 C-4·F-24·F-27·F-28 실배선의 공통 선행.
+- 주의: 컬럼 REVOKE 는 테이블 레벨 GRANT 가 살아있으면 무효 — `20260712000001_fix_column_privileges.sql` 패턴(테이블 REVOKE 후 허용 컬럼만 GRANT) 준수..
