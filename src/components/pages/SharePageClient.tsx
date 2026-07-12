@@ -96,10 +96,23 @@ export default function SharePageClient({ shareId }: SharePageClientProps) {
     window.open(shareUrl, '_blank', 'width=600,height=400')
   }, [work])
 
-  // 카카오톡 공유 (링크 복사로 대체)
-  const handleShareKakao = useCallback(() => {
+  // 카카오톡 공유 — SDK(앱 키) 없이는 직접 열기 불가.
+  // 모바일: OS 공유 시트(카카오톡 선택 가능) / 데스크톱: 링크 복사 폴백.
+  const handleShareKakao = useCallback(async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: work?.title || 'Pairy 작품',
+          text: 'Pairy에서 만든 작품을 확인해보세요!',
+          url: typeof window !== 'undefined' ? window.location.href : '',
+        })
+        return
+      } catch (err) {
+        if ((err as Error).name === 'AbortError') return
+      }
+    }
     handleCopyLink()
-  }, [handleCopyLink])
+  }, [work, handleCopyLink])
 
   // 로딩 상태
   if (isLoading) {

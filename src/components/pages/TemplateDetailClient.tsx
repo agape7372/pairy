@@ -488,7 +488,9 @@ export default function TemplateDetailClient({ templateId }: TemplateDetailClien
     }
 
     // 실 다운로드 (M5 서버 자료): 파일 URL 또는 외부 배포 링크
-    const target = resource.downloadUrl || resource.externalUrl
+    // http/https 만 허용 — DB 를 우회 삽입한 javascript:/data: 스킴 XSS 차단
+    const rawTarget = resource.downloadUrl || resource.externalUrl
+    const target = rawTarget && /^https?:\/\//i.test(rawTarget) ? rawTarget : null
     if (target) {
       window.open(target, '_blank', 'noopener,noreferrer')
       toast.success('다운로드가 시작되었습니다!')

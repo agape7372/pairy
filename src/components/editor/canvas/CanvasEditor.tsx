@@ -1543,8 +1543,12 @@ function CanvasEditorContent({
             }
           },
           onReset: () => {
-            // 전체 초기화 (필요시 구현)
-            toast.info('초기화 기능은 준비 중입니다')
+            // 전체 초기화 — 템플릿을 다시 로드해 처음 상태로 (M6)
+            if (!templateConfig) return
+            if (window.confirm('작업 내용을 모두 지우고 처음 상태로 되돌릴까요?')) {
+              loadTemplate(templateConfig)
+              toast.success('처음 상태로 되돌렸어요')
+            }
           },
         })}
       />
