@@ -37,6 +37,8 @@ import {
 } from '@/types/resources'
 import { useSubscriptionStore } from '@/stores/subscriptionStore'
 import { useBookmarks } from '@/hooks/useBookmarks'
+import { useResource } from '@/hooks/useResources'
+import { IS_DEMO_MODE } from '@/lib/supabase/client'
 import styles from '@/styles/particles.module.css'
 
 // 라이선스를 가격 타입으로 변환
@@ -349,6 +351,14 @@ export default function TemplateDetailClient({ templateId }: TemplateDetailClien
   const [isDownloading, setIsDownloading] = useState(false)
   const bookmarkContainerRef = useRef<HTMLDivElement>(null)
 
+  // 프로덕션: UUID 면 서버 resources 조회 (M5), 데모/샘플 id 는 sampleResources
+  const isServerResource =
+    !IS_DEMO_MODE &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(templateId)
+  const { resource: serverResource, isLoading: isResourceLoading } = useResource(
+    isServerResource ? templateId : null
+  )
+
   // Shooting Star 파티클 효과
   const emitShootingStar = useCallback(() => {
     if (!bookmarkContainerRef.current) return
@@ -409,7 +419,15 @@ export default function TemplateDetailClient({ templateId }: TemplateDetailClien
     }
   }
 
-  const resource = sampleResources[templateId]
+  const resource = isServerResource ? serverResource : sampleResources[templateId]
+
+  if (isServerResource && isResourceLoading) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-primary-300 border-t-primary-500 rounded-full animate-spin" />
+      </div>
+    )
+  }
 
   if (!resource) {
     return (
@@ -469,9 +487,21 @@ export default function TemplateDetailClient({ templateId }: TemplateDetailClien
       return
     }
 
-    // 다운로드 진행
-    setIsDownloading(true)
+    // 실 다운로드 (M5 서버 자료): 파일 URL 또는 외부 배포 링크
+    const target = resource.downloadUrl || resource.externalUrl
+    if (target) {
+      window.open(target, '_blank', 'noopener,noreferrer')
+      toast.success('다운로드가 시작되었습니다!')
+      return
+    }
+
+    if (isServerResource) {
+      toast.warning('다운로드할 파일이 등록되지 않은 자료예요.')
+      return
+    }
+
     // 데모: 0.5초 후 완료
+    setIsDownloading(true)
     setTimeout(() => {
       setIsDownloading(false)
       toast.success('다운로드가 시작되었습니다!')

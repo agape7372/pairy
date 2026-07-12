@@ -14,8 +14,10 @@ import {
 } from 'lucide-react'
 import { Button, useToast } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
-import { IS_DEMO_MODE } from '@/lib/supabase/client'
+import { IS_DEMO_MODE, createClient } from '@/lib/supabase/client'
 import { saveCustomTemplate } from '@/lib/utils/customTemplateStorage'
+import { dataUrlToBlob } from '@/hooks/useResources'
+import type { Json } from '@/types/database.types'
 import PSDUploader from '@/components/editor/psd/PSDUploader'
 import PSDCanvas from '@/components/editor/psd/PSDCanvas'
 
@@ -270,9 +272,63 @@ export default function NewTemplatePage() {
         return
       }
 
-      // 실서버 저장 미구현(F-16a). 가짜 성공 토스트로 작업을 침묵 소실시키지 않도록 정직하게 안내하고 페이지를 유지한다.
-      // TODO: Supabase templates insert — preview_url 은 compositeImage 를 storage 업로드 후 URL, editor_data 에 slots/fields 매핑.
-      toast.warning('아직 실서버 저장은 준비 중이에요. 작업 유실을 막기 위해 저장하지 않았습니다.')
+      // 실서버 저장 (M5/F-16a): preview 업로드 → templates insert
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        toast.warning('로그인 후 저장할 수 있어요.')
+        return
+      }
+
+      // 미리보기 업로드 (compositeImage 없으면 빈 URL 로 저장)
+      let previewUrl = ''
+      if (compositeImage) {
+        const blob = dataUrlToBlob(compositeImage)
+        const ext = blob.type.split('/')[1] ?? 'png'
+        const path = `${user.id}/${Date.now()}_preview.${ext}`
+        const { data: uploaded, error: uploadError } = await supabase.storage
+          .from('templates')
+          .upload(path, blob, { cacheControl: '3600', upsert: false })
+        if (uploadError) {
+          toast.error(`미리보기 업로드 실패: ${uploadError.message}`)
+          return
+        }
+        previewUrl = supabase.storage.from('templates').getPublicUrl(uploaded.path).data.publicUrl
+      }
+
+      // editor_data: 슬롯/필드/캔버스 구조. PSD 레이어 이미지(dataURL)는 용량상 제외 —
+      // 레이어 메타만 저장하고 시각 결과는 previewUrl 이 담는다.
+      const { error: insertError } = await supabase.from('templates').insert({
+        creator_id: user.id,
+        title: title.trim(),
+        description: description.trim(),
+        preview_url: previewUrl,
+        editor_data: {
+          emoji: selectedEmoji,
+          tags: selectedTags,
+          canvasSize,
+          slots,
+          fields,
+          // PSD 레이어 이미지(dataURL)는 용량상 제외 — 메타만
+          layers: psdLayers.map((l) => ({
+            id: l.id, name: l.name, x: l.x, y: l.y,
+            width: l.width, height: l.height, visible: l.visible,
+          })),
+        } as unknown as Json,
+        participant_count: slots.length,
+        is_public: true,
+        is_premium: false,
+        price: 0,
+        pricing_type: 'free',
+      })
+
+      if (insertError) {
+        toast.error(`저장에 실패했어요: ${insertError.message}`)
+        return
+      }
+
+      toast.success('틀이 게시됐어요! 에디터의 틀 선택에서 사용할 수 있어요.')
+      router.push('/templates')
     } catch (err) {
       console.error('Failed to save template:', err)
       toast.error('저장에 실패했습니다. 다시 시도해주세요.')

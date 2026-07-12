@@ -301,6 +301,74 @@ export interface Database {
           }
         ]
       }
+      /** 자료 허브 게시글 테이블 (M5, 20260712000010) */
+      resources: {
+        Row: {
+          id: string
+          author_id: string
+          title: string
+          description: string
+          category: string
+          tags: string[]
+          license: string
+          price: number
+          thumbnail_url: string | null
+          file_url: string | null
+          file_name: string | null
+          file_size_kb: number | null
+          external_url: string | null
+          view_count: number
+          download_count: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          author_id: string
+          title: string
+          description?: string
+          category: string
+          tags?: string[]
+          license?: string
+          price?: number
+          thumbnail_url?: string | null
+          file_url?: string | null
+          file_name?: string | null
+          file_size_kb?: number | null
+          external_url?: string | null
+          view_count?: number
+          download_count?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          author_id?: string
+          title?: string
+          description?: string
+          category?: string
+          tags?: string[]
+          license?: string
+          price?: number
+          thumbnail_url?: string | null
+          file_url?: string | null
+          file_name?: string | null
+          file_size_kb?: number | null
+          external_url?: string | null
+          view_count?: number
+          download_count?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'resources_author_id_fkey'
+            columns: ['author_id']
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          }
+        ]
+      }
       /** 라이브러리 폴더 테이블 (M3) */
       library_folders: {
         Row: {
@@ -887,6 +955,9 @@ export type CharacterWithMetadata = Omit<Character, 'metadata'> & {
 // ============================================
 // 라이브러리 폴더 헬퍼 타입 (M3)
 // ============================================
+
+export type ResourceRow = Database['public']['Tables']['resources']['Row']
+export type ResourceInsert = Database['public']['Tables']['resources']['Insert']
 
 export type LibraryFolder = Database['public']['Tables']['library_folders']['Row']
 export type LibraryFolderInsert = Database['public']['Tables']['library_folders']['Insert']

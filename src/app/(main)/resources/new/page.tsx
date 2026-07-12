@@ -27,6 +27,8 @@ import {
   MAX_INLINE_FILE_KB,
   type ResourceFileMeta,
 } from '@/lib/utils/resourceStorage'
+import { createResource, MAX_RESOURCE_FILE_MB } from '@/hooks/useResources'
+import { IS_DEMO_MODE } from '@/lib/supabase/client'
 
 const CATEGORY_KEYS = Object.keys(RESOURCE_CATEGORIES) as ResourceCategory[]
 const LICENSE_KEYS = Object.keys(LICENSE_INFO) as LicenseType[]
@@ -66,6 +68,7 @@ function NewResourceForm() {
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [thumbnail, setThumbnail] = useState<string | null>(null)
   const [file, setFile] = useState<ResourceFileMeta | null>(null)
+  const [rawFile, setRawFile] = useState<File | null>(null) // 프로덕션 스토리지 업로드용 원본
   const [externalUrl, setExternalUrl] = useState('')
   const [license, setLicense] = useState<LicenseType>('free')
   const [price, setPrice] = useState('')
@@ -100,7 +103,22 @@ function NewResourceForm() {
     const sizeKB = Math.round(f.size / 1024)
     const meta: ResourceFileMeta = { name: f.name, sizeKB }
 
-    // 소형 파일만 인라인 저장 (데모 한계), 대용량은 외부 링크 권장
+    if (!IS_DEMO_MODE) {
+      // 프로덕션: 스토리지 업로드 — 원본 File 만 들고 있으면 됨
+      if (sizeKB > MAX_RESOURCE_FILE_MB * 1024) {
+        setFileError(
+          `파일이 ${MAX_RESOURCE_FILE_MB}MB를 초과해요. 대용량은 외부 배포 링크를 사용해주세요.`
+        )
+        setRawFile(null)
+        setFile(null)
+        return
+      }
+      setRawFile(f)
+      setFile(meta)
+      return
+    }
+
+    // 데모: 소형 파일만 인라인 저장, 대용량은 외부 링크 권장
     if (sizeKB <= MAX_INLINE_FILE_KB) {
       try {
         meta.dataUrl = await fileToDataUrl(f)
@@ -118,7 +136,8 @@ function NewResourceForm() {
 
   // 유효성
   const trimmedUrl = externalUrl.trim()
-  const hasDeliverable = Boolean(thumbnail || file?.dataUrl || trimmedUrl)
+  const hasFilePayload = IS_DEMO_MODE ? Boolean(file?.dataUrl) : Boolean(rawFile)
+  const hasDeliverable = Boolean(thumbnail || hasFilePayload || trimmedUrl)
   const urlValid = trimmedUrl === '' || isValidUrl(trimmedUrl)
   const canSubmit =
     Boolean(category) &&
@@ -155,24 +174,50 @@ function NewResourceForm() {
     }
 
     setIsSaving(true)
-    const result = saveResourcePost({
-      title: title.trim(),
-      description: description.trim(),
-      category,
-      tags: selectedTags,
-      license,
-      price: license === 'paid' ? Number(price) : undefined,
-      thumbnail: thumbnail || undefined,
-      file: file || undefined,
-      externalUrl: trimmedUrl || undefined,
-    })
-    setIsSaving(false)
+    try {
+      // 프로덕션: resources 테이블 + 스토리지 (M5)
+      if (!IS_DEMO_MODE) {
+        const result = await createResource({
+          title: title.trim(),
+          description: description.trim(),
+          category,
+          tags: selectedTags,
+          license,
+          price: license === 'paid' ? Number(price) : undefined,
+          thumbnailDataUrl: thumbnail || undefined,
+          file: rawFile || undefined,
+          externalUrl: trimmedUrl || undefined,
+        })
+        if (result.success) {
+          toast.success('자료가 업로드되었어요!')
+          router.push('/templates')
+        } else {
+          toast.error(result.error || '업로드에 실패했습니다.')
+        }
+        return
+      }
 
-    if (result.success) {
-      toast.success('자료가 업로드되었어요!')
-      router.push('/templates')
-    } else {
-      toast.error(result.error || '업로드에 실패했습니다.')
+      // 데모: localStorage
+      const result = saveResourcePost({
+        title: title.trim(),
+        description: description.trim(),
+        category,
+        tags: selectedTags,
+        license,
+        price: license === 'paid' ? Number(price) : undefined,
+        thumbnail: thumbnail || undefined,
+        file: file || undefined,
+        externalUrl: trimmedUrl || undefined,
+      })
+
+      if (result.success) {
+        toast.success('자료가 업로드되었어요!')
+        router.push('/templates')
+      } else {
+        toast.error(result.error || '업로드에 실패했습니다.')
+      }
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -328,6 +373,7 @@ function NewResourceForm() {
                       type="button"
                       onClick={() => {
                         setFile(null)
+                        setRawFile(null)
                         setFileError(null)
                       }}
                       className="p-1 rounded hover:bg-gray-100 text-gray-500"

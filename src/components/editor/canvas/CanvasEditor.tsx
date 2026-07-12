@@ -36,11 +36,13 @@ import {
   ZoneSelector,
 } from '@/components/editor/collab'
 import { useCollabSession } from '@/hooks/useCollabSession'
+import { createClient, IS_DEMO_MODE } from '@/lib/supabase/client'
 import { CollabProvider, useCollabOptional } from '@/lib/collab'
 import type { CollabUser, EditingZone } from '@/lib/collab/types'
 import { useUser } from '@/hooks/useUser'
 import { useReducedMotion, useAnnounce } from '@/hooks/useAccessibility'
 import type { TemplateConfig, TemplateRendererRef } from '@/types/template'
+import type { Json } from '@/types/database.types'
 import {
   safeGetAutoSaveData,
   safeSetAutoSaveData,
@@ -601,15 +603,78 @@ function CanvasEditorContent({
     }
   }, [templateConfig, calculateFitZoom, zoom, setZoom])
 
-  // 저장 (useCallback으로 메모이제이션) - 안전한 localStorage 접근
+  // 저장된 작품 id (첫 서버 저장 후 이후 저장은 update). 협업 세션이면 그 workId 를 잇는다.
+  const savedWorkIdRef = useRef<string | null>(
+    sessionId && /^[0-9a-f-]{36}$/i.test(sessionId) ? sessionId : null
+  )
+
+  // 저장 (M5 실배선) — 프로덕션: works.editor_data / 데모·로컬 틀: localStorage 유지
   const handleSave = useCallback(async () => {
-    // TODO: 실제 Supabase 저장 로직 구현
-    markSaved()
-    // 자동 저장 데이터 삭제 (수동 저장 완료)
-    safeRemoveAutoSaveData(autoSaveKey)
-    setLastAutoSave(new Date())
-    toast.success('저장되었습니다')
-  }, [formData, images, colors, markSaved, autoSaveKey, toast])
+    const isServerTemplate =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(templateId)
+
+    // 데모 모드이거나 서버 틀이 아닌(샘플/커스텀) 경우: 기존 로컬 저장 유지.
+    // autosave 데이터는 지우지 않는다 — 지우면 데이터가 메모리에만 남는 거짓 저장이 된다.
+    if (IS_DEMO_MODE || !isServerTemplate) {
+      markSaved()
+      setLastAutoSave(new Date())
+      toast.success('브라우저에 저장되었습니다')
+      return
+    }
+
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        toast.warning('로그인 후 저장할 수 있어요 — 임시 저장은 브라우저에 유지됩니다.')
+        return
+      }
+
+      // 작업 상태 전체 직렬화. 이미지 dataURL 포함 — 스토리지 분리는 후속(F-28 연계).
+      const editorData = {
+        formData,
+        images,
+        colors,
+        slotTransforms,
+        savedAt: new Date().toISOString(),
+      } as unknown as Json
+
+      if (savedWorkIdRef.current) {
+        const { error } = await supabase
+          .from('works')
+          .update({
+            title,
+            editor_data: editorData,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', savedWorkIdRef.current)
+          .eq('user_id', user.id)
+        if (error) throw new Error(error.message)
+      } else {
+        const { data, error } = await supabase
+          .from('works')
+          .insert({
+            user_id: user.id,
+            template_id: templateId,
+            title,
+            editor_data: editorData,
+          })
+          .select('id')
+          .single()
+        if (error) throw new Error(error.message)
+        savedWorkIdRef.current = data.id
+      }
+
+      markSaved()
+      // 서버 저장 성공 시에만 자동 저장 데이터 삭제
+      safeRemoveAutoSaveData(autoSaveKey)
+      setLastAutoSave(new Date())
+      toast.success('저장되었습니다')
+    } catch (err) {
+      console.error('[CanvasEditor] Save error:', err)
+      toast.error('저장에 실패했어요. 임시 저장은 브라우저에 유지됩니다.')
+    }
+  }, [templateId, title, formData, images, colors, slotTransforms, markSaved, autoSaveKey, toast])
 
   // 선택된 슬롯 이동 (화살표 키)
   const moveSelectedSlot = useCallback((dx: number, dy: number) => {
