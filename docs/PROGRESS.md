@@ -1,20 +1,45 @@
 # Pairy 개발 진행도
 
-> 마지막 업데이트: 2026-01-01
+> 마지막 업데이트: 2026-07-12
 
 ## 현재 상태
 
 ```
-Phase 1 ████████████████████ 100% 완료
-Phase 2 ████████████████████ 100% 완료
-Phase 3 ████████████████████ 100% 완료
-Phase 4 ████████████████████ 100% 완료
-Phase 5 ████████████████████ 100% 완료
-Phase 6 ████████████████████ 100% 완료
+Phase 1~6 (기능 구축)  ████████████████████ 100% (아래 표)
+파운데이션 (감사 대응)  ██████████████░░░░░░  70% — Tier 0 보안·런타임 완료, 결제 백엔드 남음
 ```
 
+> ⚠ **2026-01 "Phase 100% 완료"는 기능 UI 기준.** 2026-07-05 Fable 전수감사에서 다수 기능이 demo/stub/orphan(미배선)으로 확인됨 — 정본 판정은 `docs/features/`(F-01~33 판정 원장)·`docs/audit-2026-07-05/`. 아래 "파운데이션" 섹션이 실서비스 성립 기준의 현행 진행도다.
 
 > **Phase 5 상세 계획:** [EDITOR-UPGRADE-PLAN.md](./EDITOR-UPGRADE-PLAN.md)
+---
+
+## 파운데이션 — 감사 대응 (2026-07-05 Fable 감사 → 실행)
+
+> 정본: `docs/audit-2026-07-05/`(감사·TOP50)·`docs/ai-org/decisions/`(DL-0001~0004)·`docs/features/`(기능 판정). 여기는 진행 요약.
+
+### 완료 (2026-07-12)
+
+| 항목 | 내용 | 산출 |
+|------|------|------|
+| **DL-0001 런타임** | 정적 export 결별 → Vercel 이전. UGC 라우트 4종 온디맨드(404 소멸), share OG 서버 실데이터, H-5 빌드가드+데모배너. GitHub Pages 폐기 | PR #93 |
+| **Tier 0 보안 (C-1·C-2·H-1)** | Supabase 클린 재구축(구 프로젝트 90일 초과 정지) + 권한 자가승격·스키마 드리프트·초대코드 노출 봉합. anon 실검증 42501/빈배열 | PR #95 |
+| **H-3** | 죽은 서버 인가 코드 제거(가짜 보안 착시) | PR #94 |
+| **TOP50 #13·#15** | 가격/수수료 단일 정본화(코드 PRICING) · persist 스토어 5종 version/migrate | PR #94 |
+| **C-3 구독 서버진실 (DL-0004)** | tier localStorage 자가승격 봉합 — `profiles.subscription_tier`(free/premium 2티어) 서버 컬럼, 클라 UPDATE 42501 차단, `syncFromServer` 동기화, 데모 가드 | PR #96 |
+
+- **배포**: Vercel `jirings-projects/pairy` → **https://pairy-six.vercel.app** (Git 연동: main=프로덕션, PR=프리뷰)
+- **DB**: Supabase `bbvuqbzbniappgsxajkd`(서울) — repo `supabase/migrations/` 정본, 마이그레이션 6종 적용
+
+### 남은 파운데이션 (다음 우선순위)
+
+| 항목 | 내용 | 선행 |
+|------|------|------|
+| **결제 백엔드 (Tier 0 #6)** | Toss 웹훅 Route Handler — 실 구독 부여·구매 확정. **C-4·F-24·F-27·F-28 실배선의 공통 선행** | 서버 런타임(완료) |
+| C-4 수익/구매 서버검증 | 마켓 판매·정산을 서버 원장으로 | 결제 백엔드 |
+| F-28 프리미엄 콘텐츠 RLS | 편집 데이터가 로컬 JSON 서빙이라(정적 잔재) editor_data 실서빙 배선 선행 | editor_data 서버화 |
+| 성능 스윕 (#10·#11) | 히스토리 push 디바운스 · CanvasEditor 셀렉터 구독·렌더러 memo | — |
+
 ---
 
 ## Phase 1: MVP 기본 (완료)
@@ -592,6 +617,10 @@ Canvas 기반 에디터 재구축 (react-konva)
 
 | 날짜 | 커밋 | 설명 |
 |------|------|------|
+| 2026-07-12 | #96 | feat(C-3): 구독 서버 진실 이전 — tier 자가승격 봉합 (DL-0004) |
+| 2026-07-12 | #95 | feat(Tier0): Supabase 클린 재구축 — C-1·C-2·H-1 봉합 라이브 적용 |
+| 2026-07-12 | #94 | fix: H-3 죽은 인가 코드 제거 + TOP50 #13 가격 정본화·#15 persist migrate |
+| 2026-07-12 | #93 | feat(DL-0001): 정적 export 결별 — Vercel 이전, GitHub Pages 폐기 |
 | 2026-01-01 | 6a66d72 | feat: 협업 기능 확장 (Phase 6) |
 | 2026-01-01 | b3a80e8 | fix: 협업 UI 가시성 개선 |
 | 2026-01-01 | c4cfdbd | feat: 에디터 협업 기능 확장 (Phase 5) |
@@ -632,8 +661,8 @@ Canvas 기반 에디터 재구축 (react-konva)
 
 | 환경 | URL | 상태 |
 |------|-----|:----:|
-| GitHub Pages (데모) | https://agape7372.github.io/pairy | ✅ |
-| Production | - | ⏳ |
+| Production (Vercel) | https://pairy-six.vercel.app | ✅ |
+| ~~GitHub Pages (데모)~~ | ~~agape7372.github.io/pairy~~ | ❌ 2026-07-12 폐기(DL-0001) |
 
 ---
 
