@@ -2,8 +2,10 @@
 
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { IS_DEMO_MODE } from '@/lib/supabase/client'
+import type { SubscriptionTierServer } from '@/types/database.types'
 
-// 구독 티어
+// 구독 티어 (클라 표현). 서버 진실은 2티어(free/premium) — creator/duo 는 게놈대로 동결 잔재.
 export type SubscriptionTier = 'free' | 'premium' | 'creator' | 'duo'
 
 // 구독 주기
@@ -130,6 +132,9 @@ interface SubscriptionState {
   // 데모 모드 (개발/테스트용)
   isDemoMode: boolean
 
+  // 서버 동기화 (C-3: 서버가 구독 진실의 원천)
+  syncFromServer: (tier: SubscriptionTierServer, validUntil: string | null) => void
+
   // 액션
   setTier: (tier: SubscriptionTier) => void
   subscribe: (tier: SubscriptionTier, cycle: BillingCycle) => void
@@ -198,7 +203,25 @@ export const useSubscriptionStore = create<SubscriptionState>()(
     (set, get) => ({
       subscription: initialSubscription,
       usage: initialUsage,
-      isDemoMode: true, // 기본적으로 데모 모드
+      // 실 백엔드(Supabase env) 있으면 프로덕션 = 서버 진실, 없으면 데모.
+      isDemoMode: IS_DEMO_MODE,
+
+      // 서버 profiles.subscription_tier 를 진실로 스토어에 반영.
+      // 서버는 2티어(free/premium)만 안다 — creator/duo 표현은 여기서 만들지 않는다.
+      syncFromServer: (tier, validUntil) => {
+        set((state) => ({
+          subscription: {
+            ...state.subscription,
+            tier,
+            endDate: validUntil,
+            billingCycle: tier === 'premium' ? (state.subscription.billingCycle ?? 'monthly') : null,
+            isTrialActive: false,
+            trialEndDate: null,
+          },
+          // 서버 동기화가 일어났다 = 실 백엔드 연결됨 → 데모 조작 경로 봉인
+          isDemoMode: false,
+        }))
+      },
 
       setTier: (tier) => {
         set((state) => ({
@@ -207,6 +230,13 @@ export const useSubscriptionStore = create<SubscriptionState>()(
       },
 
       subscribe: (tier, cycle) => {
+        // C-3: 결제 웹훅 없이 클라가 tier 를 올리는 건 데모 전용.
+        // 프로덕션(Supabase 연결)에선 no-op — 실 구독은 결제→서버 profiles 갱신→syncFromServer 경로로만.
+        if (!IS_DEMO_MODE) {
+          console.warn('[subscription] subscribe() 는 데모 전용입니다. 실 구독은 결제 백엔드를 통해야 합니다.')
+          return
+        }
+
         const now = new Date()
         const endDate = new Date(now)
         if (cycle === 'monthly') {
@@ -237,6 +267,12 @@ export const useSubscriptionStore = create<SubscriptionState>()(
       },
 
       startTrial: () => {
+        // 체험도 결제/서버가 부여해야 함 — 클라 직접 부여는 데모 전용(C-3).
+        if (!IS_DEMO_MODE) {
+          console.warn('[subscription] startTrial() 는 데모 전용입니다.')
+          return
+        }
+
         const now = new Date()
         const trialEnd = new Date(now)
         trialEnd.setDate(trialEnd.getDate() + 7) // 7일 무료 체험
@@ -454,10 +490,14 @@ export const useSubscriptionStore = create<SubscriptionState>()(
       },
 
       toggleDemoMode: () => {
+        // 프로덕션(실 백엔드)에선 데모 모드로 되돌아가 게이팅을 무력화하지 못하게 봉인.
+        if (!IS_DEMO_MODE) return
         set((state) => ({ isDemoMode: !state.isDemoMode }))
       },
 
       setDemoTier: (tier) => {
+        // C-3: 티어 임의 조작은 데모 전용. 프로덕션에선 no-op(서버 syncFromServer 만 tier 를 바꾼다).
+        if (!IS_DEMO_MODE) return
         set((state) => ({
           subscription: { ...state.subscription, tier },
         }))
@@ -465,14 +505,17 @@ export const useSubscriptionStore = create<SubscriptionState>()(
     }),
     {
       name: 'pairy-subscription',
-      // TOP50 #15 · 스키마 변경 시 여기서 버전 올리고 migrate 로 변환 (v0=버전 표기 이전 데이터)
-      version: 1,
+      // v2: isDemoMode 를 persist 에서 제외(C-3). 저장하면 옛 isDemoMode:true 가 복원돼
+      // 프로덕션 데모 가드를 무력화하므로, 항상 초기값(IS_DEMO_MODE)에서 재계산한다.
+      version: 2,
       migrate: (persistedState) => persistedState,
-      partialize: (state) => ({
-        subscription: state.subscription,
-        usage: state.usage,
-        isDemoMode: state.isDemoMode,
-      }),
+      // 프로덕션(실 백엔드): subscription 을 persist 하지 않는다 — localStorage 복원이
+      // 서버 동기화 전 프리미엄 tier 를 되살리는 C-3 경로를 원천 차단. tier 는 오직 syncFromServer 로.
+      // 데모: 기존대로 subscription 도 저장(데모 UX 유지).
+      partialize: (state) =>
+        IS_DEMO_MODE
+          ? { subscription: state.subscription, usage: state.usage }
+          : { usage: state.usage },
     }
   )
 )

@@ -15,3 +15,11 @@
 2. 클라이언트 체크(TemplateDetailClient.tsx 등)는 UX 안내용으로 유지하되 "유일한 방어선"이 아님을 명확히. (Sonnet)
 
 **의존·순서**: **선행조건**: F-26(구독 서버검증)이 먼저 성립해야 이 게이팅이 참조할 "진짜 티어 정보"가 서버에 존재. F-24·F-27과 함께 결제 백엔드 구축이라는 동일 선행 작업에 종속.
+
+---
+
+## 갱신 · 2026-07-12 (서버 진실 확보 + 콘텐츠 RLS는 정직한 defer)
+
+- **선행조건 F-26 부분 성립**: 구독 진실이 서버(`profiles.subscription_tier`)로 이전됨 + `is_premium_active(uid)` SECURITY DEFINER 함수 신설(`20260712000002`) — 프리미엄 리소스 RLS 가 참조할 "진짜 티어"가 서버에 존재하게 됨.
+- **프리미엄 콘텐츠 RLS 는 defer(코드가 증명)**: 감사 시점 가정과 달리, 편집 데이터가 DB `templates.editor_data` 가 아니라 **로컬 `public/templates/*.json`** 에서 로드됨(CanvasEditor.tsx, 정적 export 잔재). 즉 지금 editor_data 에 RLS 를 걸어도 **아무 편집 경로도 그 데이터를 안 써서 "죽은 데이터 보호"**. 실 방어선은 (1) editor_data 실서빙 배선 + (2) 결제 구매이력이 선행. `is_premium_active()` 를 참조점으로 그때 배선.
+- **현 상태의 안전성**: 클라 게이팅(TemplateDetailClient 등)은 UX 힌트로 유지. 프리미엄 콘텐츠가 아직 서버에서 서빙되지 않으므로 무단 접근 대상 자체가 없음 = 현재 노출 0.
