@@ -11,182 +11,14 @@ import {
   FileText,
   Sparkles,
   Twitter,
-  ExternalLink,
   Calendar,
 } from 'lucide-react'
-import { Button, Tag } from '@/components/ui'
+import { Button } from '@/components/ui'
 import { FollowButton } from '@/components/social'
 import { useFollow } from '@/hooks/useFollow'
+import { useCreatorProfile } from '@/hooks/useCreatorProfile'
 import { cn } from '@/lib/utils/cn'
 
-// 크리에이터 샘플 데이터
-const creatorsData: Record<string, {
-  id: string
-  username: string
-  displayName: string
-  bio: string
-  avatarEmoji: string
-  joinedAt: string
-  twitterHandle?: string
-  stats: {
-    totalTemplates: number
-    totalLikes: number
-    totalUses: number
-    followers: number
-  }
-  templates: Array<{
-    id: string
-    title: string
-    emoji: string
-    likeCount: number
-    useCount: number
-    tags: string[]
-  }>
-}> = {
-  strawberry123: {
-    id: 'creator-1',
-    username: 'strawberry123',
-    displayName: '딸기크림',
-    bio: '달달한 커플 틀 전문 크리에이터입니다. 사랑스러운 관계를 표현하는 틀을 주로 만들어요',
-    avatarEmoji: '🍓',
-    joinedAt: '2024-06-15',
-    twitterHandle: 'strawberry_pairy',
-    stats: {
-      totalTemplates: 12,
-      totalLikes: 5234,
-      totalUses: 15892,
-      followers: 2341,
-    },
-    templates: [
-      { id: '1', title: '커플 프로필 틀', emoji: '💕', likeCount: 1234, useCount: 2847, tags: ['커플', '2인용'] },
-      { id: '9', title: '기념일 카드', emoji: '🎂', likeCount: 892, useCount: 1523, tags: ['커플', '기념일'] },
-      { id: '10', title: '러브레터 틀', emoji: '💌', likeCount: 567, useCount: 987, tags: ['커플', '1인용'] },
-    ],
-  },
-  fairy_art: {
-    id: 'creator-2',
-    username: 'fairy_art',
-    displayName: '페어리',
-    bio: '친구들과의 소중한 추억을 담는 관계도 틀을 만들고 있어요. 복잡한 관계도 예쁘게!',
-    avatarEmoji: '🧚',
-    joinedAt: '2024-03-01',
-    twitterHandle: 'fairy_art_kr',
-    stats: {
-      totalTemplates: 8,
-      totalLikes: 3421,
-      totalUses: 9876,
-      followers: 1567,
-    },
-    templates: [
-      { id: '2', title: '친구 관계도', emoji: '✨', likeCount: 892, useCount: 1523, tags: ['친구', '관계도'] },
-      { id: '11', title: '우정 프로필', emoji: '🌟', likeCount: 543, useCount: 876, tags: ['친구', '2인용'] },
-    ],
-  },
-  moonlight: {
-    id: 'creator-3',
-    username: 'moonlight',
-    displayName: '문라이트',
-    bio: 'OC 덕후입니다. 캐릭터 소개에 진심인 사람',
-    avatarEmoji: '🌙',
-    joinedAt: '2024-07-20',
-    stats: {
-      totalTemplates: 5,
-      totalLikes: 1890,
-      totalUses: 4532,
-      followers: 876,
-    },
-    templates: [
-      { id: '3', title: 'OC 소개 카드', emoji: '🌙', likeCount: 567, useCount: 892, tags: ['프로필', '1인용', 'OC'] },
-    ],
-  },
-  mintchoco: {
-    id: 'creator-4',
-    username: 'mintchoco',
-    displayName: '민트초코',
-    bio: '베프와의 케미를 세상에 알리고 싶어서 틀을 만들기 시작했어요',
-    avatarEmoji: '🍀',
-    joinedAt: '2024-05-10',
-    twitterHandle: 'mintchoco_design',
-    stats: {
-      totalTemplates: 15,
-      totalLikes: 8765,
-      totalUses: 23456,
-      followers: 4123,
-    },
-    templates: [
-      { id: '4', title: '베프 케미 틀', emoji: '🍀', likeCount: 2341, useCount: 4123, tags: ['친구', '2인용'] },
-    ],
-  },
-  roseberry: {
-    id: 'creator-5',
-    username: 'roseberry',
-    displayName: '로즈베리',
-    bio: '복잡한 관계도 아름답게, 삼각관계 전문 크리에이터',
-    avatarEmoji: '🌹',
-    joinedAt: '2024-04-05',
-    stats: {
-      totalTemplates: 7,
-      totalLikes: 4321,
-      totalUses: 11234,
-      followers: 2156,
-    },
-    templates: [
-      { id: '5', title: '삼각관계 틀', emoji: '🔺', likeCount: 1567, useCount: 2156, tags: ['관계도', '3인용+'] },
-    ],
-  },
-  skyblue: {
-    id: 'creator-6',
-    username: 'skyblue',
-    displayName: '스카이블루',
-    bio: '깔끔하고 정돈된 캐릭터 프로필 카드를 만들어요',
-    avatarEmoji: '☁️',
-    joinedAt: '2024-08-12',
-    stats: {
-      totalTemplates: 4,
-      totalLikes: 2345,
-      totalUses: 5678,
-      followers: 987,
-    },
-    templates: [
-      { id: '6', title: '캐릭터 프로필 카드', emoji: '📋', likeCount: 987, useCount: 1678, tags: ['프로필', '1인용', 'OC'] },
-    ],
-  },
-  cherryblossom: {
-    id: 'creator-7',
-    username: 'cherryblossom',
-    displayName: '체리블라썸',
-    bio: '팬아트 전문! 좋아하는 캐릭터들의 케미를 담아요',
-    avatarEmoji: '🌸',
-    joinedAt: '2024-02-14',
-    twitterHandle: 'cherry_blossom_art',
-    stats: {
-      totalTemplates: 20,
-      totalLikes: 12345,
-      totalUses: 34567,
-      followers: 6789,
-    },
-    templates: [
-      { id: '7', title: '팬아트 커플 틀', emoji: '🌸', likeCount: 3456, useCount: 5892, tags: ['팬아트', '커플', '2인용'] },
-    ],
-  },
-  coconut: {
-    id: 'creator-8',
-    username: 'coconut',
-    displayName: '코코넛',
-    bio: '단체 관계도의 달인, 복잡한 캐릭터 관계를 정리해드려요',
-    avatarEmoji: '🥥',
-    joinedAt: '2024-01-20',
-    stats: {
-      totalTemplates: 6,
-      totalLikes: 2567,
-      totalUses: 6789,
-      followers: 1234,
-    },
-    templates: [
-      { id: '8', title: '단체 관계도', emoji: '🥥', likeCount: 789, useCount: 945, tags: ['관계도', '3인용+'] },
-    ],
-  },
-}
 
 interface CreatorProfileClientProps {
   username: string
@@ -195,12 +27,21 @@ interface CreatorProfileClientProps {
 export default function CreatorProfileClient({ username }: CreatorProfileClientProps) {
   const router = useRouter()
 
-  const creator = creatorsData[username]
+  // 실 profiles 조회(F-22) — 하드코딩 샘플 제거
+  const { creator, isLoading, notFound } = useCreatorProfile(username)
 
-  // useFollow 훅 사용 (creator.id가 있을 때만)
-  const { followerCount, isFollowing } = useFollow(creator?.id || '')
+  // useFollow 는 실 UUID 로 동작(가짜 id 제거로 진짜 팔로우 성립)
+  const { followerCount } = useFollow(creator?.id || '')
 
-  if (!creator) {
+  if (isLoading) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary-300 border-t-transparent" />
+      </div>
+    )
+  }
+
+  if (notFound || !creator) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center px-4">
         <div className="text-6xl mb-4">🤔</div>
@@ -244,8 +85,13 @@ export default function CreatorProfileClient({ username }: CreatorProfileClientP
         <div className="max-w-[1200px] mx-auto">
           <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
             {/* Avatar */}
-            <div className="w-32 h-32 rounded-full bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center text-6xl border-4 border-white shadow-lg">
-              {creator.avatarEmoji}
+            <div className="w-32 h-32 rounded-full bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center text-6xl border-4 border-white shadow-lg overflow-hidden">
+              {creator.avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={creator.avatarUrl} alt={creator.displayName} className="w-full h-full object-cover" />
+              ) : (
+                '🎨'
+              )}
             </div>
 
             {/* Info */}
@@ -261,20 +107,8 @@ export default function CreatorProfileClient({ username }: CreatorProfileClientP
               <div className="flex flex-wrap justify-center md:justify-start gap-4 text-sm text-gray-500 mb-6">
                 <div className="flex items-center gap-1">
                   <Calendar className="w-4 h-4" />
-                  <span>{creator.joinedAt} 가입</span>
+                  <span>{new Date(creator.joinedAt).toLocaleDateString('ko-KR')} 가입</span>
                 </div>
-                {creator.twitterHandle && (
-                  <a
-                    href={`https://twitter.com/${creator.twitterHandle}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-[#1DA1F2] hover:underline"
-                  >
-                    <Twitter className="w-4 h-4" />
-                    <span>@{creator.twitterHandle}</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
-                )}
               </div>
 
               {/* Actions - FollowButton 컴포넌트 사용 */}
@@ -335,20 +169,18 @@ export default function CreatorProfileClient({ username }: CreatorProfileClientP
                 href={`/templates/${template.id}`}
                 className="group bg-white rounded-[20px] overflow-hidden border border-gray-200 hover:shadow-lg transition-all duration-200 hover:-translate-y-1"
               >
-                <div className="aspect-[4/3] bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center text-5xl">
-                  {template.emoji}
+                <div className="aspect-[4/3] bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center text-5xl overflow-hidden">
+                  {template.previewUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={template.previewUrl} alt={template.title} className="w-full h-full object-cover" />
+                  ) : (
+                    '🎨'
+                  )}
                 </div>
                 <div className="p-4">
                   <h3 className="font-semibold text-gray-900 group-hover:text-primary-400 transition-colors mb-2">
                     {template.title}
                   </h3>
-                  <div className="flex flex-wrap gap-1 mb-3">
-                    {template.tags.map((tag, idx) => (
-                      <Tag key={tag} variant={idx === 0 ? 'primary' : 'accent'}>
-                        {tag}
-                      </Tag>
-                    ))}
-                  </div>
                   <div className="flex items-center justify-between text-sm text-gray-500">
                     <div className="flex items-center gap-1">
                       <Heart className="w-4 h-4" />

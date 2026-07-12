@@ -1,17 +1,5 @@
 import FollowingClient from './FollowingClient'
 
-export function generateStaticParams() {
-  return [
-    { username: 'strawberry123' },
-    { username: 'fairy_art' },
-    { username: 'moonlight' },
-    { username: 'mintchoco' },
-    { username: 'roseberry' },
-    { username: 'skyblue' },
-    { username: 'cherryblossom' },
-    { username: 'coconut' },
-  ]
-}
 
 interface PageProps {
   params: Promise<{ username: string }>
