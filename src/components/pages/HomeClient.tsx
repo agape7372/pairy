@@ -28,6 +28,7 @@ import {
 } from 'lucide-react'
 import { Button, Tag } from '@/components/ui'
 import { useScrollReveal, useCountUp, useMouseFollow } from '@/hooks/useScrollReveal'
+import { PRICING } from '@/stores/subscriptionStore'
 
 // ============================================
 // 데이터
@@ -144,7 +145,8 @@ const pricingPlans = [
   },
   {
     name: '프리미엄',
-    price: '₩3,900',
+    // 가격 단일 정본 = subscriptionStore PRICING (TOP50 #13 — 하드코딩 금지)
+    price: `₩${PRICING.premium.monthly.toLocaleString()}`,
     period: '/월',
     description: '본격적으로 즐기기',
     features: [
