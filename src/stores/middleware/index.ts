@@ -7,11 +7,15 @@ export {
   type HistorySnapshot,
   type HistoryState,
   type HistoryActions,
+  type SnapshotSource,
   initialHistoryState,
   areSnapshotsEqual,
   createSnapshot,
   pushSnapshot,
   createHistoryActions,
+  collectBlobUrls,
+  revokeBlobUrls,
+  revokeOrphanedBlobUrls,
 } from './historyMiddleware'
 
 export {

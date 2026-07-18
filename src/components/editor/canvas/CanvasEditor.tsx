@@ -99,6 +99,7 @@ interface CanvasEditorProps {
   templateId: string
   initialTitle?: string
   sessionId?: string // Sprint 32: 협업 세션 ID
+  workId?: string // 저장된 work UUID — 서버 editor_data 하이드레이션 (A1 수정)
 }
 
 // ============================================
@@ -124,7 +125,7 @@ export default function CanvasEditor({
   sessionId: propSessionId,
 }: CanvasEditorProps) {
   // 클라이언트에서 URL 파라미터 읽기 (정적 export 호환)
-  const [urlParams, setUrlParams] = useState<{ session?: string; title?: string; customId?: string }>({})
+  const [urlParams, setUrlParams] = useState<{ session?: string; title?: string; customId?: string; work?: string }>({})
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search)
@@ -132,6 +133,7 @@ export default function CanvasEditor({
         session: params.get('session') || undefined,
         title: params.get('title') || undefined,
         customId: params.get('id') || undefined, // 커스텀 템플릿 ID
+        work: params.get('work') || undefined, // 저장된 work UUID (A1 수정)
       })
     }
   }, [])
@@ -166,6 +168,7 @@ export default function CanvasEditor({
           templateId={effectiveTemplateId}
           initialTitle={initialTitle}
           sessionId={sessionId}
+          workId={urlParams.work}
         />
       </CollabProvider>
     )
@@ -177,6 +180,7 @@ export default function CanvasEditor({
       templateId={effectiveTemplateId}
       initialTitle={initialTitle}
       sessionId={sessionId}
+      workId={urlParams.work}
     />
   )
 }
@@ -189,6 +193,7 @@ function CanvasEditorContent({
   templateId,
   initialTitle,
   sessionId,
+  workId,
 }: CanvasEditorProps) {
   const rendererRef = useRef<TemplateRendererRef>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -226,6 +231,7 @@ function CanvasEditorContent({
     selectText,
     selectSticker, // Sprint 31
     updateStickerTransform, // Sprint 31
+    hydrateEditorData,
     setZoom,
     undo,
     redo,
@@ -423,10 +429,14 @@ function CanvasEditorContent({
 
         // 일반 템플릿: public/templates에서 JSON 로드 (basePath 적용)
         const response = await fetch(`${BASE_PATH}/templates/${templateId}.json`)
-        if (!response.ok) {
+        // 존재하지 않는 템플릿은 앱 라우트(HTML, 200)로 폴백되므로 content-type 까지 확인
+        // — 원시 JSON 파싱 에러("Unexpected token '<'")를 사용자에게 노출하지 않는다
+        if (!response.ok || !response.headers.get('content-type')?.includes('json')) {
           throw new Error('템플릿을 찾을 수 없습니다')
         }
-        const config: TemplateConfig = await response.json()
+        const config: TemplateConfig = await response.json().catch(() => {
+          throw new Error('템플릿을 찾을 수 없습니다')
+        })
         loadTemplate(config)
       } catch (err) {
         setError(err instanceof Error ? err.message : '템플릿 로드 실패')
@@ -620,19 +630,54 @@ function CanvasEditorContent({
     }
   }, [templateConfig, calculateFitZoom, zoom, setZoom])
 
-  // 저장된 작품 id (첫 서버 저장 후 이후 저장은 update). 협업 세션이면 그 workId 를 잇는다.
+  // 저장된 작품 id (첫 서버 저장 후 이후 저장은 update). ?work= 또는 협업 세션 workId 를 잇는다.
   const savedWorkIdRef = useRef<string | null>(
-    sessionId && /^[0-9a-f-]{36}$/i.test(sessionId) ? sessionId : null
+    (workId && /^[0-9a-f-]{36}$/i.test(workId) ? workId : null) ||
+      (sessionId && /^[0-9a-f-]{36}$/i.test(sessionId) ? sessionId : null)
   )
+
+  // 저장된 work 하이드레이션 (A1 수정): 템플릿 로드 후 서버 editor_data 를 일괄 적용
+  const workHydratedRef = useRef(false)
+  useEffect(() => {
+    if (!workId || IS_DEMO_MODE || !templateConfig || workHydratedRef.current) return
+    workHydratedRef.current = true
+
+    const hydrate = async () => {
+      try {
+        const supabase = createClient()
+        const { data, error } = await supabase
+          .from('works')
+          .select('title, editor_data')
+          .eq('id', workId)
+          .single()
+        if (error || !data) throw error ?? new Error('work not found')
+
+        if (data.title) setTitle(data.title)
+        const editorData = (data.editor_data ?? {}) as {
+          formData?: Record<string, string>
+          images?: Record<string, string | null>
+          colors?: Record<string, string>
+          slotTransforms?: Record<string, unknown>
+        }
+        hydrateEditorData(editorData as Parameters<typeof hydrateEditorData>[0])
+        savedWorkIdRef.current = workId
+      } catch (err) {
+        console.error('[CanvasEditor] Work hydration failed:', err)
+        toast.warning('저장된 작업을 불러오지 못했어요 — 새 작업으로 시작합니다.')
+      }
+    }
+    hydrate()
+  }, [workId, templateConfig, hydrateEditorData, toast])
 
   // 저장 (M5 실배선) — 프로덕션: works.editor_data / 데모·로컬 틀: localStorage 유지
   const handleSave = useCallback(async () => {
     const isServerTemplate =
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(templateId)
 
-    // 데모 모드이거나 서버 틀이 아닌(샘플/커스텀) 경우: 기존 로컬 저장 유지.
+    // 데모 모드이거나, 서버 틀도 아니고 열린 work 도 없는 경우: 기존 로컬 저장 유지.
+    // (열린 work 는 템플릿 id 가 샘플이어도 works 로 저장해야 한다 — A1 수정)
     // autosave 데이터는 지우지 않는다 — 지우면 데이터가 메모리에만 남는 거짓 저장이 된다.
-    if (IS_DEMO_MODE || !isServerTemplate) {
+    if (IS_DEMO_MODE || (!isServerTemplate && !savedWorkIdRef.current)) {
       markSaved()
       setLastAutoSave(new Date())
       toast.success('브라우저에 저장되었습니다')

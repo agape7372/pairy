@@ -5,7 +5,18 @@
  * 변경 이유: canvasEditorStore에서 분리하여 단일 책임 원칙 준수 및 재사용성 향상
  */
 
-import type { FormData, ImageData, ColorData, SlotTransforms } from '@/types/template'
+import type {
+  FormData,
+  ImageData,
+  ColorData,
+  SlotTransforms,
+  TemplateConfig,
+  TextField,
+  StickerLayer,
+  CharacterColors,
+} from '@/types/template'
+import type { Character } from '@/types/database.types'
+import type { LayerStates } from './layerSlice'
 
 // ============================================
 // 히스토리 스냅샷 타입
@@ -16,6 +27,13 @@ export interface HistorySnapshot {
   images: ImageData
   colors: ColorData
   slotTransforms: SlotTransforms
+  // 텍스트 스타일/스티커는 templateConfig.layers 에 살지만 되돌리기 대상이다.
+  // 스토어가 두 배열을 항상 불변 교체하므로 참조 저장만으로 구조 공유가 된다.
+  texts: TextField[]
+  stickers: StickerLayer[]
+  layerStates: LayerStates
+  selectedCharacter: Character | null
+  characterColors: CharacterColors | null
 }
 
 export interface HistoryState {
@@ -86,6 +104,13 @@ function shallowEqual<T extends Record<string, unknown>>(a: T, b: T): boolean {
   return true
 }
 
+/** 배열 비교: 참조 우선, 불일치 시 JSON 폴백 (no-op map 재생성 대비) */
+function arraysEqual<T>(a: T[], b: T[]): boolean {
+  if (a === b) return true
+  if (a.length !== b.length) return false
+  return JSON.stringify(a) === JSON.stringify(b)
+}
+
 /**
  * 두 스냅샷이 동일한지 비교
  * 최적화: 참조 동일성 먼저 체크 후 얕은 비교 수행
@@ -93,37 +118,102 @@ function shallowEqual<T extends Record<string, unknown>>(a: T, b: T): boolean {
 export function areSnapshotsEqual(a: HistorySnapshot, b: HistorySnapshot): boolean {
   // 빠른 참조 비교
   if (a === b) return true
-  if (a.formData === b.formData &&
-      a.images === b.images &&
-      a.colors === b.colors &&
-      a.slotTransforms === b.slotTransforms) {
-    return true
-  }
 
-  // 얕은 비교 수행
   return (
     shallowEqual(a.formData, b.formData) &&
     shallowEqual(a.images, b.images) &&
     shallowEqual(a.colors, b.colors) &&
-    shallowEqual(a.slotTransforms, b.slotTransforms)
+    shallowEqual(a.slotTransforms, b.slotTransforms) &&
+    arraysEqual(a.texts, b.texts) &&
+    arraysEqual(a.stickers, b.stickers) &&
+    shallowEqual(a.layerStates, b.layerStates) &&
+    a.selectedCharacter === b.selectedCharacter &&
+    (a.characterColors === b.characterColors ||
+      JSON.stringify(a.characterColors) === JSON.stringify(b.characterColors))
   )
+}
+
+/** 스냅샷 생성에 필요한 상태 단면 */
+export interface SnapshotSource {
+  formData: FormData
+  images: ImageData
+  colors: ColorData
+  slotTransforms: SlotTransforms
+  templateConfig: TemplateConfig | null
+  layerStates: LayerStates
+  selectedCharacter: Character | null
+  characterColors: CharacterColors | null
 }
 
 /**
  * 현재 상태에서 스냅샷 생성
  */
-export function createSnapshot(state: {
-  formData: FormData
-  images: ImageData
-  colors: ColorData
-  slotTransforms: SlotTransforms
-}): HistorySnapshot {
+export function createSnapshot(state: SnapshotSource): HistorySnapshot {
   return {
     formData: { ...state.formData },
     images: { ...state.images },
     colors: { ...state.colors },
     slotTransforms: { ...state.slotTransforms },
+    // 스토어의 모든 변이가 배열을 새로 만들므로 참조 저장으로 충분 (구조 공유)
+    texts: state.templateConfig?.layers.texts ?? [],
+    stickers: state.templateConfig?.layers.stickers ?? [],
+    layerStates: { ...state.layerStates },
+    selectedCharacter: state.selectedCharacter,
+    characterColors: state.characterColors,
   }
+}
+
+// ============================================
+// Blob URL 수명 관리 (C3 수정)
+// 이미지 blob URL 은 히스토리 스냅샷이 참조하는 동안 revoke 하면 안 된다.
+// 스냅샷이 히스토리에서 탈락하는 시점에만 고아 URL 을 정리한다.
+// ============================================
+
+function blobUrlsOf(images: ImageData): string[] {
+  return Object.values(images).filter(
+    (url): url is string => typeof url === 'string' && url.startsWith('blob:')
+  )
+}
+
+/** 스냅샷 목록(+현재 이미지)이 참조 중인 blob URL 집합 */
+export function collectBlobUrls(
+  snapshots: HistorySnapshot[],
+  currentImages?: ImageData
+): Set<string> {
+  const retained = new Set<string>()
+  snapshots.forEach((s) => blobUrlsOf(s.images).forEach((u) => retained.add(u)))
+  if (currentImages) blobUrlsOf(currentImages).forEach((u) => retained.add(u))
+  return retained
+}
+
+/** URL 집합 전체 revoke (템플릿 전환/리셋 시 전량 정리용) */
+export function revokeBlobUrls(urls: Iterable<string>): void {
+  for (const url of urls) {
+    try {
+      URL.revokeObjectURL(url)
+    } catch {
+      // 이미 해제된 URL 무시
+    }
+  }
+}
+
+/** 탈락한 스냅샷의 blob URL 중 어디서도 참조되지 않는 것만 revoke */
+export function revokeOrphanedBlobUrls(
+  dropped: HistorySnapshot[],
+  retained: Set<string>
+): void {
+  const seen = new Set<string>()
+  dropped.forEach((s) => {
+    blobUrlsOf(s.images).forEach((url) => {
+      if (retained.has(url) || seen.has(url)) return
+      seen.add(url)
+      try {
+        URL.revokeObjectURL(url)
+      } catch {
+        // 이미 해제된 URL 무시
+      }
+    })
+  })
 }
 
 /**
@@ -141,33 +231,78 @@ export function pushSnapshot(
     return { history: currentHistory, historyIndex: currentIndex }
   }
 
-  // 현재 인덱스 이후의 히스토리는 삭제
+  const dropped: HistorySnapshot[] = []
+
+  // 현재 인덱스 이후의 히스토리는 삭제 (redo 가지 절단)
+  dropped.push(...currentHistory.slice(currentIndex + 1))
   const newHistory = currentHistory.slice(0, currentIndex + 1)
   newHistory.push(snapshot)
 
   // 최대 크기 유지
   let newIndex = newHistory.length - 1
   if (newHistory.length > MAX_HISTORY_SIZE) {
-    newHistory.shift()
+    dropped.push(...newHistory.splice(0, newHistory.length - MAX_HISTORY_SIZE))
     newIndex = newHistory.length - 1
+  }
+
+  // 탈락 스냅샷만 참조하던 blob URL 정리 (C3: 살아있는 스냅샷 참조는 보존)
+  if (dropped.length > 0) {
+    revokeOrphanedBlobUrls(dropped, collectBlobUrls(newHistory))
   }
 
   return { history: newHistory, historyIndex: newIndex }
 }
 
-/**
- * 히스토리 액션 생성자
- */
-export function createHistoryActions<T extends HistoryState & {
-  formData: FormData
-  images: ImageData
-  colors: ColorData
-  slotTransforms: SlotTransforms
+// ============================================
+// 히스토리 액션 생성자
+// ============================================
+
+type HistoryHostState = HistoryState & SnapshotSource & {
   isDirty: boolean
-}>(
+  selectedStickerId: string | null
+}
+
+export function createHistoryActions<T extends HistoryHostState>(
   set: (partial: Partial<T> | ((state: T) => Partial<T>)) => void,
   get: () => T
 ): HistoryActions {
+  // 스냅샷을 상태로 복원 (undo/redo 공통)
+  const restoreSnapshot = (snapshot: HistorySnapshot, newIndex: number) => {
+    set((state) => {
+      const templateConfig = state.templateConfig
+        ? {
+            ...state.templateConfig,
+            layers: {
+              ...state.templateConfig.layers,
+              texts: snapshot.texts ?? state.templateConfig.layers.texts,
+              stickers: snapshot.stickers ?? state.templateConfig.layers.stickers,
+            },
+          }
+        : null
+
+      // 복원된 스티커 목록에 없는 선택 ID 정리
+      const stickerIds = new Set((snapshot.stickers ?? []).map((s) => s.id))
+      const selectedStickerId =
+        state.selectedStickerId && stickerIds.has(state.selectedStickerId)
+          ? state.selectedStickerId
+          : null
+
+      return {
+        formData: snapshot.formData,
+        images: snapshot.images,
+        colors: snapshot.colors,
+        slotTransforms: snapshot.slotTransforms || {},
+        templateConfig,
+        layerStates: snapshot.layerStates ?? state.layerStates,
+        selectedCharacter: snapshot.selectedCharacter ?? null,
+        characterColors: snapshot.characterColors ?? null,
+        selectedStickerId,
+        historyIndex: newIndex,
+        isDirty: true,
+      } as Partial<T>
+    })
+  }
+
   return {
     pushHistory: () => {
       const state = get()
@@ -183,35 +318,15 @@ export function createHistoryActions<T extends HistoryState & {
     undo: () => {
       const state = get()
       if (state.historyIndex <= 0) return
-
       const newIndex = state.historyIndex - 1
-      const snapshot = state.history[newIndex]
-
-      set({
-        formData: snapshot.formData,
-        images: snapshot.images,
-        colors: snapshot.colors,
-        slotTransforms: snapshot.slotTransforms || {},
-        historyIndex: newIndex,
-        isDirty: true,
-      } as Partial<T>)
+      restoreSnapshot(state.history[newIndex], newIndex)
     },
 
     redo: () => {
       const state = get()
       if (state.historyIndex >= state.history.length - 1) return
-
       const newIndex = state.historyIndex + 1
-      const snapshot = state.history[newIndex]
-
-      set({
-        formData: snapshot.formData,
-        images: snapshot.images,
-        colors: snapshot.colors,
-        slotTransforms: snapshot.slotTransforms || {},
-        historyIndex: newIndex,
-        isDirty: true,
-      } as Partial<T>)
+      restoreSnapshot(state.history[newIndex], newIndex)
     },
 
     canUndo: () => get().historyIndex > 0,

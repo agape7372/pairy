@@ -47,7 +47,7 @@ export const initialLayerSliceState: LayerSliceState = {
 // 레이어 액션 생성자
 // ============================================
 
-export function createLayerActions<T extends LayerSliceState>(
+export function createLayerActions<T extends LayerSliceState & { pushHistory?: () => void }>(
   set: (partial: Partial<T> | ((state: T) => Partial<T>)) => void,
   get: () => T
 ): LayerSliceActions {
@@ -62,6 +62,7 @@ export function createLayerActions<T extends LayerSliceState>(
           },
         },
       }) as Partial<T>)
+      get().pushHistory?.()
     },
 
     setLayerLocked: (slotId, locked) => {
@@ -74,6 +75,7 @@ export function createLayerActions<T extends LayerSliceState>(
           },
         },
       }) as Partial<T>)
+      get().pushHistory?.()
     },
 
     toggleLayerVisible: (slotId) => {
@@ -85,6 +87,7 @@ export function createLayerActions<T extends LayerSliceState>(
           [slotId]: { ...current, visible: !current.visible },
         },
       } as Partial<T>)
+      get().pushHistory?.()
     },
 
     toggleLayerLocked: (slotId) => {
@@ -96,6 +99,7 @@ export function createLayerActions<T extends LayerSliceState>(
           [slotId]: { ...current, locked: !current.locked },
         },
       } as Partial<T>)
+      get().pushHistory?.()
     },
 
     getLayerState: (slotId) => {

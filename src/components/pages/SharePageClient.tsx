@@ -254,8 +254,9 @@ export default function SharePageClient({ shareId }: SharePageClientProps) {
               className="object-contain"
               priority
               onError={(e) => {
-                // 이미지 로드 실패 시 기본 이미지
+                // 이미지 로드 실패 시 기본 이미지 — 폴백 자체가 실패하면 중단 (무한 재요청 루프 방지)
                 const target = e.target as HTMLImageElement
+                if (target.src.endsWith('/og-default.png')) return
                 target.src = '/og-default.png'
               }}
             />

@@ -42,6 +42,8 @@ import {
   createHistoryActions,
   defaultLayerState,
   createLayerActions,
+  collectBlobUrls,
+  revokeBlobUrls,
 } from './middleware'
 
 // ============================================
@@ -51,6 +53,8 @@ import {
 interface CanvasEditorState extends HistoryState, LayerSliceState {
   // 템플릿 설정
   templateConfig: TemplateConfig | null
+  // persist 스코핑용 — 마지막으로 로드된 템플릿 ID (C8: 템플릿 간 formData 누출 방지)
+  templateId: string | null
   isLoading: boolean
   error: string | null
 
@@ -80,6 +84,13 @@ interface CanvasEditorState extends HistoryState, LayerSliceState {
 interface CanvasEditorActions extends HistoryActions, LayerSliceActions {
   // 템플릿 로드
   loadTemplate: (config: TemplateConfig) => void
+  // 서버 work 데이터 일괄 하이드레이션 (히스토리 재시작, isDirty=false)
+  hydrateEditorData: (data: {
+    formData?: FormData
+    images?: ImageData
+    colors?: ColorData
+    slotTransforms?: SlotTransforms
+  }) => void
   setLoading: (loading: boolean) => void
   setError: (error: string | null) => void
 
@@ -159,6 +170,7 @@ const DEFAULT_COLORS: ColorData = {
 
 const initialState: CanvasEditorState = {
   templateConfig: null,
+  templateId: null,
   isLoading: false,
   error: null,
 
@@ -201,6 +213,11 @@ export const useCanvasEditorStore = create<CanvasEditorState & CanvasEditorActio
 
         // 템플릿 로드
         loadTemplate: (config) => {
+          const prev = get()
+
+          // 이전 세션의 blob URL 전량 정리 — 어떤 스냅샷도 새 템플릿으로 계승되지 않음 (C3)
+          revokeBlobUrls(collectBlobUrls(prev.history, prev.images))
+
           // 템플릿의 기본 색상으로 초기화
           const colors: ColorData = { ...DEFAULT_COLORS }
           config.colors.forEach((c) => {
@@ -217,6 +234,13 @@ export const useCanvasEditorStore = create<CanvasEditorState & CanvasEditorActio
             }
           })
 
+          // persist 리하이드레이트 병합: 같은 템플릿일 때만 사용자 데이터 승계 (C8)
+          // 우선순위: 서버 work 하이드레이션(후속 hydrateEditorData) > 로컬 persist > 템플릿 기본값
+          const persistedMatch = prev.templateId === config.id
+          const mergedFormData = persistedMatch ? { ...formData, ...prev.formData } : formData
+          const mergedColors = persistedMatch ? { ...colors, ...prev.colors } : colors
+          const mergedSlotTransforms = persistedMatch ? { ...prev.slotTransforms } : {}
+
           // 레이어 상태 초기화
           const layerStates: LayerStates = {}
           config.layers.slots.forEach((slot) => {
@@ -225,23 +249,67 @@ export const useCanvasEditorStore = create<CanvasEditorState & CanvasEditorActio
 
           // 초기 히스토리 스냅샷 생성
           const initialSnapshot: HistorySnapshot = {
-            formData,
+            formData: mergedFormData,
             images: {},
-            colors,
-            slotTransforms: {},
+            colors: mergedColors,
+            slotTransforms: mergedSlotTransforms,
+            texts: config.layers.texts,
+            stickers: config.layers.stickers ?? [],
+            layerStates,
+            selectedCharacter: null,
+            characterColors: null,
           }
 
           set({
             templateConfig: config,
-            colors,
-            formData,
+            templateId: config.id,
+            colors: mergedColors,
+            formData: mergedFormData,
             images: {},
-            slotTransforms: {},
+            slotTransforms: mergedSlotTransforms,
             layerStates,
             selectedSlotId: config.layers.slots[0]?.id || null,
             selectedTextId: null,
+            selectedStickerId: null,
+            selectedCharacter: null,
+            characterColors: null,
             isDirty: false,
             history: [initialSnapshot],
+            historyIndex: 0,
+          })
+        },
+
+        // 서버 work 하이드레이션 (A1 수정): 저장된 작업 데이터를 일괄 적용하고 히스토리를 재시작
+        hydrateEditorData: (data) => {
+          const state = get()
+          const formData = data.formData ?? state.formData
+          const colors = data.colors ?? state.colors
+          const slotTransforms = data.slotTransforms ?? state.slotTransforms
+          // 서버에 저장된 blob: URL 은 세션이 다르면 절대 해석 불가 — 걸러낸다 (F-28 전까지의 완화)
+          const images: ImageData = {}
+          Object.entries(data.images ?? {}).forEach(([key, url]) => {
+            if (url && !url.startsWith('blob:')) images[key] = url
+          })
+
+          const snapshot: HistorySnapshot = {
+            formData: { ...formData },
+            images: { ...images },
+            colors: { ...colors },
+            slotTransforms: { ...slotTransforms },
+            texts: state.templateConfig?.layers.texts ?? [],
+            stickers: state.templateConfig?.layers.stickers ?? [],
+            layerStates: { ...state.layerStates },
+            selectedCharacter: state.selectedCharacter,
+            characterColors: state.characterColors,
+          }
+
+          set({
+            formData,
+            colors,
+            slotTransforms,
+            images,
+            isDirty: false,
+            history: [snapshot],
             historyIndex: 0,
           })
         },
@@ -259,16 +327,9 @@ export const useCanvasEditorStore = create<CanvasEditorState & CanvasEditorActio
         },
 
         updateImage: (dataKey, url) => {
-          // 기존 Blob URL 메모리 해제 (메모리 누수 방지)
-          const oldUrl = get().images[dataKey]
-          if (oldUrl && oldUrl.startsWith('blob:') && oldUrl !== url) {
-            try {
-              URL.revokeObjectURL(oldUrl)
-            } catch {
-              // Blob URL 해제 실패 무시 (이미 해제됨)
-            }
-          }
-
+          // 주의: 이전 blob URL 을 여기서 즉시 revoke 하지 않는다 (C3).
+          // 히스토리 스냅샷이 참조하는 동안 살아있어야 undo 로 복원 가능 —
+          // 정리는 스냅샷 탈락 시점(pushSnapshot)과 템플릿 전환(loadTemplate/reset)에서 수행.
           set((state) => ({
             images: { ...state.images, [dataKey]: url },
             isDirty: true,
@@ -286,17 +347,7 @@ export const useCanvasEditorStore = create<CanvasEditorState & CanvasEditorActio
 
         setFormData: (data) => set({ formData: data, isDirty: true }),
         setImages: (data) => {
-          // 기존 Blob URL 메모리 해제 (메모리 누수 방지)
-          const oldImages = get().images
-          Object.values(oldImages).forEach((url) => {
-            if (url && url.startsWith('blob:') && !Object.values(data).includes(url)) {
-              try {
-                URL.revokeObjectURL(url)
-              } catch {
-                // Blob URL 해제 실패 무시
-              }
-            }
-          })
+          // blob URL 즉시 revoke 금지 (C3) — 히스토리 참조 보존, 정리는 pushSnapshot/loadTemplate 에서
           set({ images: data, isDirty: true })
         },
         setColors: (data) => set({ colors: data, isDirty: true }),
@@ -620,12 +671,9 @@ export const useCanvasEditorStore = create<CanvasEditorState & CanvasEditorActio
 
         // 이미지 삭제
         removeImage: (dataKey) => {
+          // blob URL 즉시 revoke 금지 (C3) — undo 복원을 위해 히스토리 수명에 맡긴다
           set((state) => {
             const newImages = { ...state.images }
-            const existingUrl = newImages[dataKey]
-            if (existingUrl && existingUrl.startsWith('blob:')) {
-              URL.revokeObjectURL(existingUrl)
-            }
             delete newImages[dataKey]
             return { images: newImages, isDirty: true }
           })
@@ -637,7 +685,11 @@ export const useCanvasEditorStore = create<CanvasEditorState & CanvasEditorActio
         markSaved: () => set({ isDirty: false, lastSavedAt: new Date() }),
 
         // 초기화
-        reset: () => set(initialState),
+        reset: () => {
+          const state = get()
+          revokeBlobUrls(collectBlobUrls(state.history, state.images))
+          set(initialState)
+        },
 
         // 내보내기용 데이터
         getEditorData: () => {
@@ -654,9 +706,12 @@ export const useCanvasEditorStore = create<CanvasEditorState & CanvasEditorActio
       {
         name: 'pairy-canvas-editor',
         // TOP50 #15 · 스키마 변경 시 여기서 버전 올리고 migrate 로 변환 (v0=버전 표기 이전 데이터)
-        version: 1,
-        migrate: (persistedState) => persistedState,
+        // v2: templateId 스코핑 도입 (C8) — 이전 버전 데이터는 어느 템플릿 것인지 알 수 없어 폐기
+        version: 2,
+        migrate: (persistedState, version) =>
+          version < 2 ? { templateId: null } : persistedState,
         partialize: (state) => ({
+          templateId: state.templateId,
           formData: state.formData,
           colors: state.colors,
           slotTransforms: state.slotTransforms,
