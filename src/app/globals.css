@@ -70,18 +70,22 @@
   --gray-800: #4A4040;
   --gray-900: #3D3636;
 
-  /* Semantic Colors */
+  /* Semantic Colors — *-dark 는 밝은 배경 위 텍스트용: WCAG AA(4.5:1) 이상 유지할 것 */
   --success-light: #E8F5E8;
   --success: #6BBF6B;
-  --success-dark: #4A9A4A;
+  --success-dark: #3D7E3D;
 
   --warning-light: #FFF8E8;
   --warning: #E8C56B;
-  --warning-dark: #C4A04A;
+  --warning-dark: #8A6D1F;
 
   --error-light: #FFE8E8;
   --error: #D98080;
-  --error-dark: #B86060;
+  --error-dark: #A34F4F;
+
+  --info-light: #E8F1FA;
+  --info: #7BA7D9;
+  --info-dark: #3E689E;
 
   /* Background */
   --background: #FEFEFE;
@@ -152,6 +156,10 @@
   --error: #D98080;
   --error-dark: #E89999;
 
+  --info-light: #1A2230;
+  --info: #7BA7D9;
+  --info-dark: #9DC1E8;
+
   /* Background - 눈이 편안한 다크 */
   --background: #1A1616;
   --foreground: #E0D8D8;
@@ -213,6 +221,10 @@
   --color-error-light: var(--error-light);
   --color-error: var(--error);
   --color-error-dark: var(--error-dark);
+
+  --color-info-light: var(--info-light);
+  --color-info: var(--info);
+  --color-info-dark: var(--info-dark);
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);

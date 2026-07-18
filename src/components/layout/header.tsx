@@ -64,8 +64,8 @@ export function Header() {
                   key={link.href}
                   href={link.href}
                   className={cn(
-                    'flex items-center gap-1.5 text-sm font-medium transition-colors hover:text-primary-400',
-                    isActive ? 'text-primary-400' : 'text-gray-700'
+                    'flex items-center gap-1.5 text-sm font-medium transition-colors hover:text-primary-700',
+                    isActive ? 'text-primary-700' : 'text-gray-700'
                   )}
                 >
                   <Icon className="w-4 h-4" strokeWidth={1.5} />

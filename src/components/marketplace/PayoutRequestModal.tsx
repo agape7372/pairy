@@ -175,7 +175,7 @@ export function PayoutRequestModal({
                 )}
                 <button
                   onClick={() => setAmount(availableAmount)}
-                  className="text-sm text-primary-500 hover:text-primary-600 mt-1"
+                  className="text-sm text-primary-700 hover:text-primary-800 mt-1"
                 >
                   전액 신청
                 </button>

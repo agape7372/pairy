@@ -23,17 +23,17 @@ export function Footer() {
             <h4 className="font-semibold text-gray-900 mb-4">서비스</h4>
             <ul className="space-y-2">
               <li>
-                <Link href="/templates" className="text-sm text-gray-500 hover:text-primary-400 transition-colors">
+                <Link href="/templates" className="text-sm text-gray-500 hover:text-primary-700 transition-colors">
                   틀 둘러보기
                 </Link>
               </li>
               <li>
-                <Link href="/premium" className="text-sm text-gray-500 hover:text-primary-400 transition-colors">
+                <Link href="/premium" className="text-sm text-gray-500 hover:text-primary-700 transition-colors">
                   프리미엄
                 </Link>
               </li>
               <li>
-                <Link href="/creators" className="text-sm text-gray-500 hover:text-primary-400 transition-colors">
+                <Link href="/creators" className="text-sm text-gray-500 hover:text-primary-700 transition-colors">
                   크리에이터
                 </Link>
               </li>
@@ -44,17 +44,17 @@ export function Footer() {
             <h4 className="font-semibold text-gray-900 mb-4">지원</h4>
             <ul className="space-y-2">
               <li>
-                <Link href="/help" className="text-sm text-gray-500 hover:text-primary-400 transition-colors">
+                <Link href="/help" className="text-sm text-gray-500 hover:text-primary-700 transition-colors">
                   도움말
                 </Link>
               </li>
               <li>
-                <Link href="/terms" className="text-sm text-gray-500 hover:text-primary-400 transition-colors">
+                <Link href="/terms" className="text-sm text-gray-500 hover:text-primary-700 transition-colors">
                   이용약관
                 </Link>
               </li>
               <li>
-                <Link href="/privacy" className="text-sm text-gray-500 hover:text-primary-400 transition-colors">
+                <Link href="/privacy" className="text-sm text-gray-500 hover:text-primary-700 transition-colors">
                   개인정보처리방침
                 </Link>
               </li>

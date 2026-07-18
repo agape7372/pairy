@@ -101,7 +101,7 @@ export function UpgradeModal({
           </h2>
           {feature && (
             <p className="text-gray-500">
-              <span className="font-medium text-primary-500">{feature}</span>을(를) 이용하려면
+              <span className="font-medium text-primary-700">{feature}</span>을(를) 이용하려면
               업그레이드가 필요해요.
             </p>
           )}
