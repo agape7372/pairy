@@ -845,6 +845,21 @@ export interface Database {
         Args: { p_uid: string; p_days: number }
         Returns: undefined
       }
+      /** 초대코드로 활성 세션 1건 조회 (SECURITY DEFINER — 20260706000000, H-1) */
+      get_collab_session_by_invite: {
+        Args: { p_invite_code: string }
+        Returns: Database['public']['Tables']['collab_sessions']['Row'] | null
+      }
+      /** 초대코드 세션 참가 — id는 auth.uid() 강제, 멱등 (SECURITY DEFINER — 20260718000000, C-5) */
+      join_collab_session: {
+        Args: { p_invite_code: string; p_name: string; p_color?: string | null; p_avatar?: string | null }
+        Returns: Database['public']['Tables']['collab_sessions']['Row']
+      }
+      /** 세션 이탈 — 호스트/전원 이탈 시 completed (SECURITY DEFINER — 20260718000000, C-5) */
+      leave_collab_session: {
+        Args: { p_session_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
