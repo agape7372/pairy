@@ -1,3 +1,7 @@
+> ⚠️ **STALE (2026-07-18)**: 이 문서는 폐기된 초기 설계다. Server Actions·`api/export`(Sharp)·
+> Zod·`@upstash/ratelimit` 는 구현되지 않았다. 실제 서버 API 는 `src/app/api/payments/{prepare,confirm,webhook}`
+> 뿐이고, 데이터 조작은 클라이언트 훅 + Supabase RLS 로 수행한다. 이 문서를 근거로 작업하지 말 것.
+
 # 🧚 Pairy - API 설계 (API Design)
 
 ## API 개요

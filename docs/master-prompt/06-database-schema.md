@@ -1,3 +1,8 @@
+> ⚠️ **STALE (2026-07-18)**: 이 문서는 폐기된 초기 설계다. 실제 스키마와 크게 다름 —
+> `subscriptions`/`reports` 테이블·`user_id` 분리·category enum 등은 구현되지 않았고,
+> 실제로는 `payments`/`payout_requests`/`characters`/`follows`/`comments` 등이 존재한다.
+> **정본은 `supabase/migrations/`** (전체 순서 적용). 이 문서를 근거로 작업하지 말 것.
+
 # 🧚 Pairy - 데이터베이스 스키마 (Database Schema)
 
 ## 데이터베이스 개요

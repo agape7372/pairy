@@ -1,3 +1,7 @@
+> ⚠️ **STALE (2026-07-18)**: static export + GitHub Pages 배포는 DL-0001(2026-07-12)로 폐기됐다.
+> 현재 배포는 **Vercel** (프로덕션 https://pairy-six.vercel.app, Git 연동 자동 배포).
+> 결제 Route Handler env 요건은 루트 `CLAUDE.md` 참조.
+
 # 🧚 Pairy - 배포 가이드 (Deployment Guide)
 
 > 마지막 업데이트: 2025-12-30

@@ -6,14 +6,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 npm run dev      # Start Next.js development server
-npm run build    # Build for production (static export, uses --webpack)
+npm run build    # Build for production (uses --webpack)
 npm run lint     # Run ESLint checks
 npm start        # Start production server
 ```
 
 **Note**: Build uses `--webpack` flag to avoid Turbopack Korean path bug (Next.js 16.x).
 
-**Note**: This project uses static export (`output: 'export'`) for GitHub Pages. All pages must support static generation or use `generateStaticParams()` for dynamic routes.
+**Note**: 2026-07-12 (DL-0001)부로 static export/GitHub Pages를 **폐기**하고 Vercel 런타임으로 이전했다 (프로덕션 https://pairy-six.vercel.app). `output: 'export'` 없음, 동적 라우트는 on-demand 렌더링, Route Handler(`app/api/*`) 사용 가능. `generateStaticParams()`는 더 이상 요구사항이 아니다.
 
 ## Architecture Overview
 
@@ -54,7 +54,7 @@ if (IS_DEMO_MODE) {
 }
 ```
 
-This enables GitHub Pages static hosting without a backend.
+This enables running the app locally (or in preview) without a Supabase backend. 프로덕션(Vercel)은 env 가드(`next.config.ts`)로 데모 빌드를 차단한다.
 
 ## Key Conventions
 
@@ -80,20 +80,10 @@ All data hooks follow this structure:
 import { Button } from '@/components/ui'  // @/* maps to ./src/*
 ```
 
-## Static Export Requirements
+## Dynamic Routes (Vercel Runtime)
 
-For dynamic routes, implement `generateStaticParams()`:
-
-```typescript
-// Required for [username] routes
-export function generateStaticParams() {
-  return [
-    { username: 'strawberry123' },
-    { username: 'fairy_art' },
-    // ... predefined paths
-  ]
-}
-```
+DL-0001 이후 동적 라우트(`[username]`, `[shareId]`, `[code]` 등)는 on-demand 렌더링된다.
+`generateStaticParams()`를 새로 추가하지 말 것 — 남아있는 잔재는 static export 시절 유물이다.
 
 ## Documentation
 
