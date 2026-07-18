@@ -66,13 +66,24 @@ export async function POST(req: NextRequest) {
   }
 
   // 확정: payments=paid + 구독 부여. paid 전환은 이미-paid 가드로 멱등.
-  const { error: markError } = await admin.from('payments')
+  const { data: marked, error: markError } = await admin.from('payments')
     .update({ status: 'paid', payment_key: paymentKey, updated_at: new Date().toISOString() })
     .eq('id', payment.id)
     .eq('status', 'pending') // 동시 확정 경합에서 한 번만 통과
+    .select('id')
 
   if (markError) {
     return NextResponse.json({ error: '결제 기록 갱신 실패' }, { status: 500 })
+  }
+  // 0행 갱신 = 경합 패배(다른 요청이 이미 pending→paid 전환). 부여는 승자만 —
+  // 여기서 계속 진행하면 grant_subscription 이 중복 호출돼 구독이 이중 연장된다.
+  if (!marked || marked.length === 0) {
+    return NextResponse.json({
+      ok: true,
+      alreadyProcessed: true,
+      kind: payment.template_id ? 'template' : 'subscription',
+      templateId: payment.template_id ?? undefined,
+    })
   }
 
   // ── 부여: 단건구매면 purchases 확정 기록, 아니면 구독 부여 ──
