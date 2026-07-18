@@ -88,7 +88,6 @@ interface MarketplaceState {
   getPurchasesByTemplate: (templateId: string) => Purchase | undefined
 
   // 액션 - 판매 (크리에이터)
-  recordSale: (sale: Omit<Sale, 'id' | 'commission' | 'netAmount' | 'soldAt'>) => void
   getSalesByTemplate: (templateId: string) => Sale[]
 
   // 액션 - 정산
@@ -194,28 +193,7 @@ export const useMarketplaceStore = create<MarketplaceState>()(
         )
       },
 
-      recordSale: (saleData) => {
-        const commission = saleData.amount * COMMISSION_RATE
-        const netAmount = saleData.amount - commission
-
-        const sale: Sale = {
-          id: `sale-${Date.now()}`,
-          ...saleData,
-          commission,
-          netAmount,
-          soldAt: new Date().toISOString(),
-        }
-
-        set((state) => ({
-          sales: [sale, ...state.sales],
-          earnings: {
-            ...state.earnings,
-            totalEarnings: state.earnings.totalEarnings + netAmount,
-            pendingPayout: state.earnings.pendingPayout + netAmount,
-            totalSales: state.earnings.totalSales + 1,
-          },
-        }))
-      },
+      // recordSale 은 dead code 로 제거(2026-07-18) — 실판매 기록은 서버 원장(purchases)이 정본.
 
       getSalesByTemplate: (templateId) => {
         const { sales } = get()

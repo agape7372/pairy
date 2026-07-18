@@ -38,6 +38,7 @@ import {
   type CustomTemplate,
 } from '@/lib/utils/customTemplateStorage'
 import { useResources } from '@/hooks/useResources'
+import { getResourcePosts, toResourceViewModel } from '@/lib/utils/resourceStorage'
 import { IS_DEMO_MODE } from '@/lib/supabase/client'
 
 // 카테고리 아이콘 매핑
@@ -305,9 +306,10 @@ export default function ResourceHubPage() {
   // 커스텀 템플릿 상태
   const [customTemplates, setCustomTemplates] = useState<CustomTemplate[]>([])
 
-  // 커스텀 템플릿 로드
+  // 커스텀 템플릿 로드 — localStorage 는 SSR 에 없어 hydration 후 effect 로드가 안전
   useEffect(() => {
     const templates = getCustomTemplates()
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 클라 전용 저장소 초기 로드
     setCustomTemplates(templates)
   }, [])
 
@@ -340,9 +342,16 @@ export default function ResourceHubPage() {
     setSelectedTags([])
   }
 
-  // 자료 목록 — 프로덕션: 서버 resources(M5) / 데모: 샘플
+  // 자료 목록 — 프로덕션: 서버 resources(M5) / 데모: 내 업로드(localStorage) + 샘플
+  // F-16b read-path: 데모 업로드가 write-only 였던 공백을 메꾼다.
   const { resources: serverResources } = useResources()
-  const allResources = IS_DEMO_MODE ? sampleResources : serverResources
+  const [demoUploads, setDemoUploads] = useState<Resource[]>([])
+  useEffect(() => {
+    if (!IS_DEMO_MODE) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 클라 전용 저장소 초기 로드
+    setDemoUploads(getResourcePosts().map(toResourceViewModel))
+  }, [])
+  const allResources = IS_DEMO_MODE ? [...demoUploads, ...sampleResources] : serverResources
 
   // 필터링 및 정렬
   const filteredResources = useMemo(() => {

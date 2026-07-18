@@ -59,6 +59,9 @@ interface CollabContextValue {
   // 세션 관리
   connect: (sessionId: string, user: CollabUser) => Promise<void>
   disconnect: () => void
+
+  // H-2 완화: 서버 participants 기준 인바운드 allowlist (null = 해제)
+  setAllowedUsers: (ids: string[] | null) => void
 }
 
 const CollabContext = createContext<CollabContextValue | null>(null)
@@ -82,6 +85,8 @@ export function CollabProvider({
 }: CollabProviderProps) {
   // Yjs Provider 인스턴스
   const providerRef = useRef<SupabaseYjsProvider | null>(null)
+  // H-2: provider 재생성 시에도 유지되는 allowlist
+  const allowedUsersRef = useRef<string[] | null>(null)
 
   // 상태
   const [isConnected, setIsConnected] = useState(false)
@@ -146,6 +151,12 @@ export function CollabProvider({
     }, 3000)
   }, [])
 
+  // H-2: 세션 참가자 allowlist 갱신 (참가자 목록이 바뀔 때마다 호출)
+  const setAllowedUsers = useCallback((ids: string[] | null) => {
+    allowedUsersRef.current = ids
+    providerRef.current?.setAllowedUsers(ids)
+  }, [])
+
   // 연결 (에러 처리 포함)
   const connect = useCallback(async (sessionId: string, user: CollabUser) => {
     // 데모 모드에서는 연결하지 않음
@@ -174,6 +185,7 @@ export function CollabProvider({
       })
 
       providerRef.current = provider
+      provider.setAllowedUsers(allowedUsersRef.current)
       setLocalUser(user)
 
       // 현재 로컬 상태로 초기화 (templateConfig가 없어도 안전)
@@ -332,6 +344,7 @@ export function CollabProvider({
     updateSelection,
     connect,
     disconnect,
+    setAllowedUsers,
   }
 
   return <CollabContext.Provider value={value}>{children}</CollabContext.Provider>

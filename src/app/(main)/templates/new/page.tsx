@@ -12,7 +12,7 @@ import {
   Eye,
   X,
 } from 'lucide-react'
-import { Button, useToast } from '@/components/ui'
+import { Button, Modal, useToast } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
 import { IS_DEMO_MODE, createClient } from '@/lib/supabase/client'
 import { saveCustomTemplate } from '@/lib/utils/customTemplateStorage'
@@ -672,12 +672,18 @@ export default function NewTemplatePage() {
 
       {/* Preview Modal */}
       {showPreview && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
-          <div className="bg-white rounded-[24px] max-w-[600px] w-full p-6 animate-scale-in">
+        <Modal
+          isOpen
+          onClose={() => setShowPreview(false)}
+          ariaLabel="미리보기"
+          showClose={false}
+          className="max-w-[600px]"
+        >
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-gray-900">미리보기</h3>
               <button
                 onClick={() => setShowPreview(false)}
+                aria-label="닫기"
                 className="p-2 text-gray-400 hover:text-gray-600 rounded-lg"
               >
                 <X className="w-5 h-5" />
@@ -745,8 +751,7 @@ export default function NewTemplatePage() {
                 닫기
               </Button>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
     </div>
   )

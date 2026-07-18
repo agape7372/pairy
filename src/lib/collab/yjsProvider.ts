@@ -30,6 +30,11 @@ export class SupabaseYjsProvider {
   isConnected = false
   private isSyncing = false
 
+  // H-2 완화: 세션 참가자 allowlist — 설정 시 목록 밖 userId 의 인바운드
+  // 업데이트/awareness/presence 를 폐기한다 (채널명만 알면 위장 참여 가능하던 것 차단).
+  // 진실 원천은 collab_sessions.participants (join RPC 가 auth.uid() 로 강제 기록).
+  private allowedUserIds: Set<string> | null = null
+
   // 콜백
   private onSyncStateChange?: (state: SyncState) => void
   private onRemoteUserChange?: (users: Map<string, UserEditingState>) => void
@@ -354,7 +359,18 @@ export class SupabaseYjsProvider {
     })
   }
 
+  /** 세션 참가자 allowlist 설정 (null = 필터 해제). 참가자 변동 시마다 갱신할 것. */
+  setAllowedUsers(ids: string[] | null): void {
+    this.allowedUserIds = ids ? new Set(ids) : null
+  }
+
+  private isAllowedSender(userId: unknown): boolean {
+    if (typeof userId !== 'string' || !userId) return false
+    return this.allowedUserIds === null || this.allowedUserIds.has(userId)
+  }
+
   private handleRemoteUpdate(payload: { update: number[]; userId: string }): void {
+    if (!this.isAllowedSender(payload.userId)) return
     const update = new Uint8Array(payload.update)
     Y.applyUpdate(this.doc, update, 'remote')
     this.isSyncing = true
@@ -366,6 +382,7 @@ export class SupabaseYjsProvider {
   }
 
   private handleAwarenessUpdate(payload: { userId: string; state: Partial<UserEditingState> }): void {
+    if (!this.isAllowedSender(payload.userId)) return
     // 원격 사용자 편집 상태 처리
     const remoteStates = this.awareness.getStates()
     const currentState = remoteStates.get(this.awareness.clientID) as { editing?: UserEditingState } | undefined
@@ -387,7 +404,7 @@ export class SupabaseYjsProvider {
 
     Object.values(presenceState).flat().forEach((presence: unknown) => {
       const p = presence as { user_id?: string; user_name?: string }
-      if (p.user_id && p.user_id !== this.user.id) {
+      if (p.user_id && p.user_id !== this.user.id && this.isAllowedSender(p.user_id)) {
         users.set(p.user_id, {
           userId: p.user_id,
           zone: null,
@@ -410,7 +427,7 @@ export class SupabaseYjsProvider {
     const users = new Map<string, UserEditingState>()
 
     presenceState.forEach((entry, userId) => {
-      if (userId !== this.user.id) {
+      if (userId !== this.user.id && this.isAllowedSender(userId)) {
         users.set(userId, {
           userId,
           zone: null,

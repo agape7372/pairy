@@ -6,11 +6,10 @@
  * - 프로필 사진 업로드
  * - 3색 컬러 시스템 (머리색, 눈색, 메인컬러)
  * - 고급 컬러 피커 (HSV 스펙트럼 + HEX/RGB 입력)
- * - React Portal로 z-index 계층 분리
+ * - 공유 Modal 프리미티브 사용 (portal, 포커스 트랩, Escape, 스크롤 잠금)
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   X,
@@ -21,7 +20,7 @@ import {
   Camera,
   ChevronDown,
 } from 'lucide-react'
-import { Button, Input, ImageUpload, ColorPicker } from '@/components/ui'
+import { Button, Input, ImageUpload, ColorPicker, Modal } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
 import { uploadFile } from '@/lib/supabase/storage'
 import { useUser } from '@/hooks/useUser'
@@ -309,46 +308,23 @@ export function CharacterEditModal({
     }
   }
 
-  // ESC 키로 닫기
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen && !isSaving) {
-        onClose()
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen, isSaving, onClose])
-
-  // Portal 마운트 체크 (SSR 안전)
-  const [mounted, setMounted] = useState(false)
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  if (!isOpen || !mounted) return null
+  if (!isOpen) return null
 
   const isDisabled = isSaving || isUploading
 
-  // Portal로 body 바로 아래에 렌더링하여 z-index 계층 분리
-  return createPortal(
-    <>
-      {/* 배경 오버레이 */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100]"
-        onClick={isDisabled ? undefined : onClose}
-      />
+  // 저장/업로드 중에는 닫기(백드롭·Escape·버튼) 차단
+  const handleClose = () => {
+    if (!isDisabled) onClose()
+  }
 
-      {/* 모달 - 모바일 반응형 */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="fixed inset-4 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-full sm:max-w-lg sm:max-h-[90vh] overflow-y-auto bg-white rounded-[24px] shadow-xl z-[100]"
-      >
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={handleClose}
+      ariaLabel={isEditMode ? '캐릭터 수정' : '새 캐릭터 만들기'}
+      showClose={false}
+      className="p-0 shadow-xl"
+    >
         <form onSubmit={handleSubmit}>
           {/* 헤더 */}
           <div className="sticky top-0 bg-white border-b border-gray-100 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between rounded-t-[24px] z-10">
@@ -560,9 +536,7 @@ export function CharacterEditModal({
             </Button>
           </div>
         </form>
-      </motion.div>
-    </>,
-    document.body
+    </Modal>
   )
 }
 

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { X, Download, Image, FileImage, Loader2, AtSign, Twitter, Crown, Lock } from 'lucide-react'
-import { Button } from '@/components/ui'
+import { Button, Modal } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
 import {
   type ExportFormat,
@@ -156,20 +156,19 @@ export function ExportDialog({
   ]
 
   return (
-    <>
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 animate-fade-in"
-        onClick={onClose}
-      />
-
-      {/* Dialog */}
-      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-[20px] shadow-xl p-6 z-50 animate-scale-in">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      ariaLabel="이미지 내보내기"
+      showClose={false}
+      className="max-w-md rounded-[20px] shadow-xl"
+    >
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-bold text-gray-900">이미지 내보내기</h2>
           <button
             onClick={onClose}
+            aria-label="닫기"
             className="p-2 hover:bg-gray-100 rounded-full transition-colors"
           >
             <X className="w-5 h-5 text-gray-500" />
@@ -421,7 +420,6 @@ export function ExportDialog({
             )}
           </Button>
         </div>
-      </div>
-    </>
+    </Modal>
   )
 }

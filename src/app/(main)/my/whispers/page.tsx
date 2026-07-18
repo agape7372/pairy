@@ -47,7 +47,9 @@ const THEME_ICONS: Record<WhisperThemeConfig['iconName'], typeof Moon> = {
   Flower2,
 }
 import { cn } from '@/lib/utils/cn'
-import { useWhispers } from '@/hooks/useWhispers'
+import { useWhisper, useWhisperCreator } from '@/hooks/useWhisper'
+import { useUser } from '@/hooks/useUser'
+import { IS_DEMO_MODE } from '@/lib/supabase/client'
 import { WhisperCard } from '@/components/whisper/WhisperCard'
 import { WhisperComposer } from '@/components/whisper/WhisperComposer'
 import type { Whisper } from '@/types/whisper'
@@ -198,7 +200,7 @@ function EmptyState({ type, filter }: EmptyStateProps) {
 // ============================================
 
 interface ErrorStateProps {
-  error: Error
+  error: string
   onRetry: () => void
 }
 
@@ -216,7 +218,7 @@ function ErrorState({ error, onRetry }: ErrorStateProps) {
         오류가 발생했어요
       </h3>
       <p className="text-gray-500 dark:text-gray-400 text-center max-w-sm mb-4">
-        {error.message}
+        {error}
       </p>
       <button
         onClick={onRetry}
@@ -392,20 +394,35 @@ export default function WhispersPage() {
 
   // 데이터 훅
   const {
-    receivedWhispers,
-    sentWhispers,
+    user,
+  } = useUser()
+
+  // DL-0003 집행: 정본 useWhisper/useWhisperCreator 로 전환 (구 mock useWhispers 폐기).
+  // 데모 모드는 로그인 없이도 체험 가능하도록 데모 신원으로 조회.
+  const whisperUserId = user?.id ?? (IS_DEMO_MODE ? 'demo-user' : null)
+  const {
+    whispers: receivedWhispers,
     unreadCount,
-    isLoading,
-    error,
-    refetchReceived,
-    refetchSent,
+    isLoading: isLoadingReceived,
+    error: receivedError,
     markAsRead,
     claimGift,
-    loadMoreReceived,
-    loadMoreSent,
-    hasMoreReceived,
-    hasMoreSent,
-  } = useWhispers()
+    refresh: refetchReceived,
+  } = useWhisper(whisperUserId)
+  const {
+    sentWhispers,
+    isLoading: isLoadingSent,
+    error: sentError,
+    refresh: refetchSent,
+  } = useWhisperCreator(whisperUserId)
+
+  const isLoading = isLoadingReceived || isLoadingSent
+  const error = receivedError ?? sentError
+  // 정본 훅은 최신 50건 일괄 로드 — 페이지네이션 미지원 (필요 시 훅에 커서 추가)
+  const hasMoreReceived = false
+  const hasMoreSent = false
+  const loadMoreReceived = useCallback(async () => {}, [])
+  const loadMoreSent = useCallback(async () => {}, [])
 
   // 필터링된 위스퍼
   const filteredWhispers = useMemo(() => {
@@ -441,7 +458,7 @@ export default function WhispersPage() {
 
     // 미읽은 위스퍼면 읽음 처리
     if (whisper.status === 'SENT') {
-      await markAsRead(whisper.id)
+      await markAsRead(whisper)
     }
   }, [markAsRead])
 
@@ -452,7 +469,7 @@ export default function WhispersPage() {
 
   // 선물 수령
   const handleClaimGift = useCallback(async (whisper: Whisper) => {
-    await claimGift(whisper.id)
+    await claimGift(whisper)
   }, [claimGift])
 
   // 더 불러오기

@@ -3,7 +3,7 @@
 import { useState, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import { Plus, MoreVertical, Trash2, Edit2, Share2, Clock, Eye, EyeOff, X, Check, AlertTriangle } from 'lucide-react'
-import { Button, Tag } from '@/components/ui'
+import { Button, Modal, Tag } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
 import { copyToClipboard } from '@/lib/utils/clipboard'
 import { useWorks } from '@/hooks/useWorks'
@@ -315,12 +315,18 @@ export default function MyWorksPage() {
 
       {/* Rename Modal */}
       {editingWork && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
-          <div className="bg-white rounded-[24px] max-w-[400px] w-full p-6 animate-scale-in">
+        <Modal
+          isOpen
+          onClose={() => setEditingWork(null)}
+          ariaLabel="이름 변경"
+          showClose={false}
+          className="max-w-[400px]"
+        >
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-bold text-gray-900">이름 변경</h3>
               <button
                 onClick={() => setEditingWork(null)}
+                aria-label="닫기"
                 className="p-2 hover:bg-gray-100 rounded-full transition-colors"
               >
                 <X className="w-5 h-5 text-gray-500" />
@@ -336,7 +342,6 @@ export default function MyWorksPage() {
               autoFocus
               onKeyDown={(e) => {
                 if (e.key === 'Enter') saveRename()
-                if (e.key === 'Escape') setEditingWork(null)
               }}
             />
 
@@ -357,14 +362,18 @@ export default function MyWorksPage() {
                 저장
               </Button>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
 
       {/* Delete Confirmation Modal */}
       {deletingWork && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
-          <div className="bg-white rounded-[24px] max-w-[400px] w-full p-6 animate-scale-in">
+        <Modal
+          isOpen
+          onClose={() => setDeletingWork(null)}
+          ariaLabel="작업 삭제 확인"
+          showClose={false}
+          className="max-w-[400px]"
+        >
             <div className="text-center mb-6">
               <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-100 flex items-center justify-center">
                 <AlertTriangle className="w-8 h-8 text-red-500" />
@@ -394,8 +403,7 @@ export default function MyWorksPage() {
                 삭제
               </Button>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
     </div>
   )

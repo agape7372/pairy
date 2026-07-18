@@ -2,8 +2,7 @@
 
 import { useState } from 'react'
 import { X, Copy, Check, Link, Twitter, MessageCircle, Loader2 } from 'lucide-react'
-import { Button } from '@/components/ui'
-import { cn } from '@/lib/utils/cn'
+import { Button, Modal } from '@/components/ui'
 import { copyToClipboard } from '@/lib/utils/clipboard'
 
 interface InviteModalProps {
@@ -55,20 +54,19 @@ export function InviteModal({
   }
 
   return (
-    <>
-      {/* 배경 */}
-      <div
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 animate-fade-in"
-        onClick={onClose}
-      />
-
-      {/* 모달 */}
-      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-[24px] shadow-xl p-6 z-50 animate-scale-in">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      ariaLabel="친구 초대하기"
+      showClose={false}
+      className="max-w-md shadow-xl"
+    >
         {/* 헤더 */}
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-bold text-gray-900">친구 초대하기</h2>
           <button
             onClick={onClose}
+            aria-label="닫기"
             className="p-2 hover:bg-gray-100 rounded-full transition-colors"
           >
             <X className="w-5 h-5 text-gray-500" />
@@ -177,8 +175,7 @@ export function InviteModal({
             닫기
           </Button>
         </div>
-      </div>
-    </>
+    </Modal>
   )
 }
 
@@ -223,20 +220,19 @@ export function JoinModal({
   }
 
   return (
-    <>
-      {/* 배경 */}
-      <div
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 animate-fade-in"
-        onClick={onClose}
-      />
-
-      {/* 모달 */}
-      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-[24px] shadow-xl p-6 z-50 animate-scale-in">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      ariaLabel="협업 세션 참여"
+      showClose={false}
+      className="max-w-md shadow-xl"
+    >
         {/* 헤더 */}
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-bold text-gray-900">협업 세션 참여</h2>
           <button
             onClick={onClose}
+            aria-label="닫기"
             className="p-2 hover:bg-gray-100 rounded-full transition-colors"
           >
             <X className="w-5 h-5 text-gray-500" />
@@ -288,7 +284,6 @@ export function JoinModal({
             </Button>
           </div>
         </form>
-      </div>
-    </>
+    </Modal>
   )
 }

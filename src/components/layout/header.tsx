@@ -88,6 +88,9 @@ export function Header() {
                 <div className="relative">
                 <button
                   onClick={() => setShowUserMenu(!showUserMenu)}
+                  aria-label="사용자 메뉴"
+                  aria-haspopup="menu"
+                  aria-expanded={showUserMenu}
                   className="relative w-9 h-9 rounded-full bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center overflow-hidden hover:ring-2 hover:ring-primary-300 transition-all"
                 >
                   {profile?.avatar_url ? (
@@ -111,9 +114,10 @@ export function Header() {
                   <>
                     <div
                       className="fixed inset-0 z-40"
+                      aria-hidden="true"
                       onClick={() => setShowUserMenu(false)}
                     />
-                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-50 animate-slide-up">
+                    <div role="menu" className="absolute right-0 mt-2 w-48 bg-white dark:bg-[var(--card)] rounded-xl shadow-lg border border-gray-200 py-2 z-50 animate-slide-up">
                       <div className="px-4 py-2 border-b border-gray-100">
                         <p className="font-medium text-gray-900 truncate">
                           {profile?.display_name || '사용자'}
@@ -122,7 +126,8 @@ export function Header() {
                       </div>
                       <Link
                         href="/my"
-                        className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                        role="menuitem"
+                        className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:hover:bg-white/5"
                         onClick={() => setShowUserMenu(false)}
                       >
                         <User className="w-4 h-4" strokeWidth={1.5} />
@@ -130,7 +135,8 @@ export function Header() {
                       </Link>
                       <button
                         onClick={handleSignOut}
-                        className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                        role="menuitem"
+                        className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
                       >
                         <LogOut className="w-4 h-4" strokeWidth={1.5} />
                         로그아웃

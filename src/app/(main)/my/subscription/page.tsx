@@ -10,7 +10,7 @@ import {
   Gift,
   Heart,
 } from 'lucide-react'
-import { Button } from '@/components/ui'
+import { Button, Modal } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
 import {
   useSubscriptionStore,
@@ -301,39 +301,37 @@ export default function SubscriptionPage() {
       )}
 
       {/* Cancel Confirmation Modal */}
-      {showCancelConfirm && (
-        <>
-          <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
+      <Modal
+        isOpen={showCancelConfirm}
+        onClose={() => setShowCancelConfirm(false)}
+        ariaLabel="구독 해지 확인"
+        showClose={false}
+        className="max-w-md rounded-[20px]"
+      >
+        <h3 className="text-xl font-bold text-gray-900 mb-2">
+          정말 해지하시겠어요?
+        </h3>
+        <p className="text-gray-500 mb-6">
+          해지하시면 현재 결제 기간이 끝난 후 무료 플랜으로 전환됩니다.
+          프리미엄 기능을 더 이상 사용할 수 없게 됩니다.
+        </p>
+        <div className="flex gap-3">
+          <Button
+            variant="outline"
+            className="flex-1"
             onClick={() => setShowCancelConfirm(false)}
-          />
-          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-[20px] p-6 z-50">
-            <h3 className="text-xl font-bold text-gray-900 mb-2">
-              정말 해지하시겠어요?
-            </h3>
-            <p className="text-gray-500 mb-6">
-              해지하시면 현재 결제 기간이 끝난 후 무료 플랜으로 전환됩니다.
-              프리미엄 기능을 더 이상 사용할 수 없게 됩니다.
-            </p>
-            <div className="flex gap-3">
-              <Button
-                variant="outline"
-                className="flex-1"
-                onClick={() => setShowCancelConfirm(false)}
-              >
-                취소
-              </Button>
-              <Button
-                variant="secondary"
-                className="flex-1"
-                onClick={handleCancelSubscription}
-              >
-                해지하기
-              </Button>
-            </div>
-          </div>
-        </>
-      )}
+          >
+            취소
+          </Button>
+          <Button
+            variant="secondary"
+            className="flex-1"
+            onClick={handleCancelSubscription}
+          >
+            해지하기
+          </Button>
+        </div>
+      </Modal>
 
       {/* Upgrade Modal */}
       <UpgradeModal

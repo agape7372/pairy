@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react'
 import Cropper, { type Area } from 'react-easy-crop'
 import { Button } from './button'
+import { Modal } from './modal'
 import { getCroppedFile } from '@/lib/utils/cropImage'
 
 interface AvatarCropModalProps {
@@ -48,13 +49,16 @@ export function AvatarCropModal({
   }, [areaPixels, imageSrc, fileName, onCropped])
 
   return (
-    <div
-      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-label="프로필 사진 편집"
+    <Modal
+      isOpen
+      onClose={() => {
+        if (!isProcessing) onCancel()
+      }}
+      ariaLabel="프로필 사진 편집"
+      closeOnBackdrop={false}
+      showClose={false}
+      className="max-w-md p-0 rounded-3xl overflow-hidden shadow-xl"
     >
-      <div className="w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-xl">
         <div className="px-6 pt-5 pb-3">
           <h2 className="text-lg font-bold text-gray-900">사진 편집</h2>
           <p className="mt-0.5 text-xs text-gray-500">확대하고 드래그해 위치를 맞춰요.</p>
@@ -100,7 +104,6 @@ export function AvatarCropModal({
             {isProcessing ? '처리 중…' : '적용'}
           </Button>
         </div>
-      </div>
-    </div>
+    </Modal>
   )
 }

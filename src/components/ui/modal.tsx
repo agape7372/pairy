@@ -154,7 +154,7 @@ export function Modal({
         aria-label={!title ? ariaLabel : undefined}
         tabIndex={-1}
         className={cn(
-          'relative w-full bg-white rounded-[24px] shadow-2xl p-6 animate-scale-in',
+          'relative w-full bg-white dark:bg-[var(--card)] rounded-[24px] shadow-2xl p-6 animate-scale-in',
           'max-h-[90vh] overflow-y-auto outline-none',
           sizes[size],
           className

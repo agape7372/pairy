@@ -21,7 +21,7 @@ import {
   Trash2,
   X,
 } from 'lucide-react'
-import { Button, useToast, EmptyState } from '@/components/ui'
+import { Button, Modal, useToast, EmptyState } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
 import { useSubscriptionStore, TIER_LIMITS, PRICING } from '@/stores/subscriptionStore'
 import { useLibraryFolders } from '@/hooks/useLibraryFolders'
@@ -85,13 +85,14 @@ function FolderModal({
   const canSubmit = name.trim().length > 0 && name.trim().length <= FOLDER_NAME_MAX_LENGTH && !isSaving
 
   return (
-    <>
-      <div
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 animate-fade-in"
-        onClick={onClose}
-      />
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
-        <div className="w-full max-w-sm bg-white rounded-2xl shadow-xl p-6 pointer-events-auto animate-fade-in">
+    <Modal
+      isOpen
+      onClose={onClose}
+      ariaLabel={mode === 'create' ? '새 폴더' : '폴더 이름 변경'}
+      size="sm"
+      showClose={false}
+      className="rounded-2xl shadow-xl"
+    >
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-bold text-gray-900">
               {mode === 'create' ? '새 폴더' : '폴더 이름 변경'}
@@ -133,7 +134,6 @@ function FolderModal({
             onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && canSubmit) onSubmit(name.trim(), emoji)
-              if (e.key === 'Escape') onClose()
             }}
             className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 mb-4"
           />
@@ -150,9 +150,7 @@ function FolderModal({
               {isSaving ? '저장 중...' : mode === 'create' ? '만들기' : '변경'}
             </Button>
           </div>
-        </div>
-      </div>
-    </>
+    </Modal>
   )
 }
 
