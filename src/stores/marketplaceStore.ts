@@ -2,6 +2,7 @@
 
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { IS_DEMO_MODE } from '@/lib/supabase/client'
 
 // 가격 유형
 export type PricingType = 'free' | 'credit' | 'paid'
@@ -102,7 +103,7 @@ interface MarketplaceState {
 }
 
 // 플랫폼 수수료율 (20%)
-const COMMISSION_RATE = 0.2
+export const COMMISSION_RATE = 0.2
 
 // 초기 상태
 const initialState = {
@@ -309,10 +310,10 @@ export const useMarketplaceStore = create<MarketplaceState>()(
           bankInfo: { bankName: '', accountNumber: '', accountHolder: '' }, // 마스킹 처리
         })),
       }),
-      // 초기 로드 시 데모 데이터 설정
+      // 초기 로드 시 데모 데이터 설정 (C-4: 프로덕션에서는 절대 조작 매출 생성 금지)
       onRehydrateStorage: () => (state) => {
-        // persist된 sales가 비어있으면 데모 데이터 생성
-        if (state && state.sales.length === 0) {
+        // 데모 모드에서만, persist된 sales가 비어있으면 데모 데이터 생성
+        if (IS_DEMO_MODE && state && state.sales.length === 0) {
           state.sales = generateDemoSales()
         }
       },
