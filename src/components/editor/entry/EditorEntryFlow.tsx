@@ -244,7 +244,8 @@ export function EditorEntryFlow({ className }: EditorEntryFlowProps) {
                   initial={false}
                   animate={
                     isActive
-                      ? { scale: [1, 1.15, 1], transition: { duration: 0.4, type: 'spring' } }
+                      // spring 은 3키프레임을 지원하지 않아 런타임 에러가 나므로 tween 사용
+                      ? { scale: [1, 1.15, 1], transition: { duration: 0.4, ease: 'easeInOut' } }
                       : isCompleted
                       ? { scale: 1 }
                       : { scale: 1 }

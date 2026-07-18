@@ -1184,12 +1184,9 @@ export default function EditorSidebar({ isOpen = true, onClose }: EditorSidebarP
       return
     }
 
-    // 버그 수정: 기존 Object URL 해제 후 새로 생성 (메모리 누수 방지)
-    const existingUrl = images[dataKey]
-    if (existingUrl && existingUrl.startsWith('blob:')) {
-      URL.revokeObjectURL(existingUrl)
-    }
-
+    // 주의: 기존 blob URL 을 여기서 revoke 하지 않는다 (C3) —
+    // 히스토리 스냅샷이 참조하는 동안 살아있어야 undo 가 동작한다.
+    // 정리는 스토어(pushSnapshot 탈락/loadTemplate/reset)가 담당.
     try {
       // Sprint 34: 이미지 압축 적용 (최대 2000px, 5MB)
       const result = await processImageFile(file)
@@ -1211,11 +1208,7 @@ export default function EditorSidebar({ isOpen = true, onClose }: EditorSidebarP
   }
 
   const handleImageRemove = (dataKey: string) => () => {
-    // 버그 수정: Object URL 해제 (메모리 누수 방지)
-    const existingUrl = images[dataKey]
-    if (existingUrl && existingUrl.startsWith('blob:')) {
-      URL.revokeObjectURL(existingUrl)
-    }
+    // blob URL revoke 는 스토어의 히스토리 수명 관리에 위임 (C3)
     updateImage(dataKey, null)
   }
 
