@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { X, Wallet, AlertCircle, CheckCircle, Loader2 } from 'lucide-react'
-import { Button } from '@/components/ui'
+import { Button, Modal } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
 import { formatCurrency } from '@/hooks/useCreatorEarnings'
 
@@ -54,7 +54,6 @@ export function PayoutRequestModal({
   // availableAmount prop이 변경되면 amount state 동기화
   useEffect(() => {
     if (isOpen && step === 'form') {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setAmount(availableAmount)
     }
   }, [availableAmount, isOpen, step])
@@ -114,26 +113,25 @@ export function PayoutRequestModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-        onClick={handleClose}
-      />
-
-      {/* Modal */}
-      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 overflow-hidden">
+    <Modal
+      isOpen={isOpen}
+      onClose={handleClose}
+      ariaLabel="정산 신청"
+      showClose={false}
+      className="max-w-md p-0 rounded-2xl overflow-hidden"
+    >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200">
           <div className="flex items-center gap-2">
-            <Wallet className="w-5 h-5 text-primary-500" />
+            <Wallet className="w-5 h-5 text-primary-500" aria-hidden="true" />
             <h2 className="text-lg font-semibold text-gray-900">정산 신청</h2>
           </div>
           <button
             onClick={handleClose}
+            aria-label="닫기"
             className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5" aria-hidden="true" />
           </button>
         </div>
 
@@ -358,7 +356,6 @@ export function PayoutRequestModal({
             </div>
           )}
         </div>
-      </div>
-    </div>
+    </Modal>
   )
 }

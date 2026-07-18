@@ -1,14 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import Link from 'next/link'
-import { X, Crown, Zap, Check, Sparkles, Heart, Users } from 'lucide-react'
-import { Button, useToast } from '@/components/ui'
+import { Crown, Check, Sparkles, Heart } from 'lucide-react'
+import { Button, Modal, useToast } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
 import {
   useSubscriptionStore,
   PRICING,
-  TIER_LIMITS,
   type SubscriptionTier,
 } from '@/stores/subscriptionStore'
 import { useSubscriptionCheckout } from '@/hooks/useSubscriptionCheckout'
@@ -92,23 +90,7 @@ export function UpgradeModal({
   }
 
   return (
-    <>
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 animate-fade-in"
-        onClick={onClose}
-      />
-
-      {/* Modal */}
-      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-white rounded-[24px] shadow-2xl p-6 z-50 animate-scale-in max-h-[90vh] overflow-y-auto">
-        {/* Close Button */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-full transition-colors"
-        >
-          <X className="w-5 h-5 text-gray-500" />
-        </button>
-
+    <Modal isOpen={isOpen} onClose={onClose} ariaLabel="업그레이드 안내" size="md">
         {/* Header */}
         <div className="text-center mb-6">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-primary-200 to-accent-200 mb-4">
@@ -229,8 +211,7 @@ export function UpgradeModal({
             </p>
           </div>
         )}
-      </div>
-    </>
+    </Modal>
   )
 }
 
