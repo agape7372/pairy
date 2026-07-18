@@ -82,7 +82,11 @@ export async function fetchTossPaymentByOrderId(orderId: string): Promise<TossPa
   try {
     const res = await fetch(
       `https://api.tosspayments.com/v1/payments/orders/${encodeURIComponent(orderId)}`,
-      { headers: { Authorization: `Basic ${auth}` } }
+      {
+        headers: { Authorization: `Basic ${auth}` },
+        // 결제 상태 정본 조회 — 캐시된 응답이 반환되면 취소/실패 반영이 누락되므로 항상 실조회
+        cache: 'no-store',
+      }
     )
     const data = await res.json()
 

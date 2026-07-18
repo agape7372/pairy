@@ -284,11 +284,13 @@ export function useCollabSession(
     ;(async () => {
       try {
         const supabase = createClient()
-        const [{ data: { user } }, { data: row }] = await Promise.all([
+        const [{ data: { user } }, { data: row, error: fetchError }] = await Promise.all([
           supabase.auth.getUser(),
           supabase.from('collab_sessions').select('*').eq('id', parsed.id!).maybeSingle(),
         ])
         if (cancelled) return
+        // 일시적 네트워크/서버 에러 시 로컬 캐시를 지우지 않고 유지 (다음 마운트에 재시도)
+        if (fetchError) return
         if (
           !row ||
           (row.status !== 'waiting' && row.status !== 'active') ||

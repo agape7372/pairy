@@ -66,6 +66,10 @@ export async function POST(req: NextRequest) {
   }
 
   // 확정: payments=paid + 구독 부여. paid 전환은 이미-paid 가드로 멱등.
+  // ⚠ 아키텍처 주의: 상태 전환(paid)과 권한 부여가 단일 트랜잭션이 아니다 —
+  // 전환 직후·부여 직전에 서버가 죽으면 재시도는 already-paid 로 부여를 건너뛴다.
+  // 근본 해결은 grant_subscription 이 payment_id 를 받아 부여 여부까지 멱등 처리하는
+  // RPC 통합(단일 트랜잭션). 후속 마이그레이션에서 처리 예정.
   const { data: marked, error: markError } = await admin.from('payments')
     .update({ status: 'paid', payment_key: paymentKey, updated_at: new Date().toISOString() })
     .eq('id', payment.id)

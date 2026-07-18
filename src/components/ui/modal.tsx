@@ -105,8 +105,9 @@ export function Modal({
 
       const panel = panelRef.current
       if (!panel) return
+      // offsetParent 는 fixed 조상 아래에서 null 이 되어 전부 걸러질 수 있음 → getClientRects 로 가시성 판정
       const focusables = Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR))
-        .filter((el) => el.offsetParent !== null || el === document.activeElement)
+        .filter((el) => el.getClientRects().length > 0 || el === document.activeElement)
       if (focusables.length === 0) {
         e.preventDefault()
         panel.focus()
