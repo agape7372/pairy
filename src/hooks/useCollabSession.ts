@@ -6,7 +6,7 @@
  */
 
 import { useState, useCallback, useEffect } from 'react'
-import { nanoid } from 'nanoid'
+import { randomId } from '@/lib/utils/editorUtils'
 import type { CollabUser, EditingZone } from '@/lib/collab/types'
 
 // ============================================
@@ -250,7 +250,7 @@ export function useCollabSession(
     setError(null)
 
     const now = Date.now()
-    const sessionId = nanoid(12)
+    const sessionId = randomId(12)
 
     const hostParticipant: SessionParticipant = {
       userId: user.id,

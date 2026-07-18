@@ -27,6 +27,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { useCanvasEditorStore } from '@/stores/canvasEditorStore'
+import { useIsPremium } from '@/stores/subscriptionStore'
 import type { InputFieldConfig, ImageSlot, ColorConfig, SlotImageTransform, ImageFilters, TextEffects, TextField, StickerLayer } from '@/types/template'
 import { ALL_STICKER_PACKS, searchStickers, type Sticker as StickerType, type StickerPack } from '@/types/sticker'
 import { processImageFile, formatFileSize, isSupportedImageType } from '@/lib/utils/imageCompressor'
@@ -847,6 +848,7 @@ function StickerPanel({
   const [activeTab, setActiveTab] = useState<StickerTabType>('my')
   const [searchQuery, setSearchQuery] = useState('')
   const [activePack, setActivePack] = useState<string>(ALL_STICKER_PACKS[0]?.id || '')
+  const isPremium = useIsPremium()
 
   const currentPack = ALL_STICKER_PACKS.find((p) => p.id === activePack)
   const searchResults = searchQuery.trim() ? searchStickers(searchQuery) : []
@@ -893,7 +895,7 @@ function StickerPanel({
       {activeTab === 'my' && (
         <UserStickerPanel
           onAddToCanvas={onAddSticker}
-          isPremium={false} // TODO: 프리미엄 상태 연동
+          isPremium={isPremium}
         />
       )}
 

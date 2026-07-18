@@ -18,10 +18,15 @@ import {
   Keyboard,
   Image as ImageIcon,
   Users,
+  Lock,
+  Crown,
 } from 'lucide-react'
 import { Button, useToast } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
 import { useCanvasEditorStore } from '@/stores/canvasEditorStore'
+import { useSubscriptionStore, TIER_LIMITS } from '@/stores/subscriptionStore'
+import { getExportPolicy } from '@/lib/utils/exportPolicy'
+import { exportCanvasToImage, downloadBlob } from '@/lib/utils/export'
 import EditorSidebar from './EditorSidebar'
 import KeyboardShortcutsModal from './KeyboardShortcutsModal'
 import { CollabOverlay } from './CollabOverlay'
@@ -240,6 +245,18 @@ function CanvasEditorContent({
   // Sprint 34: 접근성 훅
   useReducedMotion()
   const announce = useAnnounce()
+
+  // 내보내기 게이팅 (C1 수정): 티어별 해상도·워터마크·사용량 제한
+  const subscriptionTier = useSubscriptionStore((s) => s.subscription.tier)
+  const exportsThisMonth = useSubscriptionStore((s) => s.usage.exportsThisMonth)
+  const incrementExports = useSubscriptionStore((s) => s.incrementExports)
+  const getRemainingExports = useSubscriptionStore((s) => s.getRemainingExports)
+  const tierLimits = TIER_LIMITS[subscriptionTier]
+  const canExportHighRes = tierLimits.canExportHighRes
+  const hasWatermark = tierLimits.hasWatermark
+  const remainingExports = getRemainingExports()
+  // exportsThisMonth 구독은 사용량 변화 시 잔여 횟수 UI 리렌더를 위함
+  void exportsThisMonth
 
   // Local state
   const [title, setTitle] = useState(initialTitle || '새 작업')
@@ -915,58 +932,72 @@ function CanvasEditorContent({
   }, [setZoom])
 
 
-  // 이미지 내보내기 (포맷 및 스케일 지원)
+  // 무료 티어는 고해상도 선택 불가 — 티어 강등 시에도 클램프 (C1 수정)
+  useEffect(() => {
+    if (!canExportHighRes && exportScale !== 1) {
+      setExportScale(1)
+    }
+  }, [canExportHighRes, exportScale])
+
+  // 이미지 내보내기 (포맷·스케일 + 티어 게이팅: 워터마크·고해상도 잠금·사용량 차감)
   const handleExport = useCallback(async () => {
     const renderer = rendererRef.current
     if (!renderer) return
+
+    // 월간 내보내기 한도 확인 (구 ExportDialog 게이팅 이식)
+    if (getRemainingExports() <= 0) {
+      setExportError('이번 달 내보내기 횟수를 모두 사용했습니다. 프리미엄으로 업그레이드하세요!')
+      return
+    }
 
     setIsExporting(true)
     setExportProgress(0)
     setExportError(null)
 
     try {
+      const policy = getExportPolicy(subscriptionTier, exportScale)
+
       // 진행률 시뮬레이션
       setExportProgress(20)
       await new Promise(resolve => setTimeout(resolve, 100))
 
       setExportProgress(50)
-      const dataUrl = await renderer.exportToImage(exportScale)
+      const dataUrl = await renderer.exportToImage(policy.scale)
       if (!dataUrl) throw new Error('이미지 생성에 실패했습니다')
 
       setExportProgress(80)
 
-      // 포맷 변환 (PNG가 아닌 경우)
-      let finalDataUrl = dataUrl
-      const formatOption = exportFormats.find(f => f.format === exportFormat)
+      // Konva 결과를 캔버스에 올려 포맷 변환 + 워터마크 적용 (export.ts 재사용)
+      const img = new Image()
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve()
+        img.onerror = reject
+        img.src = dataUrl
+      })
 
-      if (exportFormat !== 'png' && formatOption) {
-        const img = new Image()
-        await new Promise<void>((resolve, reject) => {
-          img.onload = () => resolve()
-          img.onerror = reject
-          img.src = dataUrl
-        })
+      const canvas = document.createElement('canvas')
+      canvas.width = img.width
+      canvas.height = img.height
+      const ctx = canvas.getContext('2d')
+      if (!ctx) throw new Error('Canvas context not available')
+      ctx.drawImage(img, 0, 0)
 
-        const canvas = document.createElement('canvas')
-        canvas.width = img.width
-        canvas.height = img.height
-        const ctx = canvas.getContext('2d')
-        if (ctx) {
-          ctx.drawImage(img, 0, 0)
-          finalDataUrl = canvas.toDataURL(`image/${exportFormat}`, formatOption.quality || 1)
-        }
-      }
+      const blob = await exportCanvasToImage(canvas, {
+        format: exportFormat,
+        quality: 'high',
+        scale: 1, // 해상도는 Konva 단계(policy.scale)에서 이미 적용됨
+        backgroundColor: exportFormat === 'jpg' ? '#FFFFFF' : undefined,
+        watermark: policy.watermark,
+      })
 
       setExportProgress(100)
 
       // 다운로드
-      const extension = exportFormat
-      const link = document.createElement('a')
-      link.download = `${sanitizeFilename(title)}_${new Date().toISOString().slice(0, 10)}${exportScale > 1 ? `@${exportScale}x` : ''}.${extension}`
-      link.href = finalDataUrl
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
+      const filename = `${sanitizeFilename(title)}_${new Date().toISOString().slice(0, 10)}${policy.scale > 1 ? `@${policy.scale}x` : ''}.${exportFormat}`
+      downloadBlob(blob, filename)
+
+      // 사용량 차감 (한도는 위에서 선확인)
+      incrementExports()
 
       setShowExportModal(false)
       toast.success('이미지가 저장되었습니다', {
@@ -982,7 +1013,7 @@ function CanvasEditorContent({
       setIsExporting(false)
       setExportProgress(0)
     }
-  }, [title, exportFormat, exportScale, toast, sanitizeFilename])
+  }, [title, exportFormat, exportScale, subscriptionTier, getRemainingExports, incrementExports, toast, sanitizeFilename, announce])
 
   // Export 모달 Focus trap 관리 (접근성 개선)
   useEffect(() => {
@@ -1415,37 +1446,101 @@ function CanvasEditorContent({
               </div>
             </div>
 
-            {/* 해상도 선택 */}
+            {/* 해상도 선택 — 고해상도(2x/3x)는 프리미엄 전용 (C1 게이팅) */}
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 mb-2">해상도</label>
               <div className="space-y-2">
-                {[1, 2, 3].map((scale) => (
-                  <button
-                    key={scale}
-                    onClick={() => setExportScale(scale)}
-                    disabled={isExporting}
+                {[1, 2, 3].map((scale) => {
+                  const isLocked = scale > 1 && !canExportHighRes
+                  return (
+                    <button
+                      key={scale}
+                      onClick={() => !isLocked && setExportScale(scale)}
+                      disabled={isExporting || isLocked}
+                      className={cn(
+                        'w-full p-3 rounded-xl border-2 text-left transition-all flex items-center justify-between',
+                        isLocked
+                          ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed'
+                          : exportScale === scale
+                          ? 'border-primary-400 bg-primary-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                      )}
+                    >
+                      <div>
+                        <span className={cn('font-medium', isLocked ? 'text-gray-400' : 'text-gray-900')}>{scale}x</span>
+                        <span className="text-sm text-gray-500 ml-2">
+                          {templateConfig.canvas.width * scale} × {templateConfig.canvas.height * scale}px
+                        </span>
+                      </div>
+                      {isLocked ? (
+                        <Lock className="w-4 h-4 text-gray-400" aria-label="프리미엄 전용" />
+                      ) : scale === 2 ? (
+                        <span className="px-2 py-0.5 bg-primary-400 text-white text-xs font-medium rounded-full">
+                          추천
+                        </span>
+                      ) : null}
+                    </button>
+                  )
+                })}
+              </div>
+              {!canExportHighRes && (
+                <p className="text-xs text-gray-500 mt-2 flex items-center gap-1">
+                  <Crown className="w-3 h-3 text-primary-400" />
+                  고해상도 내보내기는 프리미엄 기능이에요
+                  <Link href="/premium" className="text-primary-500 hover:underline ml-1">
+                    업그레이드 →
+                  </Link>
+                </p>
+              )}
+            </div>
+
+            {/* 남은 내보내기 횟수 (무료 티어) */}
+            {tierLimits.exportsPerMonth !== Infinity && (
+              <div
+                className={cn(
+                  'mb-4 p-3 rounded-xl border',
+                  remainingExports <= 1
+                    ? 'bg-red-50 border-red-200'
+                    : remainingExports <= 3
+                    ? 'bg-amber-50 border-amber-200'
+                    : 'bg-gray-50 border-gray-200'
+                )}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">이번 달 남은 내보내기</span>
+                  <span
                     className={cn(
-                      'w-full p-3 rounded-xl border-2 text-left transition-all flex items-center justify-between',
-                      exportScale === scale
-                        ? 'border-primary-400 bg-primary-50'
-                        : 'border-gray-200 hover:border-gray-300'
+                      'text-sm font-bold',
+                      remainingExports <= 1
+                        ? 'text-red-600'
+                        : remainingExports <= 3
+                        ? 'text-amber-600'
+                        : 'text-gray-900'
                     )}
                   >
-                    <div>
-                      <span className="font-medium text-gray-900">{scale}x</span>
-                      <span className="text-sm text-gray-500 ml-2">
-                        {templateConfig.canvas.width * scale} × {templateConfig.canvas.height * scale}px
-                      </span>
-                    </div>
-                    {scale === 2 && (
-                      <span className="px-2 py-0.5 bg-primary-400 text-white text-xs font-medium rounded-full">
-                        추천
-                      </span>
-                    )}
-                  </button>
-                ))}
+                    {remainingExports}회
+                  </span>
+                </div>
+                {remainingExports <= 3 && (
+                  <Link href="/premium" className="text-xs text-primary-500 hover:underline mt-1 inline-block">
+                    프리미엄으로 무제한 내보내기 →
+                  </Link>
+                )}
               </div>
-            </div>
+            )}
+
+            {/* 워터마크 안내 (무료 티어) */}
+            {hasWatermark && (
+              <div className="mb-4 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                <p className="text-sm text-gray-600 flex items-center gap-2">
+                  <span>📎</span>
+                  <span>무료 플랜에서는 워터마크가 포함돼요</span>
+                </p>
+                <Link href="/premium" className="text-xs text-primary-500 hover:underline mt-1 inline-block">
+                  워터마크 제거하기 →
+                </Link>
+              </div>
+            )}
 
             {/* 진행 표시바 */}
             {isExporting && (

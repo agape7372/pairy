@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Users, Loader2, AlertCircle, ArrowRight } from 'lucide-react'
-import { nanoid } from 'nanoid'
 import { Button } from '@/components/ui'
+import { randomId } from '@/lib/utils/editorUtils'
 import { useCollabSession } from '@/hooks/useCollabSession'
 import type { CollabUser } from '@/lib/collab/types'
 
@@ -38,7 +38,7 @@ export default function CollabJoinClient({ code }: CollabJoinClientProps) {
 
     // TODO: 실제로는 로그인된 사용자 정보를 사용
     const guestUser: CollabUser = {
-      id: nanoid(8),
+      id: randomId(8),
       name: `게스트_${Math.floor(Math.random() * 1000)}`,
       color: '#4ECDC4',
     }

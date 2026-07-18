@@ -500,3 +500,21 @@ export function getStorageErrorMessage(error: StorageError): string {
       return error.message || '알 수 없는 오류가 발생했습니다.'
   }
 }
+
+// ============================================
+// ID 생성
+// ============================================
+
+const ID_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+
+/**
+ * 짧은 랜덤 ID 생성 (세션 코드·게스트 ID 등 비보안 용도)
+ * nanoid 대체 — package.json 에 없는 팬텀 의존성을 직접 배선하지 않기 위함
+ */
+export function randomId(length: number = 12): string {
+  const bytes =
+    typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function'
+      ? crypto.getRandomValues(new Uint8Array(length))
+      : Uint8Array.from({ length }, () => Math.floor(Math.random() * 256))
+  return Array.from(bytes, (b) => ID_ALPHABET[b % ID_ALPHABET.length]).join('')
+}

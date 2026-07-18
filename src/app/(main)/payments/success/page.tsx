@@ -76,6 +76,11 @@ function SuccessInner() {
               ? '이제 이 틀을 자유롭게 사용할 수 있어요.'
               : '30일 동안 모든 프리미엄 기능을 즐겨보세요.'}
           </p>
+          {state.purchase === 'template' && (
+            <Link href="/my/purchases" className="mt-4 text-sm text-pink-500 hover:underline">
+              구매 내역 보기 →
+            </Link>
+          )}
         </>
       )}
       {state.kind === 'error' && (
