@@ -104,10 +104,21 @@ function shallowEqual<T extends Record<string, unknown>>(a: T, b: T): boolean {
   return true
 }
 
-/** 배열 비교: 참조 우선, 불일치 시 JSON 폴백 (no-op map 재생성 대비) */
+/** 배열 비교: 참조 우선 → 요소 참조 스캔 → JSON 폴백 (no-op map 재생성 대비) */
 function arraysEqual<T>(a: T[], b: T[]): boolean {
   if (a === b) return true
   if (a.length !== b.length) return false
+
+  // 불변 갱신 특성상 미변경 요소는 참조가 유지됨 — 대부분 여기서 끝나 직렬화를 회피
+  let allElementsEqual = true
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) {
+      allElementsEqual = false
+      break
+    }
+  }
+  if (allElementsEqual) return true
+
   return JSON.stringify(a) === JSON.stringify(b)
 }
 

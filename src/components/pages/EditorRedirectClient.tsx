@@ -65,7 +65,7 @@ export default function EditorRedirectClient({ id }: EditorRedirectClientProps) 
         .then(({ data, error }) => {
           if (!error && data?.template_id) {
             const workQuery = query ? `?work=${id}&${query}` : `?work=${id}`
-            go(`/canvas-editor/${data.template_id}${workQuery}`)
+            go(`/canvas-editor/${encodeURIComponent(data.template_id)}${workQuery}`)
           } else {
             // work 가 아니면 UUID 템플릿 id 로 간주하고 에디터에 위임
             go(`/canvas-editor/${id}${suffix}`)
@@ -74,8 +74,11 @@ export default function EditorRedirectClient({ id }: EditorRedirectClientProps) 
       return
     }
 
-    // 데모 모드 UUID 포함, 일반 템플릿/커스텀 id: 그대로 캔버스 에디터에 위임
-    go(`/canvas-editor/${id}${suffix}`)
+    // 데모 모드 UUID 포함, 일반 템플릿/커스텀 id: 그대로 캔버스 에디터에 위임.
+    // 세그먼트 인코딩으로 경로 이탈(../)·중첩 경로 문자를 무력화한다 —
+    // 'legacy' 폴백은 A1(조용한 붕괴) 재발이라 채택하지 않고, 이상한 id 는
+    // 에디터의 '템플릿을 찾을 수 없습니다' 정직한 에러로 떨어지게 둔다.
+    go(`/canvas-editor/${encodeURIComponent(id)}${suffix}`)
   }, [id, router, searchParams])
 
   return (

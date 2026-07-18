@@ -280,7 +280,7 @@ export const useCanvasEditorStore = create<CanvasEditorState & CanvasEditorActio
         },
 
         // 서버 work 하이드레이션 (A1 수정): 저장된 작업 데이터를 일괄 적용하고 히스토리를 재시작
-        hydrateEditorData: (data) => {
+        hydrateEditorData: (data = {}) => {
           const state = get()
           const formData = data.formData ?? state.formData
           const colors = data.colors ?? state.colors

@@ -254,15 +254,13 @@ function CanvasEditorContent({
 
   // 내보내기 게이팅 (C1 수정): 티어별 해상도·워터마크·사용량 제한
   const subscriptionTier = useSubscriptionStore((s) => s.subscription.tier)
-  const exportsThisMonth = useSubscriptionStore((s) => s.usage.exportsThisMonth)
   const incrementExports = useSubscriptionStore((s) => s.incrementExports)
   const getRemainingExports = useSubscriptionStore((s) => s.getRemainingExports)
+  // 셀렉터가 계산 결과(숫자)를 반환 — 잔여 횟수가 실제로 변할 때만 리렌더
+  const remainingExports = useSubscriptionStore((s) => s.getRemainingExports())
   const tierLimits = TIER_LIMITS[subscriptionTier]
   const canExportHighRes = tierLimits.canExportHighRes
   const hasWatermark = tierLimits.hasWatermark
-  const remainingExports = getRemainingExports()
-  // exportsThisMonth 구독은 사용량 변화 시 잔여 횟수 UI 리렌더를 위함
-  void exportsThisMonth
 
   // Local state
   const [title, setTitle] = useState(initialTitle || '새 작업')
