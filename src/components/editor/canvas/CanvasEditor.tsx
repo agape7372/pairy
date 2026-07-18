@@ -285,7 +285,13 @@ function CanvasEditorContent({
   // 핀치 줌 상태
   const lastTouchDistance = useRef<number | null>(null)
   const lastZoom = useRef(zoom)
-  const autoSaveKey = `pairy-autosave-${templateId}`
+  // autosave 를 work 단위로 스코핑 — 같은 템플릿의 '새 작업' autosave 가
+  // 저장된 work 위에 복구 제안되는 교차 오염 방지
+  const autoSaveKey = `pairy-autosave-${workId ?? templateId}`
+
+  // 이 마운트에서 현재 템플릿 로드가 완료됐는지 (스토어 templateConfig 는 전역이라
+  // 이전 방문의 stale 값이 남는다 — 하이드레이션 경합 방지용 로컬 신호)
+  const [isTemplateLoaded, setIsTemplateLoaded] = useState(false)
 
   // 복구 토스트 중복 방지
   const recoveryToastShown = useRef(false)
@@ -410,6 +416,7 @@ function CanvasEditorContent({
     const fetchTemplate = async () => {
       setLoading(true)
       setError(null)
+      setIsTemplateLoaded(false)
 
       try {
         // 커스텀 템플릿인 경우 localStorage에서 로드
@@ -420,6 +427,7 @@ function CanvasEditorContent({
           }
           const config = convertToTemplateConfig(customTemplate)
           loadTemplate(config)
+          setIsTemplateLoaded(true)
           // 커스텀 템플릿 제목으로 설정
           setTitle(customTemplate.title)
           return
@@ -436,6 +444,7 @@ function CanvasEditorContent({
           throw new Error('템플릿을 찾을 수 없습니다')
         })
         loadTemplate(config)
+        setIsTemplateLoaded(true)
       } catch (err) {
         setError(err instanceof Error ? err.message : '템플릿 로드 실패')
       } finally {
@@ -449,6 +458,13 @@ function CanvasEditorContent({
   // 복구 데이터 확인 (템플릿 로드 후) - 안전한 localStorage 접근
   useEffect(() => {
     if (!templateConfig) return
+
+    // 저장된 work 를 연 세션(?work=)에는 복구 제안 금지 — 서버 데이터가 진실이고,
+    // 같은 템플릿의 '다른 새 작업' autosave 를 work 위에 덮어쓸 위험이 있다.
+    // (workId prop 은 비동기 파싱이라 URL 을 직접 확인)
+    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('work')) {
+      return
+    }
 
     // 중복 토스트 방지: 이미 표시했으면 스킵
     if (recoveryToastShown.current) return
@@ -628,16 +644,19 @@ function CanvasEditorContent({
     }
   }, [templateConfig, calculateFitZoom, zoom, setZoom])
 
-  // 저장된 작품 id (첫 서버 저장 후 이후 저장은 update). ?work= 또는 협업 세션 workId 를 잇는다.
+  // 저장된 작품 id (첫 서버 저장 후 이후 저장은 update). 협업 세션 workId 를 잇는다.
+  // 주의: ?work= 는 신뢰하지 않는다 — 하이드레이션(존재+RLS 소유 검증) 성공 시에만 바인딩.
+  // 미검증 바인딩 시 RLS 0-row UPDATE 가 거짓 '저장 성공'을 만든다.
   const savedWorkIdRef = useRef<string | null>(
-    (workId && /^[0-9a-f-]{36}$/i.test(workId) ? workId : null) ||
-      (sessionId && /^[0-9a-f-]{36}$/i.test(sessionId) ? sessionId : null)
+    sessionId && /^[0-9a-f-]{36}$/i.test(sessionId) ? sessionId : null
   )
 
-  // 저장된 work 하이드레이션 (A1 수정): 템플릿 로드 후 서버 editor_data 를 일괄 적용
+  // 저장된 work 하이드레이션 (A1 수정): '이 마운트의' 템플릿 로드 완료 후에만 실행.
+  // 스토어 templateConfig 는 전역이라 이전 방문의 stale 값으로 조기 발화하면
+  // loadTemplate 이 하이드레이션 결과를 덮어쓰는 경합이 생긴다 — isTemplateLoaded 로 차단.
   const workHydratedRef = useRef(false)
   useEffect(() => {
-    if (!workId || IS_DEMO_MODE || !templateConfig || workHydratedRef.current) return
+    if (!workId || IS_DEMO_MODE || !isTemplateLoaded || workHydratedRef.current) return
     workHydratedRef.current = true
 
     const hydrate = async () => {
@@ -665,7 +684,7 @@ function CanvasEditorContent({
       }
     }
     hydrate()
-  }, [workId, templateConfig, hydrateEditorData, toast])
+  }, [workId, isTemplateLoaded, hydrateEditorData, toast])
 
   // 저장 (M5 실배선) — 프로덕션: works.editor_data / 데모·로컬 틀: localStorage 유지
   const handleSave = useCallback(async () => {
@@ -700,7 +719,7 @@ function CanvasEditorContent({
       } as unknown as Json
 
       if (savedWorkIdRef.current) {
-        const { error } = await supabase
+        const { data: updated, error } = await supabase
           .from('works')
           .update({
             title,
@@ -709,7 +728,12 @@ function CanvasEditorContent({
           })
           .eq('id', savedWorkIdRef.current)
           .eq('user_id', user.id)
+          .select('id')
         if (error) throw new Error(error.message)
+        // RLS/소유권 불일치로 0행 갱신되면 성공이 아니다 — 거짓 '저장 완료' 방지
+        if (!updated || updated.length === 0) {
+          throw new Error('작업을 찾을 수 없거나 저장 권한이 없습니다')
+        }
       } else {
         const { data, error } = await supabase
           .from('works')
@@ -1684,7 +1708,11 @@ function CanvasEditorContent({
             // 전체 초기화 — 템플릿을 다시 로드해 처음 상태로 (M6)
             if (!templateConfig) return
             if (window.confirm('작업 내용을 모두 지우고 처음 상태로 되돌릴까요?')) {
-              loadTemplate(templateConfig)
+              // reset 으로 templateId 를 지워야 loadTemplate 의 persist 병합(C8)이
+              // 현재 편집값을 되살리지 않는다 — 진짜 '처음 상태' 보장
+              const config = templateConfig
+              useCanvasEditorStore.getState().reset()
+              loadTemplate(config)
               toast.success('처음 상태로 되돌렸어요')
             }
           },

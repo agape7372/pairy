@@ -296,6 +296,28 @@ describe('A1: classifyEditorId', () => {
   })
 })
 
+describe('적대 리뷰 반영: 월 전환 잠금·초기화 무력화 회귀', () => {
+  it('월이 바뀌면 리셋 전이라도 잔여 내보내기가 전체 쿼터로 계산된다', () => {
+    // 순환 import 회피를 위해 지연 require
+    const { useSubscriptionStore } = jest.requireActual('@/stores/subscriptionStore')
+    useSubscriptionStore.setState((s: { usage: object }) => ({
+      usage: { ...s.usage, exportsThisMonth: 5, lastResetDate: '2000-01' },
+    }))
+    expect(useSubscriptionStore.getState().getRemainingExports()).toBeGreaterThan(0)
+  })
+
+  it("reset 후 loadTemplate 은 persist 병합 없이 진짜 '처음 상태'가 된다", () => {
+    useCanvasEditorStore.getState().reset()
+    useCanvasEditorStore.getState().loadTemplate(mockTemplateConfig)
+    useCanvasEditorStore.getState().updateFormField('title', '작업 중 값')
+
+    // 전체 초기화 경로: reset → 같은 템플릿 재로드
+    useCanvasEditorStore.getState().reset()
+    useCanvasEditorStore.getState().loadTemplate(mockTemplateConfig)
+    expect(useCanvasEditorStore.getState().formData.title).toBeUndefined()
+  })
+})
+
 describe('C7: randomId', () => {
   it('요청 길이의 영숫자 id 를 만든다', () => {
     const id = randomId(12)

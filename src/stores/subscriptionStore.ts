@@ -449,14 +449,20 @@ export const useSubscriptionStore = create<SubscriptionState>()(
         const { subscription, usage } = get()
         const limits = TIER_LIMITS[subscription.tier]
         if (limits.exportsPerMonth === Infinity) return Infinity
-        return Math.max(0, limits.exportsPerMonth - usage.exportsThisMonth)
+        // 월이 바뀌었으면 리셋 전이라도 전체 쿼터로 계산 — 사전 체크가 이 값을
+        // 신뢰하므로, 여기서 지난달 사용량을 그대로 두면 월 전환 후 영구 잠금이 된다
+        const currentMonth = new Date().toISOString().slice(0, 7)
+        const used = usage.lastResetDate !== currentMonth ? 0 : usage.exportsThisMonth
+        return Math.max(0, limits.exportsPerMonth - used)
       },
 
       getRemainingDownloads: () => {
         const { subscription, usage } = get()
         const limits = TIER_LIMITS[subscription.tier]
         if (limits.downloadsPerMonth === Infinity) return Infinity
-        return Math.max(0, limits.downloadsPerMonth - usage.downloadsThisMonth)
+        const currentMonth = new Date().toISOString().slice(0, 7)
+        const used = usage.lastResetDate !== currentMonth ? 0 : usage.downloadsThisMonth
+        return Math.max(0, limits.downloadsPerMonth - used)
       },
 
       getRemainingSavedWorks: () => {

@@ -282,6 +282,9 @@ export const useCanvasEditorStore = create<CanvasEditorState & CanvasEditorActio
         // 서버 work 하이드레이션 (A1 수정): 저장된 작업 데이터를 일괄 적용하고 히스토리를 재시작
         hydrateEditorData: (data = {}) => {
           const state = get()
+
+          // 버려지는 이전 히스토리/이미지의 blob URL 정리 (하이드레이션 전 업로드분 누수 방지)
+          revokeBlobUrls(collectBlobUrls(state.history, state.images))
           const formData = data.formData ?? state.formData
           const colors = data.colors ?? state.colors
           const slotTransforms = data.slotTransforms ?? state.slotTransforms
