@@ -38,6 +38,7 @@ import {
 import { useSubscriptionStore } from '@/stores/subscriptionStore'
 import { useBookmarks } from '@/hooks/useBookmarks'
 import { useResource } from '@/hooks/useResources'
+import { useTemplate, templateToResource } from '@/hooks/useTemplates'
 import { IS_DEMO_MODE } from '@/lib/supabase/client'
 import styles from '@/styles/particles.module.css'
 
@@ -358,6 +359,10 @@ export default function TemplateDetailClient({ templateId }: TemplateDetailClien
   const { resource: serverResource, isLoading: isResourceLoading } = useResource(
     isServerResource ? templateId : null
   )
+  // 폴백: resources 에 없으면 게시된 틀(templates 테이블) 조회 — 업로드 틀 상세 표시 (F-16a)
+  const { template: serverTemplate, isLoading: isTemplateLoading } = useTemplate(
+    isServerResource && !isResourceLoading && !serverResource ? templateId : null
+  )
 
   // Shooting Star 파티클 효과
   const emitShootingStar = useCallback(() => {
@@ -412,16 +417,23 @@ export default function TemplateDetailClient({ templateId }: TemplateDetailClien
   const handleBookmarkClick = async () => {
     const wasBookmarked = isBookmarked
     if (wasBookmarked) {
-      await removeBookmark(templateId)
+      const ok = await removeBookmark(templateId)
+      if (!ok) toast.error('북마크 해제에 실패했어요.')
     } else {
-      await addBookmark(templateId)
-      emitShootingStar() // 활성화 시에만 Shooting Star
+      const ok = await addBookmark(templateId)
+      if (ok) {
+        emitShootingStar() // 활성화 시에만 Shooting Star
+      } else {
+        toast.error('북마크에 실패했어요. 로그인 상태를 확인해주세요.')
+      }
     }
   }
 
-  const resource = isServerResource ? serverResource : sampleResources[templateId]
+  const resource = isServerResource
+    ? (serverResource ?? (serverTemplate ? templateToResource(serverTemplate) : null))
+    : sampleResources[templateId]
 
-  if (isServerResource && isResourceLoading) {
+  if (isServerResource && (isResourceLoading || (!serverResource && isTemplateLoading))) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-primary-300 border-t-primary-500 rounded-full animate-spin" />
@@ -514,12 +526,21 @@ export default function TemplateDetailClient({ templateId }: TemplateDetailClien
     router.push(`/editor/new?template=${templateId}`)
   }
 
-  const handleAddToLibrary = () => {
+  // 실배선(2026-07-19): 이전엔 아무것도 저장하지 않고 성공 토스트만 띄우던 가짜 성공.
+  // 북마크(실 저장, /my/bookmarks 에 표시)로 연결한다.
+  const handleAddToLibrary = async () => {
+    if (isBookmarked) {
+      toast.info('이미 서재(북마크)에 있어요.')
+      return
+    }
     setShowAddToLibrary(true)
-    setTimeout(() => {
-      setShowAddToLibrary(false)
-      toast.success('내 서재에 추가되었습니다!')
-    }, 500)
+    const ok = await addBookmark(templateId)
+    setShowAddToLibrary(false)
+    if (ok) {
+      toast.success('서재(북마크)에 추가했어요!')
+    } else {
+      toast.error('추가에 실패했어요. 로그인 상태를 확인해주세요.')
+    }
   }
 
   const remainingDownloads = getRemainingDownloads()

@@ -8,6 +8,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { Template, Tag } from '@/types/database.types'
+import type { Resource } from '@/types/resources'
 
 export interface TemplateWithDetails extends Template {
   tags: Tag[]
@@ -58,10 +59,10 @@ export function useTemplates(options: UseTemplatesOptions = {}): UseTemplatesRet
 
       const supabase = createClient()
 
-      // 기본 템플릿 쿼리
+      // 기본 템플릿 쿼리 (크리에이터 표시 정보 조인 — 카드/상세 by-line 용)
       let query = supabase
         .from('templates')
-        .select('*')
+        .select('*, creator:profiles!creator_id(id, display_name, avatar_url)')
         .eq('is_public', true)
         .range(currentOffset, currentOffset + limit - 1)
 
@@ -85,9 +86,8 @@ export function useTemplates(options: UseTemplatesOptions = {}): UseTemplatesRet
 
       // 템플릿에 대한 추가 데이터 가져오기 (필요시)
       const transformedData: TemplateWithDetails[] = (data || []).map((template) => ({
-        ...template,
+        ...(template as unknown as Template & { creator: TemplateWithDetails['creator'] }),
         tags: [], // TODO: 태그 데이터 별도 로드
-        creator: null, // TODO: 크리에이터 데이터 별도 로드
       }))
 
       // 태그 필터링 (클라이언트 측)
@@ -126,34 +126,40 @@ export function useTemplates(options: UseTemplatesOptions = {}): UseTemplatesRet
   return { templates, isLoading, error, refetch, hasMore, loadMore }
 }
 
-// 단일 템플릿 가져오기
-export function useTemplate(id: string) {
+// 단일 템플릿 가져오기 (id=null 이면 조회하지 않음 — 조건부 폴백용)
+export function useTemplate(id: string | null) {
   const [template, setTemplate] = useState<TemplateWithDetails | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(Boolean(id))
   const [error, setError] = useState<Error | null>(null)
 
   useEffect(() => {
+    if (!id) {
+      setTemplate(null)
+      setIsLoading(false)
+      return
+    }
+
     const fetchTemplate = async () => {
       try {
-        setIsLoading(true)
         setError(null)
 
         const supabase = createClient()
         const { data, error: fetchError } = await supabase
           .from('templates')
-          .select('*')
+          .select('*, creator:profiles!creator_id(id, display_name, avatar_url)')
           .eq('id', id)
-          .single()
+          .maybeSingle()
 
         if (fetchError) throw fetchError
 
-        const transformedData: TemplateWithDetails = {
-          ...data,
-          tags: [], // TODO: 태그 데이터 별도 로드
-          creator: null, // TODO: 크리에이터 데이터 별도 로드
-        }
-
-        setTemplate(transformedData)
+        setTemplate(
+          data
+            ? {
+                ...(data as unknown as Template & { creator: TemplateWithDetails['creator'] }),
+                tags: [],
+              }
+            : null
+        )
       } catch (err) {
         setError(err instanceof Error ? err : new Error('Failed to fetch template'))
       } finally {
@@ -161,10 +167,47 @@ export function useTemplate(id: string) {
       }
     }
 
-    if (id) {
-      fetchTemplate()
-    }
+    setIsLoading(true)
+    fetchTemplate()
   }, [id])
 
   return { template, isLoading, error }
+}
+
+/**
+ * 서버 templates 행 → 아카이브/상세가 쓰는 Resource 뷰모델 (F-16a read-path).
+ * 배경: 업로드는 templates 테이블에 저장되는데 /templates 아카이브·상세가
+ * 이 테이블을 읽지 않아 게시한 틀이 어디에도 보이지 않았다 (2026-07-19 리포트).
+ */
+export function templateToResource(t: TemplateWithDetails): Resource {
+  const price = Number(t.price ?? 0)
+  const isPaid = t.pricing_type === 'paid' && price > 0
+  return {
+    id: t.id,
+    title: t.title,
+    description: t.description ?? '',
+    category: 'pairtl',
+    tags: t.tags.map((tag) => tag.name),
+    creator: {
+      id: t.creator?.id ?? t.creator_id ?? '',
+      displayName: t.creator?.display_name ?? '크리에이터',
+      username: t.creator?.id ?? '',
+      avatarUrl: t.creator?.avatar_url ?? undefined,
+      isVerified: false,
+    },
+    fileInfo: { format: [], width: 0, height: 0, sizeKB: 0, hasTransparency: false },
+    license: isPaid ? 'paid' : 'free',
+    price: isPaid ? price : undefined,
+    stats: {
+      views: 0,
+      downloads: t.use_count ?? 0,
+      likes: t.like_count ?? 0,
+      uses: t.use_count ?? 0,
+    },
+    thumbnailUrl: t.preview_url,
+    previewUrls: t.preview_url ? [t.preview_url] : [],
+    createdAt: t.created_at ?? new Date().toISOString(),
+    updatedAt: t.updated_at ?? t.created_at ?? new Date().toISOString(),
+    isPremium: t.is_premium ?? false,
+  }
 }

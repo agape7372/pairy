@@ -51,7 +51,7 @@ export function ZoneSelector({ className = '', onZoneSelect, onClose }: ZoneSele
           <button
             onClick={onClose}
             aria-label="닫기"
-            className="p-1 -m-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+            className="p-1 -m-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full focus-visible:ring-2 focus-visible:ring-primary-500 focus:outline-none transition-colors"
           >
             <X className="w-4 h-4" aria-hidden="true" />
           </button>

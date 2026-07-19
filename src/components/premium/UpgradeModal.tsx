@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Crown, Check, Sparkles, Heart } from 'lucide-react'
 import { Button, Modal, useToast } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
@@ -30,10 +31,25 @@ export function UpgradeModal({
   const { subscribe, startTrial, isDemoMode } = useSubscriptionStore()
   const { startCheckout } = useSubscriptionCheckout()
   const toast = useToast()
+  const router = useRouter()
 
   if (!isOpen) return null
 
   const price = PRICING[selectedTier].monthly
+
+  // 결제 시작 + 실패 피드백 — 이전엔 훅의 error 상태를 아무도 렌더하지 않아
+  // 비로그인/준비 실패 시 "클릭 → 모달만 닫히고 무반응"이었다 (2026-07-19 리포트).
+  const launchCheckout = async () => {
+    onClose()
+    const failMessage = await startCheckout()
+    if (!failMessage) return
+    if (failMessage.includes('로그인')) {
+      toast.info('로그인 후 구독할 수 있어요.')
+      router.push('/login')
+    } else {
+      toast.error(failMessage)
+    }
+  }
 
   const handleSubscribe = () => {
     if (isDemoMode) {
@@ -44,8 +60,7 @@ export function UpgradeModal({
       onClose()
     } else if (selectedTier === 'premium') {
       // 프로덕션: 실 결제(Toss). 구독은 premium 만(DL-0004)
-      onClose()
-      startCheckout()
+      void launchCheckout()
     } else {
       // duo/creator 는 동결 — 아직 정식 상품 아님
       toast.info('아직 준비 중인 상품이에요.')
@@ -59,8 +74,7 @@ export function UpgradeModal({
       onClose()
     } else {
       // 프로덕션: 체험도 결제/서버 부여 필요 — 거짓 성공 토스트 제거
-      onClose()
-      startCheckout()
+      void launchCheckout()
     }
   }
 

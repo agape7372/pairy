@@ -1590,8 +1590,8 @@ function CanvasEditorContent({
           ) : (
             <button
               onClick={() => setShowZoneSelector(true)}
-              aria-label="편집 영역 선택 열기"
-              className="px-3 py-1.5 bg-white rounded-full shadow-md border border-gray-200 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              aria-label={`현재 영역: ${collab.myZone ?? '자유'}. 편집 영역 선택 열기`}
+              className="px-3 py-1.5 bg-white rounded-full shadow-md border border-gray-200 text-xs font-medium text-gray-700 hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary-500 focus:outline-none transition-colors"
             >
               영역: {collab.myZone ?? '자유'}
             </button>
