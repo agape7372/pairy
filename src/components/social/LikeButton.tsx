@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback } from 'react'
 import { Heart, Loader2 } from 'lucide-react'
+import { useToast } from '@/components/ui'
 import { useLikes } from '@/hooks/useLikes'
 import { cn } from '@/lib/utils/cn'
 import styles from '@/styles/particles.module.css'
@@ -30,6 +31,7 @@ export function LikeButton({
   const [isToggling, setIsToggling] = useState(false)
   const buttonRef = useRef<HTMLButtonElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const toast = useToast()
 
   // Magic Dust 파티클 효과
   const emitMagicDust = useCallback(() => {
@@ -81,8 +83,12 @@ export function LikeButton({
     setTimeout(() => setIsAnimating(false), 300)
     setIsToggling(false)
 
-    if (success && onLikeChange) {
-      onLikeChange(!isLiked, isLiked ? likeCount - 1 : likeCount + 1)
+    if (success) {
+      if (onLikeChange) {
+        onLikeChange(!isLiked, isLiked ? likeCount - 1 : likeCount + 1)
+      }
+    } else {
+      toast.error('좋아요 처리에 실패했어요. 로그인 상태를 확인해주세요.')
     }
   }
 
@@ -198,6 +204,7 @@ export function LikeIconButton({
   const [isAnimating, setIsAnimating] = useState(false)
   const buttonRef = useRef<HTMLButtonElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const toast = useToast()
 
   // Magic Dust 파티클 효과
   const emitMagicDust = useCallback(() => {
@@ -239,11 +246,15 @@ export function LikeIconButton({
     const wasLiked = initialIsLiked !== undefined ? initialIsLiked : isLiked
 
     setIsAnimating(true)
-    await toggle()
+    const success = await toggle()
 
-    // 좋아요할 때만 Magic Dust 파티클 효과
-    if (!wasLiked) {
-      emitMagicDust()
+    if (success) {
+      // 좋아요할 때만 Magic Dust 파티클 효과
+      if (!wasLiked) {
+        emitMagicDust()
+      }
+    } else {
+      toast.error('좋아요 처리에 실패했어요. 로그인 상태를 확인해주세요.')
     }
 
     setTimeout(() => setIsAnimating(false), 300)

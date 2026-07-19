@@ -15,7 +15,7 @@ import {
   Loader2,
   Key,
 } from 'lucide-react'
-import { Button, Modal } from '@/components/ui'
+import { Button, Modal, useToast } from '@/components/ui'
 import { useUser } from '@/hooks/useUser'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils/cn'
@@ -51,6 +51,7 @@ const SETTING_DEFAULTS: Record<string, boolean> = {
 export default function MySettingsPage() {
   const router = useRouter()
   const { user, signOut } = useUser()
+  const toast = useToast()
 
   // 사용자 설정(profiles.settings) — 로컬 state 대신 서버 영속
   const [settings, setSettings] = useState<Record<string, boolean>>(SETTING_DEFAULTS)
@@ -69,12 +70,17 @@ export default function MySettingsPage() {
   }, [user?.id])
 
   const updateSetting = useCallback(async (key: string, value: boolean) => {
+    const previousValue = settings[key]
     setSettings((prev) => ({ ...prev, [key]: value })) // 낙관적
     if (!user?.id || !isSupabaseConfigured()) return
     const supabase = createClient()
     const next = { ...settings, [key]: value }
-    await supabase.from('profiles').update({ settings: next }).eq('id', user.id)
-  }, [user?.id, settings])
+    const { error } = await supabase.from('profiles').update({ settings: next }).eq('id', user.id)
+    if (error) {
+      setSettings((prev) => ({ ...prev, [key]: previousValue }))
+      toast.error('설정 저장에 실패했어요.')
+    }
+  }, [user?.id, settings, toast])
 
   // 연결된 계정 상태
   const [linkedAccounts, setLinkedAccounts] = useState<LinkedAccount[]>([])
@@ -129,9 +135,10 @@ export default function MySettingsPage() {
       router.push('/')
     } catch (err) {
       logError('SignOut', err)
+      toast.error('로그아웃에 실패했어요. 다시 시도해주세요.')
       setIsSigningOut(false)
     }
-  }, [signOut, router])
+  }, [signOut, router, toast])
 
   // 계정 연동 핸들러
   const handleLinkAccount = useCallback(async (provider: OAuthProvider) => {

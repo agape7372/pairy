@@ -23,7 +23,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Button } from '@/components/ui'
+import { Button, useToast } from '@/components/ui'
 import { useShareWork } from '@/hooks/useShareWork'
 import type { Work } from '@/types/database.types'
 import { cn } from '@/lib/utils/cn'
@@ -36,13 +36,17 @@ interface SharePageClientProps {
 export default function SharePageClient({ shareId }: SharePageClientProps) {
   const shareHook = useShareWork()
   const shareHookRef = useRef(shareHook)
-  shareHookRef.current = shareHook
+  // 렌더 중 ref 쓰기 금지(react-hooks/refs) — 커밋 후 동기화
+  useEffect(() => {
+    shareHookRef.current = shareHook
+  })
 
   const [work, setWork] = useState<Work | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const [showShareMenu, setShowShareMenu] = useState(false)
+  const toast = useToast()
 
   // 작품 로드 (shareId 변경 시에만 실행)
   useEffect(() => {
@@ -85,8 +89,10 @@ export default function SharePageClient({ shareId }: SharePageClientProps) {
     if (success) {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
+    } else {
+      toast.error('링크 복사에 실패했어요.')
     }
-  }, [shareId])
+  }, [shareId, toast])
 
   // 트위터 공유
   const handleShareTwitter = useCallback(() => {
