@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { MessageCircle, Heart, CornerDownRight, MoreHorizontal, Trash2, Edit2, Loader2 } from 'lucide-react'
-import { Button } from '@/components/ui'
+import { Button, useToast } from '@/components/ui'
 import { useComments } from '@/hooks/useComments'
 import { cn } from '@/lib/utils/cn'
 import type { CommentWithUser } from '@/types/database.types'
@@ -25,6 +25,7 @@ export function CommentSection({ templateId, className }: CommentSectionProps) {
 
   const [newComment, setNewComment] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const toast = useToast()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -34,6 +35,8 @@ export function CommentSection({ templateId, className }: CommentSectionProps) {
     const success = await addComment(newComment.trim())
     if (success) {
       setNewComment('')
+    } else {
+      toast.error('댓글 저장에 실패했어요. 로그인 상태를 확인해주세요.')
     }
     setIsSubmitting(false)
   }
@@ -137,6 +140,7 @@ function CommentItem({
   const [isEditing, setIsEditing] = useState(false)
   const [editContent, setEditContent] = useState(comment.content)
   const [showMenu, setShowMenu] = useState(false)
+  const toast = useToast()
 
   const handleReply = async () => {
     if (!replyContent.trim() || isSubmitting) return
@@ -146,6 +150,8 @@ function CommentItem({
     if (success) {
       setReplyContent('')
       setShowReplyInput(false)
+    } else {
+      toast.error('댓글 저장에 실패했어요. 로그인 상태를 확인해주세요.')
     }
     setIsSubmitting(false)
   }
@@ -157,21 +163,27 @@ function CommentItem({
     const success = await onEdit(comment.id, editContent.trim())
     if (success) {
       setIsEditing(false)
+    } else {
+      toast.error('댓글 저장에 실패했어요. 로그인 상태를 확인해주세요.')
     }
     setIsSubmitting(false)
   }
 
   const handleDelete = async () => {
     if (confirm('댓글을 삭제하시겠어요?')) {
-      await onDelete(comment.id)
+      const success = await onDelete(comment.id)
+      if (!success) {
+        toast.error('처리에 실패했어요.')
+      }
     }
   }
 
   const handleLikeToggle = async () => {
-    if (comment.isLiked) {
-      await onUnlike(comment.id)
-    } else {
-      await onLike(comment.id)
+    const success = comment.isLiked
+      ? await onUnlike(comment.id)
+      : await onLike(comment.id)
+    if (!success) {
+      toast.error('처리에 실패했어요.')
     }
   }
 

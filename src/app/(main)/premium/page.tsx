@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Check, Sparkles, Crown, ArrowRight, Users, Gift, Heart, Star, Palette, MessageCircle, Leaf, Cherry, TrendingUp } from 'lucide-react'
 import { Button, useToast } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
@@ -140,6 +141,7 @@ export default function PremiumPage() {
   const { subscription, subscribe, isDemoMode } = useSubscriptionStore()
   const { startCheckout, error: checkoutError } = useSubscriptionCheckout()
   const toast = useToast()
+  const router = useRouter()
   const containerRef = useRef<HTMLDivElement>(null)
   const confettiContainerRef = useRef<HTMLDivElement>(null)
 
@@ -210,7 +212,10 @@ export default function PremiumPage() {
       }
     } else if (tier === 'premium') {
       // 프로덕션 실결제: 서버 prepare → Toss 결제창(구독은 premium 만, DL-0004)
-      startCheckout()
+      // 비로그인 실패면 로그인으로 유도 (에러 토스트는 checkoutError effect 가 표시)
+      void startCheckout().then((failMessage) => {
+        if (failMessage?.includes('로그인')) router.push('/login')
+      })
     } else {
       // creator/duo 는 동결(게놈) — 아직 정식 상품 아님. 안내 모달만.
       setSelectedTier(tier as 'premium' | 'creator' | 'duo')

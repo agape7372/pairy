@@ -183,18 +183,7 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
           )}
         </div>
 
-        {/* Footer */}
-        {notifications.length > 0 && (
-          <div className="p-3 border-t border-gray-100 text-center">
-            <Link
-              href="/my/notifications"
-              onClick={onClose}
-              className="text-sm text-primary-500 hover:underline"
-            >
-              모든 알림 보기
-            </Link>
-          </div>
-        )}
+        {/* Footer — "모든 알림 보기" 링크는 /my/notifications 라우트가 없어 제거 (F-31 실배선 시 함께 복원) */}
       </div>
     </>
   )

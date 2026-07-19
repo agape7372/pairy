@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { X, Wallet, AlertCircle, CheckCircle, Loader2 } from 'lucide-react'
 import { Button, Modal } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
+import { IS_DEMO_MODE } from '@/lib/supabase/client'
 import { formatCurrency } from '@/hooks/useCreatorEarnings'
 
 interface PayoutRequestModalProps {
@@ -261,16 +262,18 @@ export function PayoutRequestModal({
                 )}
               </div>
 
-              {/* 안내 메시지 */}
-              <div className="p-3 bg-amber-50 rounded-xl flex gap-2 text-sm text-amber-700">
-                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-medium">데모 모드 안내</p>
-                  <p className="text-amber-600 text-xs mt-0.5">
-                    실제 정산이 이루어지지 않습니다. UI 테스트 용도입니다.
-                  </p>
+              {/* 안내 메시지 — 데모에서만. 프로덕션 신청은 실제 서버 원장에 기록된다 */}
+              {IS_DEMO_MODE && (
+                <div className="p-3 bg-amber-50 rounded-xl flex gap-2 text-sm text-amber-700">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium">데모 모드 안내</p>
+                    <p className="text-amber-600 text-xs mt-0.5">
+                      실제 정산이 이루어지지 않습니다. UI 테스트 용도입니다.
+                    </p>
+                  </div>
                 </div>
-              </div>
+              )}
 
               <Button className="w-full" onClick={handleNext}>
                 다음
@@ -347,8 +350,12 @@ export function PayoutRequestModal({
               </h3>
               <p className="text-sm text-gray-500 mb-6">
                 영업일 기준 3-5일 내에 입금될 예정입니다.
-                <br />
-                (데모 모드에서는 실제 입금되지 않습니다)
+                {IS_DEMO_MODE && (
+                  <>
+                    <br />
+                    (데모 모드에서는 실제 입금되지 않습니다)
+                  </>
+                )}
               </p>
               <Button className="w-full" onClick={handleClose}>
                 확인

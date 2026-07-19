@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import { Edit3, Check, X } from 'lucide-react'
-import { Button, ImageUpload } from '@/components/ui'
+import { Button, ImageUpload, useToast } from '@/components/ui'
 import { useUser } from '@/hooks/useUser'
 import { createClient } from '@/lib/supabase/client'
 import { uploadAvatar } from '@/lib/supabase/storage'
@@ -14,6 +14,7 @@ export default function MyProfilePage() {
   const [bio, setBio] = useState(profile?.bio || '')
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || '')
   const [isSaving, setIsSaving] = useState(false)
+  const toast = useToast()
 
   // 아바타 업로드 핸들러
   const handleAvatarUpload = useCallback(async (file: File): Promise<string | null> => {
@@ -24,16 +25,21 @@ export default function MyProfilePage() {
     if (result.url) {
       // DB에 아바타 URL 업데이트
       const supabase = createClient()
-      await supabase
+      const { error } = await supabase
         .from('profiles')
         .update({ avatar_url: result.url })
         .eq('id', user.id)
+
+      if (error) {
+        toast.error('프로필 사진 저장에 실패했어요.')
+        return null
+      }
 
       return result.url
     }
 
     return null
-  }, [user?.id])
+  }, [user?.id, toast])
 
   const handleSave = async () => {
     if (!profile?.id) return
@@ -53,6 +59,7 @@ export default function MyProfilePage() {
       setIsEditing(false)
     } catch (err) {
       console.error('Failed to update profile:', err)
+      toast.error('프로필 저장에 실패했어요.')
     } finally {
       setIsSaving(false)
     }

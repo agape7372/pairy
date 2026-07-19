@@ -34,7 +34,7 @@ import {
   Dices,
   Terminal,
 } from 'lucide-react'
-import { Button, Tag } from '@/components/ui'
+import { Button, Tag, useToast } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
 import {
   RESOURCE_CATEGORIES,
@@ -434,12 +434,16 @@ function TrendingCard({ template, rank }: { template: typeof trendingTemplates[0
 
   // 변경 이유: 실제 좋아요 기능 연결
   const { isLiked, likeCount, toggle: toggleLike } = useLikes(template.id, template.stats.likes)
+  const toast = useToast()
 
   // 변경 이유: 좋아요 버튼 클릭 시 Link 이벤트 차단
   const handleLikeClick = async (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    await toggleLike()
+    const success = await toggleLike()
+    if (!success) {
+      toast.error('좋아요 처리에 실패했어요. 로그인 상태를 확인해주세요.')
+    }
   }
 
   return (

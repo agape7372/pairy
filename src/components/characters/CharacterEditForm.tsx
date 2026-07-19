@@ -461,7 +461,8 @@ export function CharacterEditForm({
     if (!onDuplicate) return
     const newCharacter = await onDuplicate()
     if (newCharacter) {
-      router.push(`/my/characters/${newCharacter.id}`)
+      // /my/characters/[id] 라우트는 존재하지 않음 — 복제본 편집 화면으로 이동
+      router.push(`/my/characters/edit?id=${newCharacter.id}`)
     }
   }
 

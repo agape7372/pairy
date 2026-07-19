@@ -13,17 +13,24 @@ export function useSubscriptionCheckout() {
   const [isStarting, setIsStarting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const startCheckout = useCallback(async () => {
+  /**
+   * 결제 시작. 실패 시 사용자 안내 메시지를 반환한다(성공·사용자취소는 null).
+   * 호출부는 반환 메시지를 반드시 사용자에게 표시할 것 — error 상태만 믿고
+   * 렌더를 생략하면 "클릭했는데 무반응" 버그가 된다 (2026-07-19 실사고).
+   */
+  const startCheckout = useCallback(async (): Promise<string | null> => {
     setError(null)
 
     const clientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY
     if (!clientKey) {
-      setError('결제가 아직 설정되지 않았어요.')
-      return
+      const message = '결제가 아직 설정되지 않았어요.'
+      setError(message)
+      return message
     }
     if (!user) {
-      setError('로그인이 필요해요.')
-      return
+      const message = '로그인이 필요해요.'
+      setError(message)
+      return message
     }
 
     setIsStarting(true)
@@ -51,12 +58,15 @@ export function useSubscriptionCheckout() {
         card: { useEscrow: false, flowMode: 'DEFAULT', useCardPoint: false, useAppCardOnly: false },
       })
       // requestPayment 성공 시 브라우저가 리다이렉트되므로 이후 코드는 실행되지 않음.
+      return null
     } catch (err) {
       // 사용자가 결제창을 닫으면 SDK 가 에러를 던진다 — 조용히 무시.
       const message = err instanceof Error ? err.message : '결제를 시작하지 못했어요.'
       if (!/사용자.*취소|cancel/i.test(message)) {
         setError(message)
+        return message
       }
+      return null
     } finally {
       setIsStarting(false)
     }

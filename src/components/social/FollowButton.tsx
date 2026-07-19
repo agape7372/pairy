@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react'
 import { Users, UserPlus, UserMinus, Loader2 } from 'lucide-react'
-import { Button } from '@/components/ui'
+import { Button, useToast } from '@/components/ui'
 import { useFollow } from '@/hooks/useFollow'
 import { useParticle, ParticleContainer } from '@/hooks/useParticle'
 import { cn } from '@/lib/utils/cn'
@@ -27,6 +27,7 @@ export function FollowButton({
   const { isFollowing, isLoading, toggle } = useFollow(userId)
   const [isToggling, setIsToggling] = useState(false)
   const buttonRef = useRef<HTMLButtonElement>(null)
+  const toast = useToast()
 
   // 팔로우 시 스파클 파티클
   const { emit, containerProps } = useParticle({
@@ -56,6 +57,8 @@ export function FollowButton({
       if (onFollowChange) {
         onFollowChange(!isFollowing)
       }
+    } else {
+      toast.error('팔로우 처리에 실패했어요. 로그인 상태를 확인해주세요.')
     }
   }
 

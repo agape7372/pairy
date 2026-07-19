@@ -38,6 +38,7 @@ import {
   type CustomTemplate,
 } from '@/lib/utils/customTemplateStorage'
 import { useResources } from '@/hooks/useResources'
+import { useTemplates, templateToResource } from '@/hooks/useTemplates'
 import { getResourcePosts, toResourceViewModel } from '@/lib/utils/resourceStorage'
 import { IS_DEMO_MODE } from '@/lib/supabase/client'
 
@@ -342,16 +343,23 @@ export default function ResourceHubPage() {
     setSelectedTags([])
   }
 
-  // 자료 목록 — 프로덕션: 서버 resources(M5) / 데모: 내 업로드(localStorage) + 샘플
-  // F-16b read-path: 데모 업로드가 write-only 였던 공백을 메꾼다.
+  // 자료 목록 — 프로덕션: 서버 templates(게시된 틀, F-16a) + resources(M5) / 데모: 내 업로드 + 샘플
+  // read-path 배선: 업로드된 틀/자료가 write-only 로 실종되던 공백을 메꾼다.
   const { resources: serverResources } = useResources()
+  const { templates: serverTemplates } = useTemplates({ limit: 48, sortBy: 'recent' })
   const [demoUploads, setDemoUploads] = useState<Resource[]>([])
   useEffect(() => {
     if (!IS_DEMO_MODE) return
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 클라 전용 저장소 초기 로드
     setDemoUploads(getResourcePosts().map(toResourceViewModel))
   }, [])
-  const allResources = IS_DEMO_MODE ? [...demoUploads, ...sampleResources] : serverResources
+  const serverTemplateCards = useMemo(
+    () => serverTemplates.map(templateToResource),
+    [serverTemplates]
+  )
+  const allResources = IS_DEMO_MODE
+    ? [...demoUploads, ...sampleResources]
+    : [...serverTemplateCards, ...serverResources]
 
   // 필터링 및 정렬
   const filteredResources = useMemo(() => {

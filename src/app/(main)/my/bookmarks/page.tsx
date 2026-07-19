@@ -2,11 +2,19 @@
 
 import Link from 'next/link'
 import { Heart, Bookmark, BookmarkX } from 'lucide-react'
-import { Button, Tag } from '@/components/ui'
+import { Button, Tag, useToast } from '@/components/ui'
 import { useBookmarks } from '@/hooks/useBookmarks'
 
 export default function MyBookmarksPage() {
   const { bookmarks, isLoading, removeBookmark } = useBookmarks()
+  const toast = useToast()
+
+  const handleRemoveBookmark = async (templateId: string) => {
+    const success = await removeBookmark(templateId)
+    if (!success) {
+      toast.error('북마크 해제에 실패했어요.')
+    }
+  }
 
   return (
     <div>
@@ -66,7 +74,7 @@ export default function MyBookmarksPage() {
                   </div>
 
                   <button
-                    onClick={() => removeBookmark(template.id)}
+                    onClick={() => handleRemoveBookmark(template.id)}
                     className="p-2 text-accent-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
                     title="북마크 해제"
                   >
