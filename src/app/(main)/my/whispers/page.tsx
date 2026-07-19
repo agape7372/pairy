@@ -52,6 +52,7 @@ import { useUser } from '@/hooks/useUser'
 import { IS_DEMO_MODE } from '@/lib/supabase/client'
 import { WhisperCard } from '@/components/whisper/WhisperCard'
 import { WhisperComposer } from '@/components/whisper/WhisperComposer'
+import { WhisperNotification } from '@/components/whisper/WhisperNotification'
 import type { Whisper } from '@/types/whisper'
 import {
   WHISPER_THEMES,
@@ -405,8 +406,10 @@ export default function WhispersPage() {
     unreadCount,
     isLoading: isLoadingReceived,
     error: receivedError,
+    notification,
     markAsRead,
     claimGift,
+    dismissNotification,
     refresh: refetchReceived,
   } = useWhisper(whisperUserId)
   const {
@@ -414,6 +417,7 @@ export default function WhispersPage() {
     isLoading: isLoadingSent,
     error: sentError,
     refresh: refetchSent,
+    sendWhisper,
   } = useWhisperCreator(whisperUserId)
 
   const isLoading = isLoadingReceived || isLoadingSent
@@ -485,6 +489,12 @@ export default function WhispersPage() {
 
   return (
     <div className="animate-fade-in">
+      <WhisperNotification
+        whisper={notification.latestWhisper}
+        show={notification.showNotification}
+        onClose={dismissNotification}
+        onClick={handleWhisperClick}
+      />
       {/* 헤더 */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
@@ -669,7 +679,10 @@ export default function WhispersPage() {
               <WhisperComposer
                 isOpen={showComposer}
                 onClose={() => setShowComposer(false)}
-                onSend={async () => {
+                onSend={async (input) => {
+                  // 실전송(2026-07-19): 이전엔 입력을 버리고 닫기만 해서 발송이 일어나지 않았다.
+                  // sendWhisper 는 실패 시 throw — 컴포저가 잡아 성공 연출을 막는다.
+                  await sendWhisper(input)
                   setShowComposer(false)
                   await refetchSent()
                 }}

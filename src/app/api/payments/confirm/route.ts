@@ -65,55 +65,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: result.message ?? '결제 승인에 실패했습니다.' }, { status: 402 })
   }
 
-  // 확정: payments=paid + 구독 부여. paid 전환은 이미-paid 가드로 멱등.
-  // ⚠ 아키텍처 주의: 상태 전환(paid)과 권한 부여가 단일 트랜잭션이 아니다 —
-  // 전환 직후·부여 직전에 서버가 죽으면 재시도는 already-paid 로 부여를 건너뛴다.
-  // 근본 해결은 grant_subscription 이 payment_id 를 받아 부여 여부까지 멱등 처리하는
-  // RPC 통합(단일 트랜잭션). 후속 마이그레이션에서 처리 예정.
-  const { data: marked, error: markError } = await admin.from('payments')
-    .update({ status: 'paid', payment_key: paymentKey, updated_at: new Date().toISOString() })
-    .eq('id', payment.id)
-    .eq('status', 'pending') // 동시 확정 경합에서 한 번만 통과
-    .select('id')
-
-  if (markError) {
-    return NextResponse.json({ error: '결제 기록 갱신 실패' }, { status: 500 })
-  }
-  // 0행 갱신 = 경합 패배(다른 요청이 이미 pending→paid 전환). 부여는 승자만 —
-  // 여기서 계속 진행하면 grant_subscription 이 중복 호출돼 구독이 이중 연장된다.
-  if (!marked || marked.length === 0) {
-    return NextResponse.json({
-      ok: true,
-      alreadyProcessed: true,
-      kind: payment.template_id ? 'template' : 'subscription',
-      templateId: payment.template_id ?? undefined,
-    })
-  }
-
-  // ── 부여: 단건구매면 purchases 확정 기록, 아니면 구독 부여 ──
-  if (payment.template_id) {
-    // pending→paid 가드로 exactly-once, unique index 는 이중 안전망
-    const { error: purchaseError } = await admin.from('purchases').insert({
-      buyer_id: user.id,
-      template_id: payment.template_id,
-      amount: payment.amount,
-      currency: 'KRW',
-      status: 'completed',
-    })
-    // 23505(unique) = 이미 기록됨 — 멱등 성공으로 취급
-    if (purchaseError && purchaseError.code !== '23505') {
-      return NextResponse.json({ error: '구매 기록 저장 실패' }, { status: 500 })
-    }
-    return NextResponse.json({ ok: true, kind: 'template', templateId: payment.template_id })
-  }
-
-  const { error: grantError } = await admin.rpc('grant_subscription', {
-    p_uid: user.id,
-    p_days: payment.grant_days,
+  // 확정+부여: 단일 트랜잭션 RPC (20260719000000). 상태 전환과 부여가 함께
+  // 커밋되므로 중간 크래시 시 둘 다 롤백돼 재시도 가능하고, granted_at 앵커로
+  // 동시 확정 경합·재호출 모두 멱등('already')이다.
+  const { data: grantResult, error: grantError } = await admin.rpc('confirm_payment_and_grant', {
+    p_payment_id: payment.id,
+    p_payment_key: paymentKey,
   })
   if (grantError) {
-    return NextResponse.json({ error: '구독 부여 실패' }, { status: 500 })
+    return NextResponse.json({ error: '결제 확정 처리에 실패했습니다.' }, { status: 500 })
   }
 
-  return NextResponse.json({ ok: true, kind: 'subscription' })
+  return NextResponse.json({
+    ok: true,
+    alreadyProcessed: grantResult === 'already' ? true : undefined,
+    kind: payment.template_id ? 'template' : 'subscription',
+    templateId: payment.template_id ?? undefined,
+  })
 }

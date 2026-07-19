@@ -227,34 +227,36 @@ describe('POST /api/payments/confirm', () => {
     expect(rpc).not.toHaveBeenCalled()
   })
 
-  it('정상 구독 확정: Toss 는 서버 기록 금액으로 승인, grant_subscription 1회', async () => {
+  it('정상 구독 확정: Toss 는 서버 기록 금액으로 승인, 원자 RPC 1회 호출', async () => {
     authAs(USER)
     mockedConfirmToss.mockResolvedValue({ ok: true, status: 'DONE' })
     const selectChain = chain({ data: PENDING_SUB_PAYMENT })
-    const markChain = chain({ data: [{ id: 'pay-1' }], error: null })
-    const { rpc } = adminWith([selectChain, markChain])
+    const { rpc } = adminWith([selectChain], { data: 'granted', error: null })
 
     const res = await confirmPost(
       makeReq({ paymentKey: 'pk', orderId: 'o-1', amount: SUBSCRIPTION_PRICE_KRW })
     )
     const json = await res.json()
 
-    expect(json).toEqual({ ok: true, kind: 'subscription' })
+    expect(json.ok).toBe(true)
+    expect(json.kind).toBe('subscription')
+    expect(json.alreadyProcessed).toBeUndefined()
     expect(mockedConfirmToss).toHaveBeenCalledWith(
       expect.objectContaining({ amount: SUBSCRIPTION_PRICE_KRW, idempotencyKey: 'o-1' })
     )
-    // pending→paid 조건부 전환 가드
-    expect(markChain.eq).toHaveBeenCalledWith('status', 'pending')
+    // 확정+부여는 단일 트랜잭션 RPC 로만 — 분리 호출(비원자) 회귀 금지
     expect(rpc).toHaveBeenCalledTimes(1)
-    expect(rpc).toHaveBeenCalledWith('grant_subscription', { p_uid: USER.id, p_days: 30 })
+    expect(rpc).toHaveBeenCalledWith('confirm_payment_and_grant', {
+      p_payment_id: 'pay-1',
+      p_payment_key: 'pk',
+    })
   })
 
-  it('동시 확정 경합: pending→paid 0행 갱신(패배)이면 부여를 반복하지 않는다', async () => {
+  it('동시 확정 경합/재호출: RPC 가 already 를 반환하면 alreadyProcessed 로 응답 (이중 부여 없음)', async () => {
     authAs(USER)
     mockedConfirmToss.mockResolvedValue({ ok: true, status: 'DONE' })
     const selectChain = chain({ data: PENDING_SUB_PAYMENT })
-    const lostRace = chain({ data: [], error: null }) // 다른 요청이 이미 전환함
-    const { rpc } = adminWith([selectChain, lostRace])
+    const { rpc } = adminWith([selectChain], { data: 'already', error: null })
 
     const res = await confirmPost(
       makeReq({ paymentKey: 'pk', orderId: 'o-1', amount: SUBSCRIPTION_PRICE_KRW })
@@ -263,7 +265,7 @@ describe('POST /api/payments/confirm', () => {
 
     expect(json.ok).toBe(true)
     expect(json.alreadyProcessed).toBe(true)
-    expect(rpc).not.toHaveBeenCalled() // 이중 부여 금지
+    expect(rpc).toHaveBeenCalledTimes(1) // 멱등성은 RPC(granted_at 앵커)가 보장
   })
 
   it('Toss 승인 실패: failed 마킹 + 402, 부여 없음', async () => {
@@ -282,20 +284,23 @@ describe('POST /api/payments/confirm', () => {
     expect(rpc).not.toHaveBeenCalled()
   })
 
-  it('단건구매 확정: purchases 기록, 23505(unique) 는 멱등 성공', async () => {
+  it('단건구매 확정: 원자 RPC 로 확정, kind=template 응답', async () => {
     authAs(USER)
     mockedConfirmToss.mockResolvedValue({ ok: true, status: 'DONE' })
     const payment = { ...PENDING_SUB_PAYMENT, grant_days: 0, template_id: 't-1', amount: 1500 }
     const selectChain = chain({ data: payment })
-    const markChain = chain({ data: [{ id: 'pay-1' }], error: null })
-    const purchaseChain = chain({ error: { code: '23505' } })
-    const { rpc } = adminWith([selectChain, markChain, purchaseChain])
+    const { rpc } = adminWith([selectChain], { data: 'granted', error: null })
 
     const res = await confirmPost(makeReq({ paymentKey: 'pk', orderId: 'o-1', amount: 1500 }))
     const json = await res.json()
 
-    expect(json).toEqual({ ok: true, kind: 'template', templateId: 't-1' })
-    expect(rpc).not.toHaveBeenCalled() // 단건구매는 구독 부여 없음
+    expect(json.ok).toBe(true)
+    expect(json.kind).toBe('template')
+    expect(json.templateId).toBe('t-1')
+    expect(rpc).toHaveBeenCalledWith('confirm_payment_and_grant', {
+      p_payment_id: 'pay-1',
+      p_payment_key: 'pk',
+    })
   })
 })
 

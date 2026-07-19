@@ -1,23 +1,5 @@
 {
-  // 미배선(만들고 안 이음) 자동 검출 — CI 는 `knip --include files` 만 차단 게이트로 쓴다.
-  // (미사용 export 는 357건 부채라 비차단 — 소각 후 승격)
   "ignore": [
-    "scripts/**",
-
-    // ── 미사용 파일 베이스라인 (2026-07-19 총 12건) ──
-    // 신규 미배선 파일이 생기면 CI 가 실패한다.
-    // 처리 원칙: 배선하거나, 삭제하거나, 사유를 적고 여기에 추가하거나 셋 중 하나.
-    "src/components/editor/canvas/ColorBindSelector.tsx",
-    "src/components/editor/presence/**",
-    "src/components/editor/text/index.ts",
-    "src/components/pages/HomeClient.tsx",
-    "src/components/providers/ErrorBoundaryProvider.tsx",
-    "src/components/whisper/index.ts",
-    "src/components/whisper/WhisperNotification.tsx",
-    "src/contexts/AnimationContext.tsx",
-    "src/hooks/useDoodleEffects.tsx",
-    "src/hooks/useMorphTransition.ts",
-    "src/hooks/useScrollReveal.ts",
-    "src/hooks/useTypewriter.tsx"
+    "scripts/**"
   ]
 }
