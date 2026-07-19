@@ -23,7 +23,9 @@ test.describe('핵심 페이지 렌더', () => {
 
   test('틀 상세가 뜬다', async ({ page }) => {
     await page.goto('/templates/1')
-    // "자료를 찾을 수 없어요" 폴백이 아니어야 한다
+    // CSR 완료의 양성 신호(샘플 자료 제목)를 먼저 기다린 뒤 폴백 부재를 검증
+    // (로딩 중엔 폴백이 아직 없어서 부정 검증만으로는 거짓 통과 가능)
+    await expect(page.getByRole('heading', { name: '커플 프로필 틀' }).first()).toBeVisible()
     await expect(page.getByText('자료를 찾을 수 없어요')).toHaveCount(0)
   })
 
@@ -47,6 +49,9 @@ test.describe('CTA 피드백 — 클릭이 무반응이면 실패', () => {
 test.describe('라우트 무결성 — 죽은 내부 링크 가드', () => {
   // 헤더/푸터/패널에서 참조하는 정적 라우트는 반드시 200 이어야 한다.
   // (사례: 알림 패널의 /my/notifications 죽은 링크, 캐릭터 복제 후 /my/characters/[id] 404)
+  // 주의: /my/* 는 서버 리다이렉트 미들웨어가 없고 클라이언트에서 인증 상태를 그리므로
+  // 데모 CI 에서도 200 이 정답이다 — 302 기대(인증 분리)로 바꾸면 오히려 깨진다.
+  // 서버측 인증 미들웨어가 도입되면 그때 공개/비공개로 분리할 것.
   const ROUTES = [
     '/',
     '/templates',
