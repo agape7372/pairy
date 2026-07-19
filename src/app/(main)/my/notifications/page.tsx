@@ -68,28 +68,35 @@ export default function MyNotificationsPage() {
         ) : (
           <div className="bg-white rounded-2xl border border-gray-200 divide-y divide-gray-100 overflow-hidden">
             {notifications.map((n) => {
-              const inner = (
-                <div
-                  className={cn(
-                    'p-4 hover:bg-gray-50 transition-colors',
-                    !n.read && 'bg-primary-50/30'
-                  )}
-                  onClick={() => void markAsRead(n.id)}
-                >
+              // 중첩 인터랙티브 방지 + 키보드 접근성: 링크형은 Link 자체가,
+              // 비링크형은 네이티브 button 이 클릭을 받는다
+              const content = (
+                <>
                   <div className="flex items-center gap-2 mb-0.5">
                     <span className="text-xs font-medium text-gray-500">{n.title}</span>
                     {!n.read && <span className="w-2 h-2 bg-primary-400 rounded-full" />}
                   </div>
                   <p className="text-sm text-gray-700">{n.message}</p>
                   <p className="text-xs text-gray-400 mt-1">{formatRelativeTime(n.createdAt)}</p>
-                </div>
+                </>
+              )
+              const itemClass = cn(
+                'block w-full text-left p-4 hover:bg-gray-50 transition-colors',
+                !n.read && 'bg-primary-50/30'
               )
               return n.link ? (
-                <Link key={n.id} href={n.link}>
-                  {inner}
+                <Link
+                  key={n.id}
+                  href={n.link}
+                  className={itemClass}
+                  onClick={() => void markAsRead(n.id)}
+                >
+                  {content}
                 </Link>
               ) : (
-                <div key={n.id}>{inner}</div>
+                <button key={n.id} className={itemClass} onClick={() => void markAsRead(n.id)}>
+                  {content}
+                </button>
               )
             })}
           </div>

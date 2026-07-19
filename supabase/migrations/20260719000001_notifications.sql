@@ -59,8 +59,11 @@ returns trigger
 language plpgsql security definer set search_path = public
 as $$
 begin
-  insert into public.notifications (user_id, type, actor_id)
-  values (new.following_id, 'follow', new.follower_id);
+  -- 셀프 팔로우는 테이블 CHECK 로 불가능하지만 방어선으로 한 번 더 가드
+  if new.follower_id <> new.following_id then
+    insert into public.notifications (user_id, type, actor_id)
+    values (new.following_id, 'follow', new.follower_id);
+  end if;
   return null;
 end;
 $$;
