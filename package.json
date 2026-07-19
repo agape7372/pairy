@@ -19,7 +19,6 @@
     "@tosspayments/tosspayments-sdk": "^2.7.1",
     "@webtoon/psd": "^0.4.0",
     "ag-psd": "^29.1.0",
-    "claude-code": "^1.0.0",
     "clsx": "^2.1.1",
     "framer-motion": "^12.23.26",
     "html2canvas": "^1.4.1",

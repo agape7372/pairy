@@ -123,6 +123,7 @@ export default function CanvasEditor({
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search)
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- 클라 전용 URL 파라미터 초기 로드
       setUrlParams({
         session: params.get('session') || undefined,
         title: params.get('title') || undefined,
@@ -199,6 +200,15 @@ function CanvasEditorContent({
     templateId,
     workId: sessionId,
   })
+
+  // H-2 완화: 서버 participants(join RPC 가 auth.uid() 강제 기록) 를
+  // 인바운드 allowlist 로 provider 에 전달 — 목록 밖 신원의 업데이트/awareness 폐기
+  const participantIds = collabSession?.participants.map((p) => p.userId)
+  const participantKey = participantIds?.join(',')
+  useEffect(() => {
+    collab?.setAllowedUsers(participantIds ?? null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [participantKey, collab])
 
   // Store
   const {

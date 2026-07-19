@@ -1,7 +1,10 @@
 import '@testing-library/jest-dom'
 
+// node 환경 테스트(@jest-environment node, 예: 라우트 핸들러)는 DOM 목이 불필요·불가
+const isJsdom = typeof window !== 'undefined'
+
 // Canvas mock for Konva
-HTMLCanvasElement.prototype.getContext = jest.fn(() => ({
+if (isJsdom) HTMLCanvasElement.prototype.getContext = jest.fn(() => ({
   fillRect: jest.fn(),
   clearRect: jest.fn(),
   getImageData: jest.fn(() => ({
@@ -42,8 +45,10 @@ global.ResizeObserver = jest.fn().mockImplementation(() => ({
 }))
 
 // URL.createObjectURL mock
-global.URL.createObjectURL = jest.fn(() => 'blob:mock-url')
-global.URL.revokeObjectURL = jest.fn()
+if (isJsdom) {
+  global.URL.createObjectURL = jest.fn(() => 'blob:mock-url')
+  global.URL.revokeObjectURL = jest.fn()
+}
 
 // jsdom은 Blob.prototype.arrayBuffer를 구현하지 않아 FileReader로 폴리필
 if (typeof Blob !== 'undefined' && !Blob.prototype.arrayBuffer) {
@@ -74,7 +79,7 @@ global.cancelAnimationFrame = jest.fn((id) => clearTimeout(id))
 global.performance.now = jest.fn(() => Date.now())
 
 // matchMedia mock (for prefers-reduced-motion)
-global.matchMedia = jest.fn().mockImplementation((query) => ({
+if (isJsdom) global.matchMedia = jest.fn().mockImplementation((query) => ({
   matches: false,
   media: query,
   onchange: null,

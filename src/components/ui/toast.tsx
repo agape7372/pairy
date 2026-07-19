@@ -28,19 +28,19 @@ const toastIcons: Record<ToastType, typeof CheckCircle> = {
   info: Info,
 }
 
-// 토스트 스타일
+// 토스트 스타일 — 디자인 시스템 시맨틱 토큰 사용 (다크모드는 [data-theme=dark] 토큰이 자동 적용)
 const toastStyles: Record<ToastType, string> = {
-  success: 'bg-green-50 border-green-200 text-green-800',
-  error: 'bg-red-50 border-red-200 text-red-800',
-  warning: 'bg-amber-50 border-amber-200 text-amber-800',
-  info: 'bg-blue-50 border-blue-200 text-blue-800',
+  success: 'bg-success-light border-success/40 text-success-dark',
+  error: 'bg-error-light border-error/40 text-error-dark',
+  warning: 'bg-warning-light border-warning/40 text-warning-dark',
+  info: 'bg-info-light border-info/40 text-info-dark',
 }
 
 const toastIconStyles: Record<ToastType, string> = {
-  success: 'text-green-500',
-  error: 'text-red-500',
-  warning: 'text-amber-500',
-  info: 'text-blue-500',
+  success: 'text-success',
+  error: 'text-error',
+  warning: 'text-warning',
+  info: 'text-info',
 }
 
 // 토스트 옵션 타입

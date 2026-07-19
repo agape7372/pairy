@@ -27,7 +27,7 @@ import {
   Hash,
   MessageCircle,
 } from 'lucide-react'
-import { Button, Input, ImageUpload, ColorPicker } from '@/components/ui'
+import { Button, Input, ImageUpload, ColorPicker, Modal } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
 import { uploadFile } from '@/lib/supabase/storage'
 import { useUser } from '@/hooks/useUser'
@@ -837,62 +837,52 @@ export function CharacterEditForm({
       </form>
 
       {/* 삭제 확인 대화상자 */}
-      <AnimatePresence>
-        {showDeleteConfirm && character && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100]"
-              onClick={() => !isDeleting && setShowDeleteConfirm(false)}
-            />
-
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-sm bg-white rounded-[24px] shadow-xl p-6 z-[100]"
+      {character && (
+        <Modal
+          isOpen={showDeleteConfirm}
+          onClose={() => !isDeleting && setShowDeleteConfirm(false)}
+          ariaLabel="캐릭터 삭제 확인"
+          size="sm"
+          showClose={false}
+          className="shadow-xl"
+        >
+          <div className="text-center mb-6">
+            <div
+              className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center text-white text-2xl font-bold"
+              style={{ backgroundColor: character.color }}
             >
-              <div className="text-center mb-6">
-                <div
-                  className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center text-white text-2xl font-bold"
-                  style={{ backgroundColor: character.color }}
-                >
-                  {character.name[0]?.toUpperCase()}
-                </div>
-                <h3 className="text-lg font-bold text-gray-900 mb-2">
-                  캐릭터를 삭제할까요?
-                </h3>
-                <p className="text-sm text-gray-500">
-                  <strong className="text-gray-700">{character.name}</strong>을(를)
-                  삭제하면 되돌릴 수 없어요.
-                </p>
-              </div>
+              {character.name[0]?.toUpperCase()}
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">
+              캐릭터를 삭제할까요?
+            </h3>
+            <p className="text-sm text-gray-500">
+              <strong className="text-gray-700">{character.name}</strong>을(를)
+              삭제하면 되돌릴 수 없어요.
+            </p>
+          </div>
 
-              <div className="flex gap-3">
-                <Button
-                  variant="secondary"
-                  onClick={() => setShowDeleteConfirm(false)}
-                  disabled={isDeleting}
-                  className="flex-1"
-                >
-                  취소
-                </Button>
-                <Button
-                  variant="primary"
-                  onClick={handleDelete}
-                  disabled={isDeleting}
-                  isLoading={isDeleting}
-                  className="flex-1 bg-error hover:bg-red-600"
-                >
-                  삭제
-                </Button>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+          <div className="flex gap-3">
+            <Button
+              variant="secondary"
+              onClick={() => setShowDeleteConfirm(false)}
+              disabled={isDeleting}
+              className="flex-1"
+            >
+              취소
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleDelete}
+              disabled={isDeleting}
+              isLoading={isDeleting}
+              className="flex-1 bg-error hover:bg-red-600"
+            >
+              삭제
+            </Button>
+          </div>
+        </Modal>
+      )}
     </div>
   )
 }

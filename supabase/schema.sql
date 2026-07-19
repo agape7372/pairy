@@ -1,3 +1,7 @@
+-- ⚠️ STALE (2026-07-18): 이 파일은 초기 스냅샷으로, role/subscription_tier/payments 등
+-- 이후 마이그레이션이 반영되어 있지 않다. 절대 이 파일을 실행하지 말 것.
+-- 정본은 supabase/migrations/ 전체를 순서대로 적용하는 것이다.
+
 -- Pairy Database Schema
 -- Supabase SQL Editor에서 이 전체 내용을 복사해서 실행하세요
 

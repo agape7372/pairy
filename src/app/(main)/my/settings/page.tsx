@@ -15,7 +15,7 @@ import {
   Loader2,
   Key,
 } from 'lucide-react'
-import { Button } from '@/components/ui'
+import { Button, Modal } from '@/components/ui'
 import { useUser } from '@/hooks/useUser'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils/cn'
@@ -433,16 +433,15 @@ export default function MySettingsPage() {
       </section>
 
       {/* Delete Confirmation Modal */}
-      {deleteModal.isOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4"
-          onClick={(e) => {
-            if (e.target === e.currentTarget && deleteModal.step !== 'deleting') {
-              closeDeleteModal()
-            }
-          }}
-        >
-          <div className="bg-white rounded-[24px] max-w-[400px] w-full p-6 animate-scale-in">
+      <Modal
+        isOpen={deleteModal.isOpen}
+        onClose={() => {
+          if (deleteModal.step !== 'deleting') closeDeleteModal()
+        }}
+        ariaLabel="계정 삭제 확인"
+        showClose={false}
+        className="max-w-[400px]"
+      >
             {/* Step 1: Confirm */}
             {deleteModal.step === 'confirm' && (
               <>
@@ -488,7 +487,7 @@ export default function MySettingsPage() {
                     최종 확인
                   </h3>
                   <p className="text-gray-500 text-sm mb-4">
-                    확인을 위해 아래에 <strong className="text-red-500">"탈퇴합니다"</strong>를 입력해주세요.
+                    확인을 위해 아래에 <strong className="text-red-500">&ldquo;탈퇴합니다&rdquo;</strong>를 입력해주세요.
                   </p>
                   <input
                     type="text"
@@ -562,9 +561,7 @@ export default function MySettingsPage() {
                 </div>
               </>
             )}
-          </div>
-        </div>
-      )}
+      </Modal>
     </div>
   )
 }

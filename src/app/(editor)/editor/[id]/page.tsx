@@ -8,15 +8,6 @@ const templateMapping: Record<string, string> = {
   '3': 'couple-magazine', // OC 소개 카드 → Magazine Cover (임시)
 }
 
-export function generateStaticParams() {
-  return [
-    { id: 'new' },
-    { id: '1' },
-    { id: '2' },
-    { id: '3' },
-  ]
-}
-
 interface PageProps {
   params: Promise<{ id: string }>
 }

@@ -437,7 +437,7 @@ function LoginContent() {
               <div className="text-right">
                 <Link
                   href={`/reset-password?email=${encodeURIComponent(form.email)}`}
-                  className="text-sm text-primary-400 hover:text-primary-500 hover:underline transition-colors"
+                  className="text-sm text-primary-700 hover:text-primary-800 hover:underline transition-colors"
                 >
                   비밀번호를 잊으셨나요?
                 </Link>
@@ -468,7 +468,7 @@ function LoginContent() {
                     type="button"
                     onClick={toggleMode}
                     disabled={isDisabled}
-                    className="text-primary-400 hover:text-primary-500 hover:underline font-medium transition-colors disabled:cursor-not-allowed"
+                    className="text-primary-700 hover:text-primary-800 hover:underline font-medium transition-colors disabled:cursor-not-allowed"
                   >
                     회원가입
                   </button>
@@ -480,7 +480,7 @@ function LoginContent() {
                     type="button"
                     onClick={toggleMode}
                     disabled={isDisabled}
-                    className="text-primary-400 hover:text-primary-500 hover:underline font-medium transition-colors disabled:cursor-not-allowed"
+                    className="text-primary-700 hover:text-primary-800 hover:underline font-medium transition-colors disabled:cursor-not-allowed"
                   >
                     로그인
                   </button>
@@ -508,11 +508,11 @@ function LoginContent() {
         {/* Terms */}
         <p className="text-center text-xs text-gray-400 mt-6">
           계속하면 Pairy의{' '}
-          <Link href="/terms" className="text-primary-400 hover:underline">
+          <Link href="/terms" className="text-primary-700 hover:underline">
             이용약관
           </Link>
           {' '}및{' '}
-          <Link href="/privacy" className="text-primary-400 hover:underline">
+          <Link href="/privacy" className="text-primary-700 hover:underline">
             개인정보처리방침
           </Link>
           에 동의하는 것으로 간주됩니다.

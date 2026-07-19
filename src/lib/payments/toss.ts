@@ -60,6 +60,45 @@ export async function confirmTossPayment(params: {
   }
 }
 
+interface TossPaymentLookup {
+  ok: boolean
+  status?: string
+  code?: string
+  message?: string
+}
+
+/**
+ * 주문번호로 Toss 결제 상태 재조회 (웹훅 위조 방어).
+ * 웹훅 본문은 신뢰하지 않고, 시크릿키 인증으로 Toss 에서 정본 상태를 다시 받아 적용한다.
+ */
+export async function fetchTossPaymentByOrderId(orderId: string): Promise<TossPaymentLookup> {
+  const secretKey = process.env.TOSS_SECRET_KEY
+  if (!secretKey) {
+    return { ok: false, code: 'CONFIG', message: 'TOSS_SECRET_KEY 누락' }
+  }
+
+  const auth = Buffer.from(`${secretKey}:`).toString('base64')
+
+  try {
+    const res = await fetch(
+      `https://api.tosspayments.com/v1/payments/orders/${encodeURIComponent(orderId)}`,
+      {
+        headers: { Authorization: `Basic ${auth}` },
+        // 결제 상태 정본 조회 — 캐시된 응답이 반환되면 취소/실패 반영이 누락되므로 항상 실조회
+        cache: 'no-store',
+      }
+    )
+    const data = await res.json()
+
+    if (!res.ok) {
+      return { ok: false, code: data.code, message: data.message }
+    }
+    return { ok: true, status: data.status }
+  } catch (err) {
+    return { ok: false, code: 'NETWORK', message: err instanceof Error ? err.message : 'unknown' }
+  }
+}
+
 /** 서버 발급 주문번호 — 영숫자/-/_ 6~64자(Toss 규격). uid 접두로 소유 추적. */
 export function makeOrderId(userId: string): string {
   const rand = crypto.randomUUID().replace(/-/g, '')

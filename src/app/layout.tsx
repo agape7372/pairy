@@ -63,8 +63,15 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="ko">
+    <html lang="ko" suppressHydrationWarning>
       <head>
+        {/* anti-FOUC: 첫 페인트 전에 저장된/시스템 테마를 <html> 에 적용 (themeStore 와 키/로직 일치) */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "(function(){try{var m='system';var raw=localStorage.getItem('pairy-theme');if(raw){var p=JSON.parse(raw);m=(p&&p.state&&p.state.mode)||'system'}var d=m==='dark'||(m==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);var r=document.documentElement;r.classList.toggle('dark',d);r.setAttribute('data-theme',d?'dark':'light')}catch(e){}})()",
+          }}
+        />
         {/* Content Security Policy - XSS 방지 */}
         <meta
           httpEquiv="Content-Security-Policy"

@@ -179,7 +179,7 @@ function ResetPasswordContent() {
         {/* Help Text */}
         <p className="text-center text-xs text-gray-400 mt-6">
           도움이 필요하신가요?{' '}
-          <Link href="/help" className="text-primary-400 hover:underline">
+          <Link href="/help" className="text-primary-700 hover:underline">
             고객센터
           </Link>
           에 문의해주세요.

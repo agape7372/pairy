@@ -153,3 +153,47 @@ export function deleteResourcePost(id: string): boolean {
 export function isResourcePostId(id: string): boolean {
   return id.startsWith('res_')
 }
+
+// ============================================
+// 아카이브 목록용 뷰모델 변환 (F-16b read-path)
+// ============================================
+
+import type { Resource } from '@/types/resources'
+
+/**
+ * 데모 업로드(ResourcePost) → 아카이브 목록(Resource) 뷰모델.
+ * 데모 모드에서 사용자가 올린 자료가 /templates 아카이브에 보이도록 한다
+ * (이전에는 write-only — 올려도 어디에도 표시되지 않았다).
+ */
+export function toResourceViewModel(post: ResourcePost): Resource {
+  return {
+    id: post.id,
+    title: post.title,
+    description: post.description,
+    category: post.category,
+    tags: post.tags,
+    creator: {
+      id: 'demo-me',
+      displayName: '나 (데모 업로드)',
+      username: 'me',
+      isVerified: false,
+    },
+    fileInfo: {
+      format: [],
+      width: 0,
+      height: 0,
+      sizeKB: post.file?.sizeKB ?? 0,
+      hasTransparency: false,
+    },
+    license: post.license,
+    price: post.price,
+    stats: { views: 0, downloads: 0, likes: 0, uses: 0 },
+    thumbnailUrl: post.thumbnail ?? '',
+    previewUrls: post.thumbnail ? [post.thumbnail] : [],
+    downloadUrl: post.file?.dataUrl,
+    externalUrl: post.externalUrl,
+    createdAt: post.createdAt,
+    updatedAt: post.updatedAt,
+    isPremium: false,
+  }
+}
