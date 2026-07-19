@@ -7,16 +7,18 @@
  */
 
 import { motion } from 'framer-motion'
-import { Lock, Unlock, User, Check } from 'lucide-react'
+import { Lock, Unlock, User, Check, X } from 'lucide-react'
 import { useCollabOptional } from '@/lib/collab'
 import type { EditingZone } from '@/lib/collab/types'
 
 interface ZoneSelectorProps {
   className?: string
   onZoneSelect?: (zone: EditingZone) => void
+  /** 닫기 버튼 — 미지정 시 버튼 미표시 (기존 동작 유지) */
+  onClose?: () => void
 }
 
-export function ZoneSelector({ className = '', onZoneSelect }: ZoneSelectorProps) {
+export function ZoneSelector({ className = '', onZoneSelect, onClose }: ZoneSelectorProps) {
   const collab = useCollabOptional()
 
   if (!collab || !collab.isConnected) return null
@@ -40,10 +42,21 @@ export function ZoneSelector({ className = '', onZoneSelect }: ZoneSelectorProps
       animate={{ opacity: 1, y: 0 }}
       className={`bg-white rounded-2xl shadow-lg p-4 ${className}`}
     >
-      <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-        <User className="w-4 h-4" />
-        편집 영역 선택
-      </h3>
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+          <User className="w-4 h-4" aria-hidden="true" />
+          편집 영역 선택
+        </h3>
+        {onClose && (
+          <button
+            onClick={onClose}
+            aria-label="닫기"
+            className="p-1 -m-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+          >
+            <X className="w-4 h-4" aria-hidden="true" />
+          </button>
+        )}
+      </div>
 
       <div className="grid grid-cols-2 gap-3">
         {/* Zone A */}

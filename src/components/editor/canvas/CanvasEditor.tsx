@@ -270,6 +270,8 @@ function CanvasEditorContent({
 
   // 협업 확장: 초대 모달
   const [showInviteModal, setShowInviteModal] = useState(false)
+  // 영역 선택 패널 — 선택/닫기 후에는 칩으로 접힘 (이전엔 닫을 방법이 없어 항상 떠 있었음)
+  const [showZoneSelector, setShowZoneSelector] = useState(true)
 
   // 핀치 줌 상태
   const lastTouchDistance = useRef<number | null>(null)
@@ -1577,10 +1579,23 @@ function CanvasEditorContent({
         </div>
       )}
 
-      {/* 협업 확장: 영역 선택 */}
+      {/* 협업 확장: 영역 선택 — 선택/닫기 후 칩으로 접히고, 칩 클릭으로 재오픈 */}
       {sessionId && collab?.isConnected && (
         <div className="fixed top-20 right-4 z-30">
-          <ZoneSelector />
+          {showZoneSelector ? (
+            <ZoneSelector
+              onZoneSelect={() => setShowZoneSelector(false)}
+              onClose={() => setShowZoneSelector(false)}
+            />
+          ) : (
+            <button
+              onClick={() => setShowZoneSelector(true)}
+              aria-label="편집 영역 선택 열기"
+              className="px-3 py-1.5 bg-white rounded-full shadow-md border border-gray-200 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              영역: {collab.myZone ?? '자유'}
+            </button>
+          )}
         </div>
       )}
 
