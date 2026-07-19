@@ -658,6 +658,34 @@ export interface Database {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          id: string
+          user_id: string
+          type: 'follow' | 'comment' | 'like' | 'system'
+          actor_id: string | null
+          template_id: string | null
+          comment_id: string | null
+          message: string | null
+          read_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          type: 'follow' | 'comment' | 'like' | 'system'
+          actor_id?: string | null
+          template_id?: string | null
+          comment_id?: string | null
+          message?: string | null
+          read_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          read_at?: string | null
+        }
+        Relationships: []
+      }
       follows: {
         Row: {
           follower_id: string
@@ -844,6 +872,11 @@ export interface Database {
       grant_subscription: {
         Args: { p_uid: string; p_days: number }
         Returns: undefined
+      }
+      /** 결제 확정+부여 원자화, granted_at 멱등 앵커 (service_role 전용 — 20260719000000) */
+      confirm_payment_and_grant: {
+        Args: { p_payment_id: string; p_payment_key: string }
+        Returns: string
       }
       /** 초대코드로 활성 세션 1건 조회 (SECURITY DEFINER — 20260706000000, H-1) */
       get_collab_session_by_invite: {

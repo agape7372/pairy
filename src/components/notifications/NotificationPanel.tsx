@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useNotifications } from '@/hooks/useNotifications'
 import {
   Bell,
   Heart,
@@ -26,9 +27,6 @@ export interface Notification {
   read: boolean
   link?: string
 }
-
-// 알림은 F-31(실 이벤트원 필요)로 defer — 목데이터 제거, 빈 목록
-const mockNotifications: Notification[] = []
 
 const notificationIcons: Record<NotificationType, { icon: typeof Heart; color: string; bgColor: string }> = {
   like: { icon: Heart, color: 'text-red-500', bgColor: 'bg-red-100' },
@@ -61,26 +59,19 @@ interface NotificationPanelProps {
 }
 
 export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
-  const [notifications, setNotifications] = useState(mockNotifications)
-
-  const unreadCount = notifications.filter(n => !n.read).length
-
-  const markAsRead = (id: string) => {
-    setNotifications(prev =>
-      prev.map(n => n.id === id ? { ...n, read: true } : n)
-    )
-  }
-
-  const markAllAsRead = () => {
-    setNotifications(prev =>
-      prev.map(n => ({ ...n, read: true }))
-    )
-  }
+  // F-31 실배선: DB 트리거(팔로우/댓글/좋아요)가 기록한 알림을 조회 (데모는 빈 목록)
+  const {
+    notifications,
+    unreadCount,
+    markAsRead,
+    markAllAsRead,
+    removeNotification: removeById,
+  } = useNotifications()
 
   const removeNotification = (id: string, e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    setNotifications(prev => prev.filter(n => n.id !== id))
+    void removeById(id)
   }
 
   if (!isOpen) return null
@@ -183,7 +174,18 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
           )}
         </div>
 
-        {/* Footer — "모든 알림 보기" 링크는 /my/notifications 라우트가 없어 제거 (F-31 실배선 시 함께 복원) */}
+        {/* Footer */}
+        {notifications.length > 0 && (
+          <div className="p-3 border-t border-gray-100 text-center">
+            <Link
+              href="/my/notifications"
+              onClick={onClose}
+              className="text-sm text-primary-700 hover:underline"
+            >
+              모든 알림 보기
+            </Link>
+          </div>
+        )}
       </div>
     </>
   )
@@ -196,7 +198,7 @@ interface NotificationBellProps {
 
 export function NotificationBell({ className }: NotificationBellProps) {
   const [isOpen, setIsOpen] = useState(false)
-  const unreadCount = mockNotifications.filter(n => !n.read).length
+  const { unreadCount } = useNotifications()
 
   return (
     <div className={cn('relative', className)}>

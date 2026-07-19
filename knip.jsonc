@@ -1,23 +1,24 @@
 {
   // 미배선(만들고 안 이음) 자동 검출 — CI 는 `knip --include files` 만 차단 게이트로 쓴다.
   // (미사용 export 는 357건 부채라 비차단 — 소각 후 승격)
-  "ignore": [
-    "scripts/**",
-
-    // ── 미사용 파일 베이스라인 (2026-07-19 총 12건) ──
-    // 신규 미배선 파일이 생기면 CI 가 실패한다.
-    // 처리 원칙: 배선하거나, 삭제하거나, 사유를 적고 여기에 추가하거나 셋 중 하나.
-    "src/components/editor/canvas/ColorBindSelector.tsx",
-    "src/components/editor/presence/**",
-    "src/components/editor/text/index.ts",
-    "src/components/pages/HomeClient.tsx",
-    "src/components/providers/ErrorBoundaryProvider.tsx",
-    "src/components/whisper/index.ts",
-    "src/components/whisper/WhisperNotification.tsx",
-    "src/contexts/AnimationContext.tsx",
-    "src/hooks/useDoodleEffects.tsx",
-    "src/hooks/useMorphTransition.ts",
-    "src/hooks/useScrollReveal.ts",
-    "src/hooks/useTypewriter.tsx"
-  ]
+  //
+  // 2026-07-19: 12건 베이스라인 소각 완료.
+  // - 9건 삭제 (미배선 확인): ColorBindSelector, editor/presence/*, editor/text/index,
+  //   HomeClient, ErrorBoundaryProvider, AnimationContext, useDoodleEffects,
+  //   useScrollReveal, whisper/index
+  // - 1건 배선: WhisperNotification → my/whispers 페이지에서 notification/
+  //   dismissNotification 연결(useWhisper 반환값 소비)
+  // - 2건(useMorphTransition, useTypewriter) 은 삭제하지 않고 유지 — jest 테스트가
+  //   실제로는 훅을 import 하지 않고 로직만 인라인 복제해 검증하고 있어 knip 이 죽은
+  //   파일로 오판했었다. 테스트에 실제 훅을 import·렌더링하는 케이스를 추가해
+  //   진짜 배선을 만들었다 (ignore 목록에 넣지 않고 해결).
+  // jest 설정이 next/jest 팩토리(동적) 라 knip 의 jest 플러그인이 testMatch 를 읽지
+  // 못한다 → 테스트/스모크 파일을 명시적 entry 로 (테스트만 소비하는 모듈 오탐 방지)
+  "entry": [
+    "src/__tests__/**/*.{ts,tsx}",
+    "src/**/__tests__/**/*.{ts,tsx}",
+    "src/**/*.test.{ts,tsx}",
+    "e2e/**/*.spec.ts"
+  ],
+  "ignore": ["scripts/**"]
 }

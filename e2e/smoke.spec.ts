@@ -71,6 +71,7 @@ test.describe('라우트 무결성 — 죽은 내부 링크 가드', () => {
     '/my/creator',
     '/my/whispers',
     '/my/subscription',
+    '/my/notifications',
     '/resources/new',
   ]
 
