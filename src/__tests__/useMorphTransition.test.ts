@@ -8,7 +8,15 @@
  * 4. 접근성 (prefers-reduced-motion)
  * 5. 공유 요소 트랜지션
  * 6. 레이아웃 모프
+ *
+ * 참고: 위 시나리오는 private 유틸(getRect/calculateInvert 등)의 로직을
+ * 인라인으로 복제해 검증한다 (모듈 비공개라 직접 import 불가).
+ * 아래 "실제 훅 연동 검증"은 공개 API(useMorphTransition/useSharedElement/
+ * useLayoutMorph)를 실제로 import·렌더링하여 회귀를 잡는다.
  */
+
+import { renderHook, act } from '@testing-library/react'
+import { useMorphTransition, useSharedElement, useLayoutMorph } from '@/hooks/useMorphTransition'
 
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {
@@ -387,5 +395,54 @@ describe('엣지 케이스', () => {
 
     expect(negativeRect.x).toBe(-50)
     expect(negativeRect.y).toBe(-100)
+  })
+})
+
+// ============================================
+// 실제 훅 연동 검증 (production 훅 직접 호출)
+// ============================================
+
+describe('실제 훅 연동 검증', () => {
+  it('useMorphTransition이 올바른 초기 상태와 API 형태를 반환해야 함', () => {
+    const { result } = renderHook(() => useMorphTransition())
+
+    expect(result.current.state).toEqual({ rect: null, isAnimating: false, currentState: null })
+    expect(result.current.sourceRef.current).toBeNull()
+    expect(result.current.targetRef.current).toBeNull()
+    expect(typeof result.current.morphToTarget).toBe('function')
+    expect(typeof result.current.morphToSource).toBe('function')
+    expect(typeof result.current.toggle).toBe('function')
+    expect(typeof result.current.cancel).toBe('function')
+
+    // 연결된 ref가 없는 상태에서 호출해도 예외 없이 무시되어야 함
+    act(() => {
+      result.current.morphToTarget()
+    })
+    expect(result.current.state.currentState).toBeNull()
+  })
+
+  it('useSharedElement가 레지스트리 조작 API를 반환해야 함', () => {
+    const { result } = renderHook(() => useSharedElement('knip-fix-shared'))
+
+    expect(result.current.ref.current).toBeNull()
+    expect(typeof result.current.registerAsSource).toBe('function')
+    expect(typeof result.current.animateFromSource).toBe('function')
+    expect(typeof result.current.clearRegistry).toBe('function')
+
+    act(() => {
+      result.current.registerAsSource()
+      result.current.clearRegistry()
+    })
+  })
+
+  it('useLayoutMorph가 ref와 애니메이션 트리거를 반환해야 함', () => {
+    const { result } = renderHook(() => useLayoutMorph())
+
+    expect(result.current.ref.current).toBeNull()
+    expect(typeof result.current.requestLayoutAnimation).toBe('function')
+
+    act(() => {
+      result.current.requestLayoutAnimation()
+    })
   })
 })

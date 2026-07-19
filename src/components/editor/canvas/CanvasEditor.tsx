@@ -19,7 +19,7 @@ import {
   Image as ImageIcon,
   Users,
 } from 'lucide-react'
-import { Button, useToast } from '@/components/ui'
+import { Button, Modal, useToast } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
 import { useCanvasEditorStore } from '@/stores/canvasEditorStore'
 import EditorSidebar from './EditorSidebar'
@@ -50,7 +50,6 @@ import {
   calculateFitZoom as calculateFitZoomUtil,
   formatTimeAgo as formatTimeAgoUtil,
   sanitizeFilename as sanitizeFilenameUtil,
-  createFocusTrap,
   clamp,
   getStorageErrorMessage,
   type AutoSaveData,
@@ -293,10 +292,6 @@ function CanvasEditorContent({
   // 터치 줌 디바운싱
   const touchZoomTimerRef = useRef<NodeJS.Timeout | null>(null)
   const pendingZoomRef = useRef<number | null>(null)
-
-  // Export 모달 Focus trap
-  const exportModalRef = useRef<HTMLDivElement>(null)
-  const focusTrapRef = useRef<ReturnType<typeof createFocusTrap> | null>(null)
 
   // ============================================
   // 헬퍼 함수 (useEffect보다 먼저 정의)
@@ -725,10 +720,10 @@ function CanvasEditorContent({
       }
 
       // ESC: 선택 해제 또는 모달 닫기
+      // (내보내기 모달은 공유 Modal 프리미티브가 자체 캡처 단계 Escape 핸들러로 처리하고
+      //  stopPropagation 하므로 여기까지 도달하지 않는다)
       if (e.key === 'Escape') {
-        if (showExportModal) {
-          setShowExportModal(false)
-        } else if (showShortcutsModal) {
+        if (showShortcutsModal) {
           setShowShortcutsModal(false)
         } else {
           selectSlot(null)
@@ -833,7 +828,7 @@ function CanvasEditorContent({
   }, [
     undo, redo, canUndo, canRedo, handleSave, handleFitToScreen,
     zoom, setZoom, selectSlot, selectText, selectedSlotId, templateConfig,
-    images, removeImage, moveSelectedSlot, showExportModal, showShortcutsModal, toast
+    images, removeImage, moveSelectedSlot, showShortcutsModal, toast
   ])
 
   // Sprint 29: 클립보드 붙여넣기 핸들러
@@ -996,24 +991,8 @@ function CanvasEditorContent({
     }
   }, [title, exportFormat, exportScale, toast, sanitizeFilename])
 
-  // Export 모달 Focus trap 관리 (접근성 개선)
-  useEffect(() => {
-    if (showExportModal && exportModalRef.current) {
-      // Focus trap 생성 및 활성화
-      focusTrapRef.current = createFocusTrap(exportModalRef.current)
-      focusTrapRef.current.activate()
-    }
-
-    return () => {
-      // 모달이 닫힐 때 focus trap 비활성화
-      if (focusTrapRef.current) {
-        focusTrapRef.current.deactivate()
-        focusTrapRef.current = null
-      }
-    }
-  }, [showExportModal])
-
   // 모달 닫기 핸들러
+  // (포커스 트랩/백드롭 클릭/Escape/스크롤 잠금은 공유 Modal 프리미티브가 처리한다)
   const closeExportModal = useCallback(() => {
     if (!isExporting) {
       setShowExportModal(false)
@@ -1378,140 +1357,130 @@ function CanvasEditorContent({
         />
       </div>
 
-      {/* 내보내기 모달 - 확장된 옵션, Focus trap 적용 */}
-      {showExportModal && (
-        <div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60]"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="export-modal-title"
-          aria-describedby="export-modal-desc"
-          onClick={closeExportModal}
-        >
-          <div
-            ref={exportModalRef}
-            className="bg-white rounded-2xl max-w-md w-full mx-4 p-6 animate-scale-in"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-2 bg-primary-100 rounded-xl">
-                <ImageIcon className="w-6 h-6 text-primary-600" aria-hidden="true" />
-              </div>
-              <div>
-                <h3 id="export-modal-title" className="text-lg font-bold text-gray-900">
-                  이미지 내보내기
-                </h3>
-                <p id="export-modal-desc" className="text-sm text-gray-500">포맷과 해상도를 선택하세요</p>
-              </div>
-            </div>
-
-            {/* 포맷 선택 */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">파일 포맷</label>
-              <div className="grid grid-cols-3 gap-2">
-                {exportFormats.map((format) => (
-                  <button
-                    key={format.format}
-                    onClick={() => setExportFormat(format.format)}
-                    disabled={isExporting}
-                    className={cn(
-                      'p-3 rounded-xl border-2 text-center transition-all',
-                      exportFormat === format.format
-                        ? 'border-primary-400 bg-primary-50 text-primary-700'
-                        : 'border-gray-200 hover:border-gray-300 text-gray-700'
-                    )}
-                  >
-                    <span className="block text-sm font-medium">{format.format.toUpperCase()}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* 해상도 선택 */}
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">해상도</label>
-              <div className="space-y-2">
-                {[1, 2, 3].map((scale) => (
-                  <button
-                    key={scale}
-                    onClick={() => setExportScale(scale)}
-                    disabled={isExporting}
-                    className={cn(
-                      'w-full p-3 rounded-xl border-2 text-left transition-all flex items-center justify-between',
-                      exportScale === scale
-                        ? 'border-primary-400 bg-primary-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    )}
-                  >
-                    <div>
-                      <span className="font-medium text-gray-900">{scale}x</span>
-                      <span className="text-sm text-gray-500 ml-2">
-                        {templateConfig.canvas.width * scale} × {templateConfig.canvas.height * scale}px
-                      </span>
-                    </div>
-                    {scale === 2 && (
-                      <span className="px-2 py-0.5 bg-primary-400 text-white text-xs font-medium rounded-full">
-                        추천
-                      </span>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* 진행 표시바 */}
-            {isExporting && (
-              <div className="mb-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-gray-600">내보내는 중...</span>
-                  <span className="text-sm font-medium text-gray-900">{exportProgress}%</span>
-                </div>
-                <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-primary-400 rounded-full transition-all duration-300"
-                    style={{ width: `${exportProgress}%` }}
-                  />
-                </div>
-              </div>
-            )}
-
-            {exportError && (
-              <div className="flex items-center gap-2 text-red-500 mb-4 p-3 bg-red-50 rounded-lg" role="alert">
-                <span className="text-sm">{exportError}</span>
-              </div>
-            )}
-
-            {/* 액션 버튼 */}
-            <div className="flex gap-2">
-              <Button
-                variant="ghost"
-                onClick={closeExportModal}
-                disabled={isExporting}
-                className="flex-1"
-              >
-                취소
-              </Button>
-              <Button
-                onClick={handleExport}
-                disabled={isExporting}
-                className="flex-1"
-              >
-                {isExporting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                    처리 중...
-                  </>
-                ) : (
-                  <>
-                    <Download className="w-4 h-4 mr-2" />
-                    내보내기
-                  </>
-                )}
-              </Button>
-            </div>
+      {/* 내보내기 모달 - 확장된 옵션. 공유 Modal 프리미티브(포커스 트랩/Escape/백드롭/스크롤 잠금 내장) */}
+      <Modal
+        isOpen={showExportModal}
+        onClose={closeExportModal}
+        ariaLabel="이미지 내보내기"
+        className="max-w-md rounded-2xl"
+      >
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-2 bg-primary-100 rounded-xl">
+            <ImageIcon className="w-6 h-6 text-primary-600" aria-hidden="true" />
+          </div>
+          <div>
+            <h3 className="text-lg font-bold text-gray-900">
+              이미지 내보내기
+            </h3>
+            <p className="text-sm text-gray-500">포맷과 해상도를 선택하세요</p>
           </div>
         </div>
-      )}
+
+        {/* 포맷 선택 */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">파일 포맷</label>
+          <div className="grid grid-cols-3 gap-2">
+            {exportFormats.map((format) => (
+              <button
+                key={format.format}
+                onClick={() => setExportFormat(format.format)}
+                disabled={isExporting}
+                className={cn(
+                  'p-3 rounded-xl border-2 text-center transition-all',
+                  exportFormat === format.format
+                    ? 'border-primary-400 bg-primary-50 text-primary-700'
+                    : 'border-gray-200 hover:border-gray-300 text-gray-700'
+                )}
+              >
+                <span className="block text-sm font-medium">{format.format.toUpperCase()}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* 해상도 선택 */}
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-gray-700 mb-2">해상도</label>
+          <div className="space-y-2">
+            {[1, 2, 3].map((scale) => (
+              <button
+                key={scale}
+                onClick={() => setExportScale(scale)}
+                disabled={isExporting}
+                className={cn(
+                  'w-full p-3 rounded-xl border-2 text-left transition-all flex items-center justify-between',
+                  exportScale === scale
+                    ? 'border-primary-400 bg-primary-50'
+                    : 'border-gray-200 hover:border-gray-300'
+                )}
+              >
+                <div>
+                  <span className="font-medium text-gray-900">{scale}x</span>
+                  <span className="text-sm text-gray-500 ml-2">
+                    {templateConfig.canvas.width * scale} × {templateConfig.canvas.height * scale}px
+                  </span>
+                </div>
+                {scale === 2 && (
+                  <span className="px-2 py-0.5 bg-primary-400 text-white text-xs font-medium rounded-full">
+                    추천
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* 진행 표시바 */}
+        {isExporting && (
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-gray-600">내보내는 중...</span>
+              <span className="text-sm font-medium text-gray-900">{exportProgress}%</span>
+            </div>
+            <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-primary-400 rounded-full transition-all duration-300"
+                style={{ width: `${exportProgress}%` }}
+              />
+            </div>
+          </div>
+        )}
+
+        {exportError && (
+          <div className="flex items-center gap-2 text-red-500 mb-4 p-3 bg-red-50 rounded-lg" role="alert">
+            <span className="text-sm">{exportError}</span>
+          </div>
+        )}
+
+        {/* 액션 버튼 */}
+        <div className="flex gap-2">
+          <Button
+            variant="ghost"
+            onClick={closeExportModal}
+            disabled={isExporting}
+            className="flex-1"
+          >
+            취소
+          </Button>
+          <Button
+            onClick={handleExport}
+            disabled={isExporting}
+            className="flex-1"
+          >
+            {isExporting ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                처리 중...
+              </>
+            ) : (
+              <>
+                <Download className="w-4 h-4 mr-2" />
+                내보내기
+              </>
+            )}
+          </Button>
+        </div>
+      </Modal>
 
       {/* 단축키 도움말 모달 */}
       <KeyboardShortcutsModal

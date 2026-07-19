@@ -9,7 +9,18 @@
  * 5. 즉시 완료
  * 6. 콜백 호출
  * 7. 엣지 케이스 (빈 문자열, 특수 문자)
+ *
+ * 참고: 위 시나리오는 로직을 인라인으로 복제해 알고리즘 자체를 검증한다.
+ * 아래 "실제 훅 연동 검증"은 공개 API(useTypewriter/useMultiTypewriter/
+ * useHighlightTypewriter)를 실제로 import·렌더링하여 회귀를 잡는다.
  */
+
+import { renderHook, act } from '@testing-library/react'
+import {
+  useTypewriter,
+  useMultiTypewriter,
+  useHighlightTypewriter,
+} from '@/hooks/useTypewriter'
 
 // Mock IntersectionObserver
 const mockIntersectionObserver = jest.fn()
@@ -285,5 +296,77 @@ describe('useHighlightTypewriter', () => {
 
       expect(parts).toContain('C++')
     })
+  })
+})
+
+// ============================================
+// 실제 훅 연동 검증 (production 훅 직접 호출)
+// ============================================
+
+describe('실제 훅 연동 검증', () => {
+  it('useTypewriter가 실제로 텍스트를 한 글자씩 타이핑해야 함', () => {
+    const { result } = renderHook(() =>
+      useTypewriter('안녕', { typingSpeed: 10, humanize: false })
+    )
+
+    // autoStart(기본값 true)로 마운트 직후 타이핑이 시작된다
+    expect(result.current.isTyping).toBe(true)
+    expect(result.current.displayText).toBe('')
+
+    act(() => {
+      jest.advanceTimersByTime(1000)
+    })
+
+    expect(result.current.displayText).toBe('안녕')
+    expect(result.current.isComplete).toBe(true)
+    expect(result.current.isTyping).toBe(false)
+  })
+
+  it('useTypewriter의 pause/resume이 실제 상태를 전환해야 함', () => {
+    const { result } = renderHook(() =>
+      useTypewriter('안녕하세요', { typingSpeed: 10, humanize: false, autoStart: false })
+    )
+
+    act(() => {
+      result.current.start()
+    })
+    act(() => {
+      jest.advanceTimersByTime(15)
+    })
+    act(() => {
+      result.current.pause()
+    })
+
+    expect(result.current.isPaused).toBe(true)
+    expect(result.current.isTyping).toBe(false)
+
+    act(() => {
+      result.current.resume()
+    })
+    expect(result.current.isPaused).toBe(false)
+
+    act(() => {
+      jest.advanceTimersByTime(1000)
+    })
+    expect(result.current.displayText).toBe('안녕하세요')
+  })
+
+  it('useMultiTypewriter가 초기 currentStringIndex와 API 형태를 반환해야 함', () => {
+    const { result } = renderHook(() =>
+      useMultiTypewriter(['첫 번째', '두 번째'], { autoStart: false, typingSpeed: 10 })
+    )
+
+    expect(result.current.currentStringIndex).toBe(0)
+    expect(typeof result.current.start).toBe('function')
+    expect(typeof result.current.reset).toBe('function')
+  })
+
+  it('useHighlightTypewriter가 renderText 함수와 초기 상태를 반환해야 함', () => {
+    const { result } = renderHook(() =>
+      useHighlightTypewriter('안녕하세요', { autoStart: false, highlightWords: ['안녕'] })
+    )
+
+    expect(result.current.displayText).toBe('')
+    expect(typeof result.current.renderText).toBe('function')
   })
 })
