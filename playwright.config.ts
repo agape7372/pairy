@@ -1,4 +1,12 @@
+import fs from 'node:fs'
 import { defineConfig, devices } from '@playwright/test'
+
+// 사전 설치 브라우저가 있는 환경(예: Claude Code 원격 컨테이너)에서는 그 실행 파일을 사용
+// — @playwright/test 버전이 요구하는 리비전 재다운로드 없이 실행 가능하게 한다.
+const PREINSTALLED_CHROMIUM = '/opt/pw-browsers/chromium'
+const chromiumExecutablePath = fs.existsSync(PREINSTALLED_CHROMIUM)
+  ? PREINSTALLED_CHROMIUM
+  : undefined
 
 export default defineConfig({
   testDir: './e2e',
@@ -14,7 +22,12 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: {
+        ...devices['Desktop Chrome'],
+        launchOptions: chromiumExecutablePath
+          ? { executablePath: chromiumExecutablePath }
+          : {},
+      },
     },
     {
       name: 'Mobile Safari',

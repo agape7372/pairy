@@ -44,6 +44,11 @@ jobs:
         env:
           NEXT_PUBLIC_ALLOW_DEMO_BUILD: "1"
 
+      # 미배선(만들고 안 이음) 파일 차단 게이트 — 베이스라인은 knip.jsonc, 신규 유입만 실패.
+      # (사례: useTemplates 가 소비자 0 인 채로 남아 업로드 틀이 어디에도 안 보이던 버그)
+      - name: Unwired files check (knip)
+        run: npx knip --include files
+
       # 변경 파일만 lint 차단 게이트 — 신규 부채 유입 방지 (기존 부채는 아래 비차단 잡에서 추적).
       - name: Lint changed files (blocking, PR only)
         if: github.event_name == 'pull_request'
@@ -60,3 +65,34 @@ jobs:
       - name: Lint (non-blocking, debt tracked)
         run: npm run lint
         continue-on-error: true
+
+  # E2E 스모크 — "클릭 무반응"·"죽은 링크" 부류 회귀를 실브라우저로 차단 (2026-07-19).
+  # 데모 모드(dev 서버, Supabase env 불필요)로 결정적으로 동작한다.
+  e2e-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install chromium --with-deps
+
+      - name: Smoke tests
+        run: npx playwright test e2e/smoke.spec.ts --project=chromium
+
+      - name: Upload report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
