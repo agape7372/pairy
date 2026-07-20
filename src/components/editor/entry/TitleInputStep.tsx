@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect, useRef } from 'react'
+import { isImeComposing } from '@/lib/utils/isImeComposing'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { ArrowRight, Loader2, Users, UserPlus } from 'lucide-react'
@@ -98,7 +99,7 @@ export function TitleInputStep({ className }: TitleInputStepProps) {
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (e.key === 'Enter' && title.trim() && !isNavigating) {
+      if (e.key === 'Enter' && !isImeComposing(e) && title.trim() && !isNavigating) {
         handleStart()
       }
     },

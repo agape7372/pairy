@@ -117,15 +117,20 @@ export async function uploadAvatar(userId: string, file: File): Promise<UploadRe
 
 /**
  * 작업 이미지 업로드
+ *
+ * 경로 규약: `{userId}/{workId}/{slotId}_{ts}.ext` — 첫 폴더 = 소유자 uid.
+ * works 버킷 스토리지 정책(20260720000003)이 (storage.foldername(name))[1] = auth.uid() 를
+ * 강제하므로 반드시 userId 를 선두로 키잉해야 한다(C-01a).
  */
 export async function uploadWorkImage(
+  userId: string,
   workId: string,
   slotId: string,
   file: File
 ): Promise<UploadResult> {
   const fileExt = file.name.split('.').pop() || 'jpg'
   const timestamp = Date.now()
-  const path = `${workId}/${slotId}_${timestamp}.${fileExt}`
+  const path = `${userId}/${workId}/${slotId}_${timestamp}.${fileExt}`
 
   return uploadFile({
     bucket: 'works',
@@ -137,13 +142,16 @@ export async function uploadWorkImage(
 
 /**
  * 작업 썸네일 업로드
+ *
+ * 경로 규약: `{userId}/{workId}/thumbnail.ext` — C-01a 소유권 정책과 정합.
  */
 export async function uploadWorkThumbnail(
+  userId: string,
   workId: string,
   file: File
 ): Promise<UploadResult> {
   const fileExt = file.name.split('.').pop() || 'jpg'
-  const path = `${workId}/thumbnail.${fileExt}`
+  const path = `${userId}/${workId}/thumbnail.${fileExt}`
 
   return uploadFile({
     bucket: 'works',

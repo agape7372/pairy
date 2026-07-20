@@ -29,6 +29,7 @@ import {
 } from 'lucide-react'
 import { Button, Input, ImageUpload, ColorPicker } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
+import { isImeComposing } from '@/lib/utils/isImeComposing'
 import { uploadFile } from '@/lib/supabase/storage'
 import { useUser } from '@/hooks/useUser'
 import { addRecentColor } from '@/lib/utils/color'
@@ -109,7 +110,7 @@ function TagInput({
   const inputRef = useRef<HTMLInputElement>(null)
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
+    if (e.key === 'Enter' && !isImeComposing(e)) {
       e.preventDefault()
       addTag()
     } else if (e.key === 'Backspace' && !inputValue && value.length > 0) {

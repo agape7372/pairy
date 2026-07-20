@@ -5,6 +5,7 @@ import { MessageCircle, Heart, CornerDownRight, MoreHorizontal, Trash2, Edit2, L
 import { Button } from '@/components/ui'
 import { useComments } from '@/hooks/useComments'
 import { cn } from '@/lib/utils/cn'
+import { isImeComposing } from '@/lib/utils/isImeComposing'
 import type { CommentWithUser } from '@/types/database.types'
 
 interface CommentSectionProps {
@@ -325,7 +326,7 @@ function CommentItem({
                 placeholder="답글을 작성해주세요..."
                 className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
+                  if (e.key === 'Enter' && !isImeComposing(e) && !e.shiftKey) {
                     e.preventDefault()
                     handleReply()
                   }

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { Plus, MoreVertical, Trash2, Edit2, Share2, Clock, Eye, EyeOff, X, Check, AlertTriangle } from 'lucide-react'
 import { Button, Tag } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
+import { isImeComposing } from '@/lib/utils/isImeComposing'
 import { copyToClipboard } from '@/lib/utils/clipboard'
 import { useWorks } from '@/hooks/useWorks'
 
@@ -335,7 +336,7 @@ export default function MyWorksPage() {
               className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-300 focus:border-transparent mb-6"
               autoFocus
               onKeyDown={(e) => {
-                if (e.key === 'Enter') saveRename()
+                if (e.key === 'Enter' && !isImeComposing(e)) saveRename()
                 if (e.key === 'Escape') setEditingWork(null)
               }}
             />

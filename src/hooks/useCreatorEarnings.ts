@@ -72,37 +72,12 @@ export function useCreatorEarnings() {
       return true
     }
 
-    try {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return false
-
-      const { data, error } = await supabase
-        .from('payout_requests')
-        .insert({
-          user_id: user.id,
-          amount,
-          bank_name: bankInfo.bankName,
-          account_number: bankInfo.accountNumber,
-          account_holder: bankInfo.accountHolder,
-        })
-        .select()
-        .single()
-
-      if (error || !data) return false
-
-      setServerPayoutRequests((prev) => [{
-        id: data.id,
-        amount: data.amount,
-        status: data.status,
-        requestedAt: data.created_at,
-        processedAt: data.processed_at,
-        bankInfo,
-      }, ...prev])
-      return true
-    } catch {
-      return false
-    }
+    // H-03(2차 감사 · DL-0006 · F-25): 프로덕션 정산은 서버 매출 원장 성립 전까지 비활성.
+    // stats(정산 예정 금액)가 클라 localStorage 매출(marketplaceStore.sales)로 계산돼 서버가
+    // available balance·중복 pending 을 검증하지 못한다. 이 상태에서 client amount 를
+    // payout_requests 에 insert 하면 허위 정산 요청이 성립하므로, 원장(F-25)이 서버 계산·잠금으로
+    // 배선될 때까지 실 정산 신청을 받지 않는다. UI 는 아래 my/creator 에서 "준비 중" 으로 안내.
+    return false
   }
 
   const stats: CreatorStats = useMemo(() => {

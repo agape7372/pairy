@@ -469,9 +469,10 @@ export default function TemplateDetailClient({ templateId }: TemplateDetailClien
     // 중복 클릭 방지
     if (isDownloading) return
 
-    // 유료 자료 체크
+    // 유료 자료: 구매 플로우(F-27)·서버 권한 다운로드(F-28)가 아직 준비 전 → 앱은 파일을 절대
+    // 서빙하지 않고 정직하게 안내한다(C-01b · DL-0006). 결제 활성화 시 서버 게이트 다운로드로 승격.
     if (resource.license === 'paid') {
-      toast.warning('유료 자료입니다. 구매 후 다운로드할 수 있어요.')
+      toast.warning('유료 자료 구매는 아직 준비 중이에요.')
       return
     }
 

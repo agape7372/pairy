@@ -120,10 +120,10 @@ export default function MyLayout({ children }: { children: React.ReactNode }) {
         </div>
       </nav>
 
-      {/* Content */}
-      <main className="max-w-[1200px] mx-auto px-4 py-8">
+      {/* Content — H-12: (main) 레이아웃의 main 안이므로 중첩 main 방지 위해 div (단일 main 랜드마크) */}
+      <div className="max-w-[1200px] mx-auto px-4 py-8">
         {children}
-      </main>
+      </div>
     </div>
   )
 }

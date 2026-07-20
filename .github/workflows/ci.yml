@@ -35,6 +35,14 @@ jobs:
       - name: Test
         run: npm test
 
+      # M-02(2차 감사 · DL-0006): 빌드 회귀 차단 게이트. CI 엔 secrets 가 없으므로
+      # 데모 빌드로 허용(NEXT_PUBLIC_ALLOW_DEMO_BUILD=1) — next.config.ts 의 프로덕션 env 가드 통과용.
+      # 실 배포 env 검증은 Vercel 빌드가 담당(프로덕션 키 주입 상태에서 가드 작동).
+      - name: Build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_ALLOW_DEMO_BUILD: "1"
+
       # lint 는 기존 부채(1,880 errors / 19,973 warnings, 2026-07-06 측정)가 커서 당분간 비차단.
       # 부채 소각(TOP50 lint-debt burndown) 완료 후 continue-on-error 를 제거해 차단 게이트로 승격할 것.
       - name: Lint (non-blocking, debt tracked)

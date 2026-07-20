@@ -845,6 +845,11 @@ export interface Database {
         Args: { p_uid: string; p_days: number }
         Returns: undefined
       }
+      /** 본인 프로필 전체 반환 (SECURITY DEFINER — 20260720000004, H-04). 민감 컬럼(role·subscription·earnings·settings)은 이 RPC 로만 조회. */
+      get_my_profile: {
+        Args: Record<PropertyKey, never>
+        Returns: Database['public']['Tables']['profiles']['Row'][]
+      }
     }
     Enums: {
       [_ in never]: never

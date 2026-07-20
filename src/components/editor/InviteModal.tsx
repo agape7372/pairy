@@ -69,6 +69,7 @@ export function InviteModal({
           <h2 className="text-xl font-bold text-gray-900">친구 초대하기</h2>
           <button
             onClick={onClose}
+            aria-label="닫기"
             className="p-2 hover:bg-gray-100 rounded-full transition-colors"
           >
             <X className="w-5 h-5 text-gray-500" />
@@ -237,6 +238,7 @@ export function JoinModal({
           <h2 className="text-xl font-bold text-gray-900">협업 세션 참여</h2>
           <button
             onClick={onClose}
+            aria-label="닫기"
             className="p-2 hover:bg-gray-100 rounded-full transition-colors"
           >
             <X className="w-5 h-5 text-gray-500" />

@@ -48,28 +48,36 @@ export function useUser(): UseUserReturn {
   const [isLoading, setIsLoading] = useState(true)
 
   // 프로필 로드 함수 (타임아웃 적용)
-  const loadProfile = useCallback(async (userId: string, isMounted: () => boolean) => {
+  const loadProfile = useCallback(async (isMounted: () => boolean) => {
     if (!isSupabaseConfigured()) return
 
     const { signal, clear } = createTimeoutController('read')
 
     try {
       const supabase = createClient()
+      // H-04: 민감 컬럼(role·subscription_*)은 public SELECT 에서 회수됨 → 본인 전체 행은
+      // get_my_profile() SECURITY DEFINER RPC 로만 조회(own row, 컬럼 GRANT 우회).
       const { data, error } = await supabase
-        .from('profiles')
-        .select('id, display_name, avatar_url, bio, role, subscription_tier, subscription_valid_until')
-        .eq('id', userId)
+        .rpc('get_my_profile')
         .abortSignal(signal)
-        .single()
 
       clear() // 성공 시 타임아웃 해제
 
-      if (!error && data && isMounted()) {
-        setProfile(data as Profile)
+      const row = data?.[0]
+      if (!error && row && isMounted()) {
+        setProfile({
+          id: row.id,
+          display_name: row.display_name,
+          avatar_url: row.avatar_url,
+          bio: row.bio,
+          role: row.role,
+          subscription_tier: row.subscription_tier,
+          subscription_valid_until: row.subscription_valid_until,
+        })
         // C-3: 서버 구독 상태가 진실 — 스토어 tier 를 서버값으로 강제 동기화(localStorage 캐시 강등).
         useSubscriptionStore.getState().syncFromServer(
-          data.subscription_tier,
-          data.subscription_valid_until,
+          row.subscription_tier,
+          row.subscription_valid_until,
         )
       }
     } catch (err) {
@@ -107,7 +115,7 @@ export function useUser(): UseUserReturn {
         // 세션 상태 업데이트
         if (session?.user) {
           setUser(session.user)
-          loadProfile(session.user.id, checkMounted)
+          loadProfile(checkMounted)
         } else {
           setUser(null)
           setProfile(null)

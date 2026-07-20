@@ -16,3 +16,11 @@
 3. `collab/[code]/page.tsx`의 `generateStaticParams`를 동적 라우팅 방식으로 전환(런타임 결별 종속) — AC: 임의 초대코드로 접근 시 404 아님. (Opus, F-11/F-23과 공동 결정 필요)
 
 **의존·순서**: **선행조건**: 위 1번(마이그레이션 적용, 사용자 수행) → 2번(훅 배선). **후행영향**: F-11(실시간협업)이 이 세션 join 위에서 동작 — F-13 없이는 F-11도 실기기 간 무의미. 3번은 정적 export 결별(Tier 0 #4) 결정에 종속되므로 그 전엔 defer 가능.
+
+---
+
+## 갱신 · 2026-07-20 (2차 감사 재검증 — [[../ai-org/decisions/DL-0006-audit2-reflection]] H-07 = Tier D)
+
+- **선행 1·3 해소됨**: 정적 export 결별(DL-0001) + Supabase 클린 재구축(신 프로젝트 `bbvuqbzbniappgsxajkd`)으로 마이그레이션·동적 라우트 적용 완료. 즉 **남은 건 2번(훅 배선)뿐**.
+- **2차 재확인(CONFIRMED)**: `useCollabSession.ts:249-315`가 여전히 localStorage/BroadcastChannel stub. `get_collab_session_by_invite` RPC(`20260706000000:80-100`)는 존재·grant됐으나 src 호출 0건. 참가자 신원이 난수(`CollabJoinClient.tsx:40-44` nanoid, `TitleInputStep.tsx:80` Math.random).
+- **Tier D 수정(L, Opus)**: createSession→`collab_sessions` insert(host_id=auth.uid), joinSession→RPC, 참가자 신원=auth.uid, `max_participants` **명시 2**(DB 기본값 4 → strategy §5 3인+ 금지), endSession/kick→조건부 UPDATE, localStorage 경로 제거·Realtime 구독 대체. **제품결정**: 비로그인 게스트 참여 허용 여부([[DL-0002]] 익명성 정합). AC: 분리 브라우저 컨텍스트 join/edit/reconnect/kick/3인차단.

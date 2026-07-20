@@ -23,6 +23,7 @@ import {
 } from 'lucide-react'
 import { Button, useToast, EmptyState } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
+import { isImeComposing } from '@/lib/utils/isImeComposing'
 import { useSubscriptionStore, TIER_LIMITS, PRICING } from '@/stores/subscriptionStore'
 import { useLibraryFolders } from '@/hooks/useLibraryFolders'
 import { RESOURCE_CATEGORIES, type ResourceCategory } from '@/types/resources'
@@ -132,7 +133,7 @@ function FolderModal({
             maxLength={FOLDER_NAME_MAX_LENGTH}
             onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' && canSubmit) onSubmit(name.trim(), emoji)
+              if (e.key === 'Enter' && !isImeComposing(e) && canSubmit) onSubmit(name.trim(), emoji)
               if (e.key === 'Escape') onClose()
             }}
             className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 mb-4"

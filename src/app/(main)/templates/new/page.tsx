@@ -366,7 +366,8 @@ export default function NewTemplatePage() {
         </div>
       </header>
 
-      <main className="max-w-[1200px] mx-auto px-4 py-8">
+      {/* H-12: (main) 레이아웃 main 안 → 중첩 main 방지 위해 div (단일 main 랜드마크) */}
+      <div className="max-w-[1200px] mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* 왼쪽: 기본 정보 */}
           <div className="lg:col-span-1 space-y-6">
@@ -668,7 +669,7 @@ export default function NewTemplatePage() {
             )}
           </div>
         </div>
-      </main>
+      </div>
 
       {/* Preview Modal */}
       {showPreview && (

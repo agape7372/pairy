@@ -15,3 +15,11 @@
 2. 훅 통합 후에도 **당장 완전 배선하지 말고** "정직한 상태"(예: "준비 중" 안내 또는 최소 기능만)로 유지 — 완전한 발송/수령 플로우 완성은 Tier 0 파운데이션 이후로 defer. (Sonnet)
 
 **의존·순서**: **선행조건**: 없음(독립적으로 훅 통합 가능). **후행영향**: 완전 배선은 결제 백엔드(F-24~28) 및 프리미엄 게이팅과 얽힐 가능성 있음(선물=유상 아이템일 수 있어) — 그 판단 전까지 축소 상태 유지 권장.
+
+---
+
+## 갱신 · 2026-07-20 (2차 감사 재검증 — [[../ai-org/decisions/DL-0006-audit2-reflection]] H-09)
+
+- 훅 정본화는 [[../ai-org/decisions/DL-0003-whisper-hook-canonical]]로 결정됨(정본=`useWhisper`, 페이지 이관 defer). 기능 defer 유지.
+- **신규 발견(H-09, CONFIRMED)**: 기능이 defer여도 **DB 공격면**이 열려 있음. `20250107_create_whispers.sql`의 `send_scheduled_whispers()`·`get_unread_whisper_count(user_id)`가 SECURITY DEFINER인데 EXECUTE revoke 없음(형제 함수 `get_collab_session_by_invite`·`grant_subscription`은 revoke함). `get_unread_whisper_count`는 임의 `user_id`를 받아 타인 unread count 유출. receiver UPDATE 정책이 OLD→NEW 전이 미강제(SENT 건너뛰고 CLAIMED 가능).
+- **Tier A 봉합(S, Sonnet — 기능은 defer 유지, 공격면만 축소)**: EXECUTE를 public/authenticated서 revoke(service_role만), `get_unread_whisper_count` param 제거→`auth.uid()`, SENT→READ→CLAIMED BEFORE UPDATE 트리거. **페이지·훅·전송 플로우는 건드리지 않음**(DL-0003 defer 존중).

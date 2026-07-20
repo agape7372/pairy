@@ -131,6 +131,7 @@ export function PayoutRequestModal({
           </div>
           <button
             onClick={handleClose}
+            aria-label="닫기"
             className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
           >
             <X className="w-5 h-5" />

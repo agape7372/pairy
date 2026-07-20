@@ -23,6 +23,7 @@ import {
   Check,
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
+import { isImeComposing } from '@/lib/utils/isImeComposing'
 import type { TextStyle, TextEffects } from '@/types/template'
 
 // ============================================
@@ -308,7 +309,7 @@ export const StylePresetPicker = memo(function StylePresetPicker({
                     'rounded focus:outline-none focus:ring-2 focus:ring-pink-400'
                   )}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
+                    if (e.key === 'Enter' && !isImeComposing(e)) {
                       handleSaveNewPreset()
                     } else if (e.key === 'Escape') {
                       setIsSaveMode(false)

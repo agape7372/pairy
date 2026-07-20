@@ -88,6 +88,9 @@ export function Header() {
                 <div className="relative">
                 <button
                   onClick={() => setShowUserMenu(!showUserMenu)}
+                  aria-label="사용자 메뉴"
+                  aria-haspopup="menu"
+                  aria-expanded={showUserMenu}
                   className="relative w-9 h-9 rounded-full bg-gradient-to-br from-primary-200 to-accent-200 flex items-center justify-center overflow-hidden hover:ring-2 hover:ring-primary-300 transition-all"
                 >
                   {profile?.avatar_url ? (
@@ -156,6 +159,8 @@ export function Header() {
           <button
             className="md:hidden p-2 text-gray-600"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label={mobileMenuOpen ? '메뉴 닫기' : '메뉴 열기'}
+            aria-expanded={mobileMenuOpen}
           >
             {mobileMenuOpen ? <X className="w-6 h-6" strokeWidth={1.5} /> : <Menu className="w-6 h-6" strokeWidth={1.5} />}
           </button>

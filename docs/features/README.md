@@ -19,7 +19,22 @@
 | 보안 C-1·C-2·H-1·H-3·H-5 | 미봉합 | **봉합 완료** | Supabase 클린 재구축+마이그레이션, anon 실검증. `docs/audit-2026-07-05/04-security.md` 대조 |
 | TOP50 #13·#15 | 미착수 | **완료** | 가격 정본화·persist migrate |
 
-**남은 파운데이션**: 결제 백엔드(Tier 0 #6) → C-4 수익검증·F-24·F-27·F-28 실배선. 성능 #10·#11.
+### 2차 감사 재검증 오버레이 (2026-07-20 갱신 — `.gpt5.6sol.md` → [[../ai-org/decisions/DL-0006-audit2-reflection]])
+
+> 2차 독립 감사(GPT 5.6)를 현재 M6 코드에 재검증. 전량 CONFIRMED(stale 0). 아래는 기존 백로그가 놓친 **신규/미착지** — TOP50 N-1~N-8로 등재.
+
+| 항목 | 무엇이 새로운가 | Tier |
+|---|---|---|
+| H-01 세션 전송 | browser localStorage 세션 vs server cookie → 로그인 결제 confirm 401. `proxy.ts` 부재. 파운데이션 선행 | A |
+| H-05 grant 미착지 | `is_creator`/follower/following UPDATE grant 회수가 주석 약속과 달리 마이그레이션에 미착지 | A |
+| H-04 SELECT 컬럼 노출 | public profiles SELECT가 earnings·subscription·settings 컬럼 anon 노출(#1은 UPDATE만 봉합) | A |
+| C-01a works 무결성 | works/templates 오브젝트 소유권 미검증 → 타인 작업 덮어쓰기 | A |
+| H-02 이중부여 | confirm이 row-count 미확인 → 구독 이중부여(단건은 unique로 보호) | C |
+| H-06 탈퇴 | auth.users 잔존·거짓 완료 표시 | B |
+| H-13 IME | 한글 조합 중 Enter 제출(7곳) | B |
+| H-09 Whisper 봉인 | SECURITY DEFINER EXECUTE 미회수·임의 user_id count(기능은 DL-0003대로 defer 유지) | A |
+
+**남은 파운데이션**: (2차 반영) Tier A 서버 봉합·H-01 세션 통일 → Tier B 신뢰 → Tier D 협업 재건. 결제 백엔드(Tier 0 #6) → C-4 수익검증·F-24·F-27·F-28 실배선은 **실키 go-live 게이트로 defer**(DL-0006 결정 2). 성능 #10·#11.
 
 
 ## 판정 원장 — 클러스터별 인벤토리 (33종)

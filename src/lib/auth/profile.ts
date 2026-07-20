@@ -153,25 +153,25 @@ export async function checkProfileExists(
 
 /**
  * 사용자의 프로필을 가져옵니다.
+ *
+ * H-04: profiles 의 민감 컬럼(role·subscription·earnings·settings)은 public SELECT 에서 회수되어
+ * `select('*')` 가 42501 을 낸다. 본인 전체 행은 get_my_profile() SECURITY DEFINER RPC 로만 조회한다.
+ * 이 함수는 auth.uid() 기준으로 **본인 프로필만** 반환한다(현재 호출부는 전부 본인 대상 = ensureProfile).
+ * `userId` 는 호출 계약 유지를 위해 남기되, 서버는 auth.uid() 를 사용한다.
  */
 export async function getProfile(
   supabase: SupabaseClient<Database>,
   userId: string
 ): Promise<Profile | null> {
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', userId)
-    .single()
+  void userId // 서버는 auth.uid() 로 본인 행만 반환(RPC). 파라미터는 계약 호환용.
+  const { data, error } = await supabase.rpc('get_my_profile')
 
   if (error) {
-    if (error.code !== 'PGRST116') {
-      logError('getProfile', error)
-    }
+    logError('getProfile', error)
     return null
   }
 
-  return data
+  return data?.[0] ?? null
 }
 
 /**
@@ -193,7 +193,9 @@ export async function ensureProfile(
     const profileData = extractProfileFromUser(user)
 
     // 3. 프로필 생성
-    const { data, error } = await supabase
+    // H-04: insert 후 returning `.select()` 는 민감 컬럼 SELECT 권한이 없어 42501 → 생성만 하고
+    // 전체 행은 get_my_profile() RPC(getProfile)로 재조회한다.
+    const { error } = await supabase
       .from('profiles')
       .insert({
         id: user.id,
@@ -202,8 +204,6 @@ export async function ensureProfile(
         avatar_url: profileData.avatarUrl,
         role: 'user',
       })
-      .select()
-      .single()
 
     if (error) {
       // 동시 생성 시도로 인한 중복 에러는 무시하고 기존 프로필 반환
@@ -216,7 +216,8 @@ export async function ensureProfile(
       return { success: false, profile: null, error: '프로필 생성에 실패했어요.' }
     }
 
-    return { success: true, profile: data }
+    const created = await getProfile(supabase, user.id)
+    return { success: true, profile: created }
   } catch (error) {
     logError('ensureProfile', error)
     return { success: false, profile: null, error: '프로필 생성 중 오류가 발생했어요.' }
@@ -265,6 +266,10 @@ export async function updateProfile(
 }
 
 /**
+ * @deprecated H-06(DL-0006): 계정 탈퇴는 서버 라우트 `POST /api/account/delete` 가 정본이다.
+ * 이 클라이언트 함수는 profiles DELETE 정책 부재로 프로필/auth.users 를 못 지우고 자식행 delete 오류를
+ * 무시해 "부분 삭제 + 거짓 성공"을 냈다. 앱에서는 더 이상 호출하지 않는다(참고용 보존).
+ *
  * 사용자의 프로필과 관련 데이터를 삭제합니다.
  * 주의: 이 함수는 되돌릴 수 없습니다.
  */

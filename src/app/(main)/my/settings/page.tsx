@@ -20,7 +20,6 @@ import { useUser } from '@/hooks/useUser'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils/cn'
 import { logError, parseError } from '@/lib/utils/error'
-import { deleteProfile } from '@/lib/auth/profile'
 import {
   getLinkedAccounts,
   linkAccount,
@@ -60,9 +59,11 @@ export default function MySettingsPage() {
     let active = true
     ;(async () => {
       const supabase = createClient()
-      const { data } = await supabase.from('profiles').select('settings').eq('id', user.id).maybeSingle()
-      if (active && data?.settings) {
-        setSettings({ ...SETTING_DEFAULTS, ...(data.settings as Record<string, boolean>) })
+      // H-04: settings 는 public SELECT 에서 회수됨 → 본인 행은 get_my_profile() RPC 로 조회.
+      const { data } = await supabase.rpc('get_my_profile')
+      const mine = data?.[0]
+      if (active && mine?.settings) {
+        setSettings({ ...SETTING_DEFAULTS, ...(mine.settings as Record<string, boolean>) })
       }
     })()
     return () => { active = false }
@@ -190,19 +191,17 @@ export default function MySettingsPage() {
     setDeleteModal(prev => ({ ...prev, step: 'deleting', error: null }))
 
     try {
-      const supabase = createClient()
-
-      // 1. 프로필 및 관련 데이터 삭제
-      const { success, error } = await deleteProfile(supabase, user.id)
-
-      if (!success) {
-        throw new Error(error || '계정 삭제에 실패했어요.')
+      // H-06: 서버 라우트가 auth.users 삭제(전 스키마 cascade)까지 수행. 서버가 성공을 확인한
+      // 경우에만 완료로 처리한다(거짓 성공 제거). 실패 시 아래 catch 로 오류 단계 표시.
+      const res = await fetch('/api/account/delete', { method: 'POST' })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body?.error || '계정 삭제에 실패했어요.')
       }
 
-      // 2. Supabase Auth 사용자 삭제 요청 (Admin API 필요 - 클라이언트에서는 로그아웃만)
+      // 서버가 삭제·세션 무효화 완료 → 클라 세션 캐시도 정리 후 이동.
+      const supabase = createClient()
       await supabase.auth.signOut()
-
-      // 3. 로그인 페이지로 이동
       router.push('/login?deleted=true')
     } catch (err) {
       logError('DeleteAccount', err)

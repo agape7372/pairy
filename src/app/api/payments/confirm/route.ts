@@ -66,16 +66,39 @@ export async function POST(req: NextRequest) {
   }
 
   // 확정: payments=paid + 구독 부여. paid 전환은 이미-paid 가드로 멱등.
-  const { error: markError } = await admin.from('payments')
+  // H-02(2차 감사 · DL-0006): `.eq('status','pending')` 만으로는 0행 매치 시에도 error 가 없어
+  // 그대로 부여로 넘어가 동시 confirm 시 구독이 이중부여된다(단건은 unique index 로 보호되나
+  // 구독 grant_subscription 은 additive 라 60일이 됨). `.select()` 로 실제 claim 한 행 수를 확인해
+  // "정확히 1행을 pending→paid 로 바꾼 요청"만 부여하도록 강제(exactly-once).
+  const { data: claimed, error: markError } = await admin.from('payments')
     .update({ status: 'paid', payment_key: paymentKey, updated_at: new Date().toISOString() })
     .eq('id', payment.id)
     .eq('status', 'pending') // 동시 확정 경합에서 한 번만 통과
+    .select('id')
 
   if (markError) {
     return NextResponse.json({ error: '결제 기록 갱신 실패' }, { status: 500 })
   }
 
-  // ── 부여: 단건구매면 purchases 확정 기록, 아니면 구독 부여 ──
+  // 0행 = 경합에서 졌거나(다른 요청이 이미 paid 로 전환) status 가 pending 이 아님(failed/canceled).
+  // 재조회해 paid 면 멱등 성공, 그 외엔 부여하지 않고 충돌로 거절(이중부여·비정상 부여 차단).
+  if (!claimed || claimed.length !== 1) {
+    const { data: fresh } = await admin.from('payments')
+      .select('status, template_id')
+      .eq('id', payment.id)
+      .maybeSingle()
+    if (fresh?.status === 'paid') {
+      return NextResponse.json({
+        ok: true,
+        alreadyProcessed: true,
+        kind: fresh.template_id ? 'template' : 'subscription',
+        templateId: fresh.template_id ?? undefined,
+      })
+    }
+    return NextResponse.json({ error: '결제 상태가 유효하지 않습니다.' }, { status: 409 })
+  }
+
+  // ── 부여(정확히 1행 claim 성공 시에만 도달): 단건구매면 purchases 확정 기록, 아니면 구독 부여 ──
   if (payment.template_id) {
     // pending→paid 가드로 exactly-once, unique index 는 이중 안전망
     const { error: purchaseError } = await admin.from('purchases').insert({

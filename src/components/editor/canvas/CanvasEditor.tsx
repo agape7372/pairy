@@ -21,6 +21,7 @@ import {
 } from 'lucide-react'
 import { Button, useToast } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
+import { isImeComposing } from '@/lib/utils/isImeComposing'
 import { useCanvasEditorStore } from '@/stores/canvasEditorStore'
 import EditorSidebar from './EditorSidebar'
 import KeyboardShortcutsModal from './KeyboardShortcutsModal'
@@ -613,12 +614,30 @@ function CanvasEditorContent({
     const isServerTemplate =
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(templateId)
 
-    // 데모 모드이거나 서버 틀이 아닌(샘플/커스텀) 경우: 기존 로컬 저장 유지.
-    // autosave 데이터는 지우지 않는다 — 지우면 데이터가 메모리에만 남는 거짓 저장이 된다.
+    // 데모 모드이거나 서버 틀이 아닌(샘플/커스텀) 경우: 로컬(localStorage) 저장.
+    // C-02(2차 감사 · DL-0006): 예전엔 write 없이 markSaved()+토스트만 호출 → markSaved 가
+    // isDirty=false 로 만들어 30초 debounce autosave 가 cleanup 으로 취소되고, 결국 아무것도
+    // 안 써지는 거짓 저장이었다. 이제 현재 스토어 스냅샷을 즉시 동기 저장하고, 성공했을 때만
+    // 저장 완료를 표시한다. 실패(quota 등) 시 dirty 를 유지해 입력을 보존하고 정직하게 경고한다.
+    // (이미지는 blob URL 이라 reload 후 무효 → 로컬 복구 대상서 제외. 서버 저장 경로만 포함.)
     if (IS_DEMO_MODE || !isServerTemplate) {
-      markSaved()
-      setLastAutoSave(new Date())
-      toast.success('브라우저에 저장되었습니다')
+      const current = useCanvasEditorStore.getState()
+      const saveData: AutoSaveData = {
+        templateId,
+        title,
+        formData: current.formData,
+        colors: current.colors,
+        slotTransforms: current.slotTransforms,
+        timestamp: new Date().toISOString(),
+      }
+      const result = safeSetAutoSaveData(autoSaveKey, saveData)
+      if (result.success) {
+        markSaved()
+        setLastAutoSave(new Date())
+        toast.success('브라우저에 저장되었습니다')
+      } else {
+        toast.warning(getStorageErrorMessage(result.error), { title: '저장 실패' })
+      }
       return
     }
 
@@ -1330,7 +1349,7 @@ function CanvasEditorContent({
                         onChange={(e) => setEditingValue(e.target.value)}
                         onBlur={handleInlineEditComplete}
                         onKeyDown={(e) => {
-                          if (e.key === 'Enter' && !e.shiftKey) {
+                          if (e.key === 'Enter' && !isImeComposing(e) && !e.shiftKey) {
                             e.preventDefault()
                             handleInlineEditComplete()
                           }

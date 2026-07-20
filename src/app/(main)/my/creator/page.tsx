@@ -128,12 +128,15 @@ export default function CreatorDashboardPage() {
                 {formatCurrency(stats.pendingPayout)}
               </p>
               <p className="text-xs text-gray-500 mt-1">
-                다음 정산일: 매월 15일 (₩10,000 이상 시 출금 가능)
+                {IS_DEMO_MODE
+                  ? '다음 정산일: 매월 15일 (₩10,000 이상 시 출금 가능)'
+                  : '정산 기능은 서버 매출 원장 준비 후 제공돼요. (준비 중)'}
               </p>
             </div>
+            {/* H-03(DL-0006): 프로덕션은 서버 정산 원장(F-25) 전까지 신청 비활성 — 허위 정산 방지 */}
             <Button
               variant="outline"
-              disabled={stats.pendingPayout < 10000}
+              disabled={!IS_DEMO_MODE || stats.pendingPayout < 10000}
               onClick={() => setShowPayoutModal(true)}
             >
               <Download className="w-4 h-4 mr-2" />
