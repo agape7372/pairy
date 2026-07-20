@@ -1,17 +1,32 @@
 'use client'
 
 /**
- * 협업 세션 관리 훅
- * 세션 생성, 참가, 초대 코드 관리
+ * 협업 세션 관리 훅 (H-07 서버 배선 · DL-0006/DL-0007)
+ *
+ * 세션 생성/참가/종료/추방을 Supabase RPC(20260720000005)로 수행하고, collab_sessions 행 변경을
+ * Realtime 으로 구독해 다른 기기와 상태를 동기화한다. 참가자 신원 = auth.uid(로그인 필수).
+ * 기존 localStorage/BroadcastChannel stub 은 제거 — 다른 브라우저에서 참여 가능해진다.
  */
 
-import { useState, useCallback, useEffect } from 'react'
-import { nanoid } from 'nanoid'
+import { useState, useCallback, useEffect, useRef } from 'react'
+import { createClient, IS_DEMO_MODE } from '@/lib/supabase/client'
+import type { Database } from '@/types/database.types'
 import type { CollabUser, EditingZone } from '@/lib/collab/types'
 
 // ============================================
 // Types
 // ============================================
+
+type CollabRow = Database['public']['Tables']['collab_sessions']['Row']
+
+/** DB participants JSONB 요소 형식 (RPC _collab_participant 와 정합) */
+interface DbParticipant {
+  id: string
+  name: string
+  avatar?: string | null
+  isHost: boolean
+  joinedAt: number
+}
 
 export interface CollabSession {
   id: string
@@ -63,52 +78,35 @@ export function toParticipant(sp: SessionParticipant): Participant {
   }
 }
 
-// 세션 호환성 속성 보장
-function ensureCompatibility(session: Partial<CollabSession>): CollabSession {
-  return {
-    ...session,
-    invite_code: session.invite_code || session.inviteCode || '',
-    max_participants: session.max_participants || session.maxParticipants || 2,
-  } as CollabSession
-}
-
 interface UseCollabSessionOptions {
   templateId?: string
   workId?: string
+  /** 에디터 진입 시 URL 의 협업 세션 id — 기존 세션을 서버에서 복원(RLS: host/참가자만). */
+  sessionId?: string
   maxParticipants?: number
 }
 
 interface UseCollabSessionReturn {
-  // 세션 상태
   session: CollabSession | null
   isHost: boolean
   isJoining: boolean
   error: string | null
-
-  // 세션 관리
-  createSession: (user: CollabUser) => Promise<CollabSession>
+  createSession: (user: CollabUser) => Promise<CollabSession | null>
   joinSession: (inviteCode: string, user: CollabUser) => Promise<boolean>
   leaveSession: () => void
   endSession: () => void
-
-  // 초대 관련
   getInviteLink: () => string
   copyInviteLink: () => Promise<boolean>
   regenerateInviteCode: () => string
-
-  // 참가자 관리
   participants: SessionParticipant[]
   kickParticipant: (userId: string) => void
 }
 
 // ============================================
-// Constants
+// Constants / helpers
 // ============================================
 
-const SESSION_STORAGE_KEY = 'pairy-collab-session'
-const SESSION_EXPIRY_MS = 24 * 60 * 60 * 1000 // 24시간
 const INVITE_CODE_LENGTH = 6
-const SESSION_SYNC_CHANNEL = 'pairy-session-sync'
 
 // 사용자 색상 팔레트
 const USER_COLORS = [
@@ -136,6 +134,41 @@ function getUserColor(userId: string): string {
   return USER_COLORS[Math.abs(hash) % USER_COLORS.length]
 }
 
+function dbToParticipant(p: DbParticipant): SessionParticipant {
+  return {
+    userId: p.id,
+    userName: p.name,
+    userColor: getUserColor(p.id),
+    userAvatar: p.avatar ?? undefined,
+    zone: null,
+    isHost: p.isHost,
+    joinedAt: p.joinedAt,
+    isOnline: true,
+  }
+}
+
+/** DB row → 앱 CollabSession */
+function rowToSession(row: CollabRow): CollabSession {
+  const raw = (row.participants as unknown as DbParticipant[] | null) ?? []
+  const participants = raw.map(dbToParticipant)
+  const host = participants.find((p) => p.isHost)
+  return {
+    id: row.id,
+    hostId: row.host_id ?? '',
+    hostName: host?.userName ?? '',
+    inviteCode: row.invite_code,
+    templateId: row.template_id ?? undefined,
+    workId: row.work_id ?? undefined,
+    maxParticipants: row.max_participants ?? 2,
+    participants,
+    status: row.status as CollabSession['status'],
+    createdAt: row.created_at ? new Date(row.created_at).getTime() : Date.now(),
+    expiresAt: row.expires_at ? new Date(row.expires_at).getTime() : 0,
+    invite_code: row.invite_code,
+    max_participants: row.max_participants ?? 2,
+  }
+}
+
 // ============================================
 // Hook
 // ============================================
@@ -143,303 +176,173 @@ function getUserColor(userId: string): string {
 export function useCollabSession(
   options: UseCollabSessionOptions = {}
 ): UseCollabSessionReturn {
-  const { templateId, workId, maxParticipants = 2 } = options
+  const { templateId, workId, sessionId } = options
 
   const [session, setSession] = useState<CollabSession | null>(null)
   const [isJoining, setIsJoining] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [localUserId, setLocalUserId] = useState<string | null>(null)
+  const localUserIdRef = useRef<string | null>(null)
+  localUserIdRef.current = localUserId
 
-  // 세션 저장 (localStorage + BroadcastChannel 알림)
-  const saveSession = useCallback((sess: CollabSession | null) => {
-    if (typeof window === 'undefined') return
-
-    if (sess) {
-      localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(sess))
-    } else {
-      localStorage.removeItem(SESSION_STORAGE_KEY)
-    }
-
-    // 다른 탭에 세션 변경 알림
-    try {
-      const ch = new BroadcastChannel(SESSION_SYNC_CHANNEL)
-      ch.postMessage({ type: 'session-updated', session: sess })
-      ch.close()
-    } catch { /* BroadcastChannel not supported */ }
-  }, [])
-
-  // 세션 복원
+  // 에디터 진입 등: URL 의 세션 id 로 기존 세션 복원(RLS 가 host/참가자만 허용). 이후 Realtime 동기화.
   useEffect(() => {
-    if (typeof window === 'undefined') return
+    if (!sessionId || IS_DEMO_MODE) return
+    let cancelled = false
+    ;(async () => {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      const { data } = await supabase
+        .from('collab_sessions')
+        .select('*')
+        .eq('id', sessionId)
+        .maybeSingle()
+      if (cancelled || !data) return
+      setSession(rowToSession(data as CollabRow))
+      if (user) setLocalUserId(user.id)
+    })()
+    return () => { cancelled = true }
+  }, [sessionId])
 
-    const stored = localStorage.getItem(SESSION_STORAGE_KEY)
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored) as Partial<CollabSession>
-        // 만료 확인
-        if (parsed.expiresAt && parsed.expiresAt > Date.now() && parsed.status !== 'expired') {
-          setSession(ensureCompatibility(parsed))
-        } else {
-          localStorage.removeItem(SESSION_STORAGE_KEY)
-        }
-      } catch {
-        localStorage.removeItem(SESSION_STORAGE_KEY)
-      }
-    }
-  }, [])
-
-  // 탭 간 세션 동기화 (storage 이벤트 + BroadcastChannel)
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-
-    // storage 이벤트: 다른 탭에서 localStorage 변경 시
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key !== SESSION_STORAGE_KEY) return
-
-      if (e.newValue) {
-        try {
-          const parsed = JSON.parse(e.newValue) as Partial<CollabSession>
-          if (parsed.expiresAt && parsed.expiresAt > Date.now()) {
-            setSession(ensureCompatibility(parsed))
-          }
-        } catch { /* ignore */ }
-      } else {
-        // 세션이 삭제됨
-        setSession(null)
-        setLocalUserId(null)
-      }
-    }
-
-    // BroadcastChannel: 세션 존재 확인 요청/응답
-    let syncChannel: BroadcastChannel | null = null
-    try {
-      syncChannel = new BroadcastChannel(SESSION_SYNC_CHANNEL)
-      syncChannel.onmessage = (event: MessageEvent) => {
-        const msg = event.data as { type: string; session?: CollabSession }
-        if (msg.type === 'session-query') {
-          // 다른 탭이 세션을 물어봄 → 현재 세션 응답
-          const currentStored = localStorage.getItem(SESSION_STORAGE_KEY)
-          if (currentStored) {
-            syncChannel?.postMessage({
-              type: 'session-response',
-              session: JSON.parse(currentStored),
-            })
-          }
-        } else if (msg.type === 'session-response' && msg.session) {
-          // 응답을 받았다면 세션 설정
-          const sess = ensureCompatibility(msg.session)
-          if (sess.expiresAt > Date.now()) {
-            setSession(sess)
-          }
-        } else if (msg.type === 'session-updated' && msg.session) {
-          const sess = ensureCompatibility(msg.session)
-          setSession(sess)
-        }
-      }
-    } catch { /* BroadcastChannel not supported */ }
-
-    window.addEventListener('storage', handleStorageChange)
-    return () => {
-      window.removeEventListener('storage', handleStorageChange)
-      syncChannel?.close()
-    }
-  }, [])
-
-  // 세션 생성
-  const createSession = useCallback(async (user: CollabUser): Promise<CollabSession> => {
+  // 세션 생성 — RPC(host=auth.uid, 2인). 로그인 필수.
+  const createSession = useCallback(async (user: CollabUser): Promise<CollabSession | null> => {
     setError(null)
-
-    const now = Date.now()
-    const sessionId = nanoid(12)
-
-    const hostParticipant: SessionParticipant = {
-      userId: user.id,
-      userName: user.name,
-      userColor: user.color || getUserColor(user.id),
-      userAvatar: user.avatar,
-      zone: null,
-      isHost: true,
-      joinedAt: now,
-      isOnline: true,
+    if (IS_DEMO_MODE) {
+      setError('데모 모드에서는 협업을 사용할 수 없어요. 로그인 후 이용해주세요.')
+      return null
     }
-
-    const inviteCode = generateInviteCode()
-    const newSession: CollabSession = {
-      id: sessionId,
-      hostId: user.id,
-      hostName: user.name,
-      inviteCode,
-      templateId,
-      workId,
-      maxParticipants,
-      participants: [hostParticipant],
-      status: 'waiting',
-      createdAt: now,
-      expiresAt: now + SESSION_EXPIRY_MS,
-      // 호환성 속성
-      invite_code: inviteCode,
-      max_participants: maxParticipants,
+    try {
+      const supabase = createClient()
+      const inviteCode = generateInviteCode()
+      const { data, error: rpcError } = await supabase.rpc('create_collab_session', {
+        p_invite_code: inviteCode,
+        p_template_id: templateId ?? null,
+        p_work_id: workId ?? null,
+      })
+      if (rpcError || !data) {
+        setError('세션 생성에 실패했어요.')
+        return null
+      }
+      const sess = rowToSession(data as CollabRow)
+      setSession(sess)
+      setLocalUserId(user.id)
+      return sess
+    } catch {
+      setError('세션 생성 중 오류가 발생했어요.')
+      return null
     }
+  }, [templateId, workId])
 
-    setSession(newSession)
-    setLocalUserId(user.id)
-    saveSession(newSession)
-
-    // TODO: Supabase에 세션 저장
-    // await supabase.from('collab_sessions').insert(newSession)
-
-    return newSession
-  }, [templateId, workId, maxParticipants, saveSession])
-
-  // 세션 참가
+  // 세션 참가 — RPC(원자적 정원 체크). 로그인 필수.
   const joinSession = useCallback(async (
     inviteCode: string,
     user: CollabUser
   ): Promise<boolean> => {
     setIsJoining(true)
     setError(null)
-
+    if (IS_DEMO_MODE) {
+      setError('데모 모드에서는 협업에 참여할 수 없어요. 로그인 후 이용해주세요.')
+      setIsJoining(false)
+      return false
+    }
     try {
-      // TODO: Supabase에서 세션 조회
-      // const { data, error } = await supabase
-      //   .from('collab_sessions')
-      //   .select('*')
-      //   .eq('invite_code', inviteCode.toUpperCase())
-      //   .single()
-
-      // 데모: 로컬 스토리지에서 조회 (같은 브라우저 테스트용)
-      const stored = localStorage.getItem(SESSION_STORAGE_KEY)
-      if (!stored) {
-        setError('세션을 찾을 수 없습니다')
+      const supabase = createClient()
+      const { data, error: rpcError } = await supabase.rpc('join_collab_session', {
+        p_invite_code: inviteCode.toUpperCase(),
+      })
+      if (rpcError || !data) {
+        const msg = rpcError?.message ?? ''
+        setError(
+          msg.includes('full') ? '세션이 가득 찼습니다.'
+          : msg.includes('not found') ? '세션을 찾을 수 없거나 만료되었습니다.'
+          : msg.includes('auth') ? '참여하려면 로그인이 필요해요.'
+          : '세션 참가에 실패했습니다.'
+        )
         return false
       }
-
-      const existingSession = ensureCompatibility(JSON.parse(stored))
-
-      if (existingSession.inviteCode !== inviteCode.toUpperCase()) {
-        setError('잘못된 초대 코드입니다')
-        return false
-      }
-
-      if (existingSession.status === 'expired' || existingSession.expiresAt < Date.now()) {
-        setError('만료된 세션입니다')
-        return false
-      }
-
-      if (existingSession.participants.length >= existingSession.maxParticipants) {
-        setError('세션이 가득 찼습니다')
-        return false
-      }
-
-      // 이미 참가 중인지 확인
-      const alreadyJoined = existingSession.participants.some(p => p.userId === user.id)
-      if (alreadyJoined) {
-        setSession(existingSession)
-        setLocalUserId(user.id)
-        return true
-      }
-
-      // 새 참가자 추가
-      const newParticipant: SessionParticipant = {
-        userId: user.id,
-        userName: user.name,
-        userColor: user.color || getUserColor(user.id),
-        userAvatar: user.avatar,
-        zone: null,
-        isHost: false,
-        joinedAt: Date.now(),
-        isOnline: true,
-      }
-
-      const updatedSession: CollabSession = {
-        ...existingSession,
-        participants: [...existingSession.participants, newParticipant],
-        status: 'active',
-      }
-
-      setSession(updatedSession)
+      setSession(rowToSession(data as CollabRow))
       setLocalUserId(user.id)
-      saveSession(updatedSession)
-
       return true
-    } catch (err) {
-      setError('세션 참가 중 오류가 발생했습니다')
-      console.error('Join session error:', err)
+    } catch {
+      setError('세션 참가 중 오류가 발생했습니다.')
       return false
     } finally {
       setIsJoining(false)
     }
-  }, [saveSession])
+  }, [])
+
+  // Realtime 구독 — 세션 행 변경 동기화(참가/나가기/추방/종료)
+  useEffect(() => {
+    const sid = session?.id
+    if (!sid || IS_DEMO_MODE) return
+    const supabase = createClient()
+    const channel = supabase
+      .channel(`collab:${sid}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'collab_sessions', filter: `id=eq.${sid}` },
+        (payload) => {
+          if (payload.eventType === 'DELETE') {
+            setSession(null)
+            return
+          }
+          const next = rowToSession(payload.new as CollabRow)
+          // 완료/만료 → 세션 종료
+          if (next.status === 'completed' || next.status === 'expired') {
+            setSession(null)
+            return
+          }
+          // 추방 감지: 본인이 참가자 목록에서 사라졌으면 세션 이탈
+          const me = localUserIdRef.current
+          if (me && next.hostId !== me && !next.participants.some((p) => p.userId === me)) {
+            setSession(null)
+            setError('세션에서 나가게 되었어요.')
+            return
+          }
+          setSession(next)
+        }
+      )
+      .subscribe()
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [session?.id])
 
   // 세션 나가기
   const leaveSession = useCallback(() => {
-    if (!session || !localUserId) return
-
-    const updatedParticipants = session.participants.filter(p => p.userId !== localUserId)
-
-    if (updatedParticipants.length === 0) {
-      // 마지막 참가자가 나가면 세션 종료
-      saveSession(null)
-      setSession(null)
-    } else if (session.hostId === localUserId) {
-      // 호스트가 나가면 다음 참가자에게 호스트 이전
-      const newHost = updatedParticipants[0]
-      const updatedSession: CollabSession = {
-        ...session,
-        hostId: newHost.userId,
-        hostName: newHost.userName,
-        participants: updatedParticipants.map((p, i) => ({
-          ...p,
-          isHost: i === 0,
-        })),
-      }
-      saveSession(updatedSession)
-      setSession(null)
-    } else {
-      const updatedSession: CollabSession = {
-        ...session,
-        participants: updatedParticipants,
-      }
-      saveSession(updatedSession)
-      setSession(null)
-    }
-
+    const sess = session
+    if (!sess || IS_DEMO_MODE) { setSession(null); setLocalUserId(null); return }
+    const supabase = createClient()
+    void supabase.rpc('leave_collab_session', { p_session_id: sess.id })
+    setSession(null)
     setLocalUserId(null)
-  }, [session, localUserId, saveSession])
+  }, [session])
 
   // 세션 종료 (호스트만)
   const endSession = useCallback(() => {
-    if (!session || session.hostId !== localUserId) return
-
-    const endedSession: CollabSession = {
-      ...session,
-      status: 'completed',
-    }
-    saveSession(endedSession)
+    const sess = session
+    if (!sess || IS_DEMO_MODE) { setSession(null); setLocalUserId(null); return }
+    const supabase = createClient()
+    void supabase.rpc('end_collab_session', { p_session_id: sess.id })
     setSession(null)
     setLocalUserId(null)
-
-    // TODO: Supabase에 세션 상태 업데이트
-  }, [session, localUserId, saveSession])
+  }, [session])
 
   // 초대 링크 생성
   const getInviteLink = useCallback((): string => {
     if (!session) return ''
-
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
-    return `${baseUrl}/editor?join=${session.inviteCode}`
+    return `${baseUrl}/collab/${session.inviteCode}`
   }, [session])
 
   // 초대 링크 복사
   const copyInviteLink = useCallback(async (): Promise<boolean> => {
     const link = getInviteLink()
     if (!link) return false
-
     try {
       await navigator.clipboard.writeText(link)
       return true
     } catch {
-      // 폴백: 구형 브라우저 지원
       const textArea = document.createElement('textarea')
       textArea.value = link
       document.body.appendChild(textArea)
@@ -455,34 +358,18 @@ export function useCollabSession(
     }
   }, [getInviteLink])
 
-  // 초대 코드 재생성
+  // 초대 코드 재생성 — 서버 재발급은 후속(2인 MVP 범위 밖). 현재 코드 반환.
   const regenerateInviteCode = useCallback((): string => {
-    if (!session || session.hostId !== localUserId) return session?.inviteCode || ''
+    return session?.inviteCode || ''
+  }, [session])
 
-    const newCode = generateInviteCode()
-    const updatedSession: CollabSession = {
-      ...session,
-      inviteCode: newCode,
-    }
-    setSession(updatedSession)
-    saveSession(updatedSession)
-
-    return newCode
-  }, [session, localUserId, saveSession])
-
-  // 참가자 추방 (호스트만)
+  // 참가자 추방 (호스트만) — RPC. Realtime 이 목록 갱신을 전파.
   const kickParticipant = useCallback((userId: string) => {
-    if (!session || session.hostId !== localUserId || userId === localUserId) return
-
-    const updatedSession: CollabSession = {
-      ...session,
-      participants: session.participants.filter(p => p.userId !== userId),
-    }
-    setSession(updatedSession)
-    saveSession(updatedSession)
-
-    // TODO: Supabase Realtime으로 추방 이벤트 전송
-  }, [session, localUserId, saveSession])
+    const sess = session
+    if (!sess || sess.hostId !== localUserIdRef.current || IS_DEMO_MODE) return
+    const supabase = createClient()
+    void supabase.rpc('kick_collab_participant', { p_session_id: sess.id, p_user_id: userId })
+  }, [session])
 
   const isHost = session?.hostId === localUserId
 

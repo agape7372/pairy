@@ -52,7 +52,11 @@
   - Tier B: H-13(IME 가드 7곳 + `isImeComposing`), C-02(에디터 동기 저장), H-06(`POST /api/account/delete` + admin.deleteUser, cascade 전수확인), C-01b(앱 유료 다운로드 차단 확인+정직 카피), H-03(프로덕션 정산 신청 gate+정직 문구).
   - Tier C: H-02(confirm `.select()` row-count 게이트).
   - Tier F: M-02(CI build 스텝), H-12 안전부분(aria-label·aria-expanded·skip link·단일 main).
-- **미착지(후속 세션)**: H-12 CTA 대비 토큰(디자인 민감)·공용 Dialog(focus trap/Escape)·M-10(client nullable 타입); **Tier D**(H-07 협업 재건 — 게스트정책 결정 선행)·**Tier E**(H-08 entity 정본 — entity모델 DL 선행); C-01b DB-level file_url 은닉(F-28 사설전달과 함께).
+- **추가 완료(2026-07-20 후속)**:
+  - Tier D 서버 foundation(H-07): collab RPC 5종([[DL-0007]], `20260720000005`) + useCollabSession RPC/Realtime 재작성 + CollabJoinClient 로그인필수 join. tsc/test/build 통과.
+  - Tier E entity 정본 결정([[DL-0008]]): resource≠template 분리 유지 + 용어 정본화.
+  - Tier F 안전 a11y: 위 참조.
+- **미착지(후속 세션)**: H-12 CTA 대비 토큰(디자인 민감)·공용 Dialog·M-10(nullable); **H-07 에디터 바인딩+F-11 실시간 공동편집**([[DL-0007]] 후속); **H-08 vertical slice**(에디터 DB 로드 — F-28 editor_data 실서빙 선행, [[DL-0008]]); C-01b DB-level file_url 은닉(F-28).
 - **배포 전 필수**: 4개 신규 마이그레이션의 라이브 DB negative-test(각 파일 하단 검증 쿼리) + H-01/H-06 은 로그인·OAuth·삭제 실E2E. H-06 은 `SUPABASE_SERVICE_ROLE_KEY` env 필요.
 
 ## 되돌림 / 후속

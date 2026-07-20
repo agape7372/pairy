@@ -850,6 +850,36 @@ export interface Database {
         Args: Record<PropertyKey, never>
         Returns: Database['public']['Tables']['profiles']['Row'][]
       }
+      /** 초대코드로 활성 협업 세션 1건 조회 (SECURITY DEFINER — 20260706000000, H-1 대체 경로) */
+      get_collab_session_by_invite: {
+        Args: { p_invite_code: string }
+        Returns: Database['public']['Tables']['collab_sessions']['Row']
+      }
+      /** 협업 세션 생성 (SECURITY DEFINER — 20260720000005, H-07). host=auth.uid, 2인 고정. */
+      create_collab_session: {
+        Args: { p_invite_code: string; p_template_id?: string | null; p_work_id?: string | null }
+        Returns: Database['public']['Tables']['collab_sessions']['Row']
+      }
+      /** 협업 세션 참가 (SECURITY DEFINER — 20260720000005, H-07). 원자적 정원 체크. */
+      join_collab_session: {
+        Args: { p_invite_code: string }
+        Returns: Database['public']['Tables']['collab_sessions']['Row']
+      }
+      /** 협업 세션 나가기 (SECURITY DEFINER — 20260720000005, H-07) */
+      leave_collab_session: {
+        Args: { p_session_id: string }
+        Returns: undefined
+      }
+      /** 협업 세션 종료 — 호스트만 (SECURITY DEFINER — 20260720000005, H-07) */
+      end_collab_session: {
+        Args: { p_session_id: string }
+        Returns: undefined
+      }
+      /** 협업 참가자 추방 — 호스트만 (SECURITY DEFINER — 20260720000005, H-07) */
+      kick_collab_participant: {
+        Args: { p_session_id: string; p_user_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
