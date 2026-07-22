@@ -30,6 +30,7 @@ import {
   LICENSE_INFO,
   type ResourceCategory,
   type LicenseType,
+  resourceFormatLabel,
   type Resource,
 } from '@/types/resources'
 import {
@@ -775,7 +776,7 @@ export default function ResourceHubPage() {
                         price={resource.price}
                       />
                       <span className="text-xs text-gray-400">
-                        {resource.fileInfo.format[0].toUpperCase()}
+                        {resourceFormatLabel(resource)}
                       </span>
                     </div>
                   </div>

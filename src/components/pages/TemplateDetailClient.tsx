@@ -31,6 +31,7 @@ import {
   RESOURCE_CATEGORIES,
   LICENSE_INFO,
   FILE_FORMAT_INFO,
+  resourceFormatLabel,
   type ResourceCategory,
   type LicenseType,
   type Resource,
@@ -668,7 +669,9 @@ export default function TemplateDetailClient({ templateId }: TemplateDetailClien
                   <div>
                     <span className="text-gray-500">포맷:</span>
                     <span className="ml-2 font-medium text-gray-900">
-                      {resource.fileInfo.format.map(f => f.toUpperCase()).join(', ')}
+                      {resource.fileInfo.format.length > 0
+                        ? resource.fileInfo.format.map(f => f.toUpperCase()).join(', ')
+                        : resourceFormatLabel(resource) || '—'}
                     </span>
                   </div>
                   <div>

@@ -197,6 +197,20 @@ export interface Resource {
   isPremium: boolean
 }
 
+/**
+ * 카드/상세에 표시할 파일 형식 라벨.
+ * `fileInfo.format` 은 비어 있을 수 있다 — 외부 링크만 등록한 자료(file_name null)나
+ * KNOWN_FORMATS 밖 확장자(zip·pdf 등)는 매핑에서 빈 배열이 된다.
+ * 따라서 `format[0]` 을 그대로 참조하지 말고 이 함수를 쓴다.
+ */
+export function resourceFormatLabel(resource: Resource): string {
+  const known = resource.fileInfo.format[0]
+  if (known) return known.toUpperCase()
+  if (resource.downloadUrl) return '파일'
+  if (resource.externalUrl) return '링크'
+  return ''
+}
+
 // 태그 목록 (카테고리별)
 export const CATEGORY_TAGS: Record<ResourceCategory, string[]> = {
   imeres: ['배경', '소스', '텍스처', '패턴', '프레임', '데코', '이펙트', '캐릭터'],
