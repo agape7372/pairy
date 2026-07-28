@@ -16,3 +16,13 @@
 3. `collab/[code]/page.tsx`의 `generateStaticParams`를 동적 라우팅 방식으로 전환(런타임 결별 종속) — AC: 임의 초대코드로 접근 시 404 아님. (Opus, F-11/F-23과 공동 결정 필요)
 
 **의존·순서**: **선행조건**: 위 1번(마이그레이션 적용, 사용자 수행) → 2번(훅 배선). **후행영향**: F-11(실시간협업)이 이 세션 join 위에서 동작 — F-13 없이는 F-11도 실기기 간 무의미. 3번은 정적 export 결별(Tier 0 #4) 결정에 종속되므로 그 전엔 defer 가능.
+
+## 갱신 · 2026-07-28 (DL-0007)   [source-ready/live-unverified]
+
+- 프로덕션 생성·조회·참가·상태 변경은 Supabase/RPC 경로를 사용하고 localStorage는
+  캐시일 뿐 서버 재검증 없이 신뢰하지 않는다. 데모 모드만 로컬 transport를 유지한다.
+- 에디터의 “협업 시작”은 가짜 ID나 reload 대신 실제 생성된 세션 ID를 현재 URL과
+  Provider에 연결한다. 자동 시작도 문서 로드 후 같은 경로를 탄다.
+- 초대 참가자가 저장하면 host work를 갱신하지 않고 자신의 작품 사본을 만든다.
+- 라이브 판정은 DL-0007의 private Realtime migration과 타 브라우저 초대/join
+  검증을 통과한 뒤 갱신한다.

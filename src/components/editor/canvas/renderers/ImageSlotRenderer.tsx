@@ -5,7 +5,7 @@
  * 변경 이유: TemplateRenderer.tsx에서 분리하여 단일 책임 원칙 준수
  */
 
-import { useRef, useEffect, useCallback } from 'react'
+import { useRef, useEffect, useCallback, memo } from 'react'
 import { Group, Image, Rect, Transformer } from 'react-konva'
 import type Konva from 'konva'
 import { useImage, useMaskedImage } from '@/hooks/useKonvaImage'
@@ -18,13 +18,13 @@ interface ImageSlotRendererProps {
   imageSrc: string | null
   colors: ColorData
   isSelected: boolean
-  onClick?: () => void
+  onClick?: (slotId: string) => void
   slotTransform?: SlotImageTransform
-  onTransformChange?: (transform: Partial<SlotImageTransform>) => void
+  onTransformChange?: (slotId: string, transform: Partial<SlotImageTransform>) => void
   editable?: boolean
 }
 
-export function ImageSlotRenderer({
+export const ImageSlotRenderer = memo(function ImageSlotRenderer({
   slot,
   imageSrc,
   colors,
@@ -60,11 +60,11 @@ export function ImageSlotRenderer({
 
   // 선택 시 Transformer 연결
   useEffect(() => {
-    if (isSelected && transformerRef.current && imageRef.current) {
+    if (isSelected && editable && transformerRef.current && imageRef.current) {
       transformerRef.current.nodes([imageRef.current])
       transformerRef.current.getLayer()?.batchDraw()
     }
-  }, [isSelected])
+  }, [isSelected, editable, maskedCanvas])
 
   // 드래그 종료 핸들러
   const handleDragEnd = useCallback(
@@ -83,14 +83,14 @@ export function ImageSlotRenderer({
       // 슬롯 내에서의 상대적 이동을 -1~1 범위로 변환
       const deltaX = node.x() / halfWidth
       const deltaY = node.y() / halfHeight
-      onTransformChange({
+      onTransformChange(slot.id, {
         x: Math.max(-1, Math.min(1, currentTransform.x + deltaX)),
         y: Math.max(-1, Math.min(1, currentTransform.y + deltaY)),
       })
       // 노드 위치 리셋 (실제 위치는 useMaskedImage에서 처리)
       node.position({ x: 0, y: 0 })
     },
-    [onTransformChange, editable, transform.width, transform.height, currentTransform.x, currentTransform.y]
+    [onTransformChange, editable, slot.id, transform.width, transform.height, currentTransform.x, currentTransform.y]
   )
 
   // Transform 종료 핸들러 (스케일/회전)
@@ -98,21 +98,34 @@ export function ImageSlotRenderer({
     (e: Konva.KonvaEventObject<Event>) => {
       if (!onTransformChange || !editable) return
       const node = e.target
-      const newScale = node.scaleX()
+      // flipX는 Konva 노드의 scaleX를 음수로 만들므로 크기 배율에는 절댓값만 쓴다.
+      const newScale = Math.abs(node.scaleX())
       const newRotation = node.rotation()
 
-      onTransformChange({
+      onTransformChange(slot.id, {
         scale: currentTransform.scale * newScale,
         rotation: currentTransform.rotation + newRotation,
       })
 
       // 노드 스케일/회전 리셋 (실제 변환은 useMaskedImage에서 처리)
-      node.scaleX(1)
-      node.scaleY(1)
+      node.scaleX(currentTransform.flipX ? -1 : 1)
+      node.scaleY(currentTransform.flipY ? -1 : 1)
       node.rotation(0)
     },
-    [onTransformChange, editable, currentTransform.scale, currentTransform.rotation]
+    [
+      onTransformChange,
+      editable,
+      slot.id,
+      currentTransform.scale,
+      currentTransform.rotation,
+      currentTransform.flipX,
+      currentTransform.flipY,
+    ]
   )
+
+  const handleClick = useCallback(() => {
+    onClick?.(slot.id)
+  }, [onClick, slot.id])
 
   // Konva clipFunc for shape masks (fallback and for selection indicator)
   const clipFunc = useCallback(
@@ -151,8 +164,8 @@ export function ImageSlotRenderer({
         scaleY={transform.scaleY ?? 1}
         offsetX={(transform.originX ?? 0) * transform.width}
         offsetY={(transform.originY ?? 0) * transform.height}
-        onClick={onClick}
-        onTap={onClick}
+        onClick={onClick ? handleClick : undefined}
+        onTap={onClick ? handleClick : undefined}
         clipFunc={clipFunc}
         {...shadowProps}
       >
@@ -254,4 +267,4 @@ export function ImageSlotRenderer({
       )}
     </>
   )
-}
+})

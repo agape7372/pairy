@@ -6,6 +6,8 @@ import { Users, Loader2, AlertCircle, ArrowRight } from 'lucide-react'
 import { nanoid } from 'nanoid'
 import { Button } from '@/components/ui'
 import { useCollabSession } from '@/hooks/useCollabSession'
+import { useUser } from '@/hooks/useUser'
+import { IS_DEMO_MODE } from '@/lib/supabase/client'
 import type { CollabUser } from '@/lib/collab/types'
 
 interface CollabJoinClientProps {
@@ -15,6 +17,7 @@ interface CollabJoinClientProps {
 export default function CollabJoinClient({ code }: CollabJoinClientProps) {
   const router = useRouter()
   const upperCode = code.toUpperCase()
+  const { user, profile, isLoading: isUserLoading } = useUser()
 
   const {
     session,
@@ -29,18 +32,31 @@ export default function CollabJoinClient({ code }: CollabJoinClientProps) {
   useEffect(() => {
     // 세션이 활성화되면 에디터로 이동
     if (session && session.status === 'active' && joined) {
-      router.push(`/editor/${session.workId}?session=${session.id}`)
+      const targetTemplateId = session.templateId || 'couple-magazine'
+      router.push(
+        `/canvas-editor/${encodeURIComponent(targetTemplateId)}?session=${encodeURIComponent(session.id)}`
+      )
     }
   }, [session, joined, router])
 
   const handleJoin = async () => {
+    if (!IS_DEMO_MODE && !user) {
+      router.push(
+        `/login?redirectTo=${encodeURIComponent(`/collab/${upperCode}`)}`
+      )
+      return
+    }
+
     setJoining(true)
 
-    // TODO: 실제로는 로그인된 사용자 정보를 사용
     const guestUser: CollabUser = {
-      id: nanoid(8),
-      name: `게스트_${Math.floor(Math.random() * 1000)}`,
+      id: user?.id || nanoid(8),
+      name:
+        profile?.display_name ||
+        user?.email?.split('@')[0] ||
+        `게스트_${Math.floor(Math.random() * 1000)}`,
       color: '#4ECDC4',
+      avatar: profile?.avatar_url || undefined,
     }
 
     const success = await joinSession(upperCode, guestUser)
@@ -130,9 +146,9 @@ export default function CollabJoinClient({ code }: CollabJoinClientProps) {
           size="lg"
           className="w-full"
           onClick={handleJoin}
-          disabled={joining}
+          disabled={joining || isUserLoading}
         >
-          {joining ? (
+          {joining || isUserLoading ? (
             <>
               <Loader2 className="w-5 h-5 mr-2 animate-spin" />
               참여하는 중...

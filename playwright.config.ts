@@ -7,6 +7,14 @@ const PREINSTALLED_CHROMIUM = '/opt/pw-browsers/chromium'
 const chromiumExecutablePath = fs.existsSync(PREINSTALLED_CHROMIUM)
   ? PREINSTALLED_CHROMIUM
   : undefined
+const requestedPort = Number.parseInt(process.env.PLAYWRIGHT_PORT || '3000', 10)
+const playwrightPort =
+  Number.isInteger(requestedPort) &&
+  requestedPort > 0 &&
+  requestedPort <= 65535
+    ? requestedPort
+    : 3000
+const baseURL = `http://localhost:${playwrightPort}`
 
 export default defineConfig({
   testDir: './e2e',
@@ -16,7 +24,7 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL,
     trace: 'on-first-retry',
   },
   projects: [
@@ -35,8 +43,8 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:3000',
+    command: `npm run dev -- --port ${playwrightPort}`,
+    url: baseURL,
     reuseExistingServer: !process.env.CI,
   },
 })

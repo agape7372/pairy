@@ -16,12 +16,13 @@ import {
   useEffect,
   useState,
   useCallback,
+  useMemo,
   useRef,
   type ReactNode,
 } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 import { SupabaseYjsProvider } from './yjsProvider'
 import { useCanvasEditorStore } from '@/stores/canvasEditorStore'
-import { isSupabaseConfigured } from '@/lib/supabase/client'
 import type {
   SyncState,
   CollabUser,
@@ -57,7 +58,11 @@ interface CollabContextValue {
   updateSelection: (slotId: string | null, textId: string | null) => void
 
   // 세션 관리
-  connect: (sessionId: string, user: CollabUser) => Promise<void>
+  connect: (
+    sessionId: string,
+    user: CollabUser,
+    realtimeKey?: string
+  ) => Promise<void>
   disconnect: () => void
 
   // H-2 완화: 서버 participants 기준 인바운드 allowlist (null = 해제)
@@ -85,12 +90,14 @@ export function CollabProvider({
 }: CollabProviderProps) {
   // Yjs Provider 인스턴스
   const providerRef = useRef<SupabaseYjsProvider | null>(null)
+  const connectGenerationRef = useRef(0)
   // H-2: provider 재생성 시에도 유지되는 allowlist
   const allowedUsersRef = useRef<string[] | null>(null)
+  const conflictTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // 상태
   const [isConnected, setIsConnected] = useState(false)
-  const [isSyncing] = useState(false)
+  const [isSyncing, setIsSyncing] = useState(false)
   const [localUser, setLocalUser] = useState<CollabUser | null>(initialUser || null)
   const [remoteUsers, setRemoteUsers] = useState<Map<string, UserEditingState>>(new Map())
   const [myZone, setMyZone] = useState<EditingZone>(null)
@@ -107,20 +114,39 @@ export function CollabProvider({
     colors,
     slotTransforms,
     templateConfig,
-    setFormData,
-    setImages,
-    setColors,
-  } = useCanvasEditorStore()
+  } = useCanvasEditorStore(
+    useShallow((state) => ({
+      formData: state.formData,
+      images: state.images,
+      colors: state.colors,
+      slotTransforms: state.slotTransforms,
+      templateConfig: state.templateConfig,
+    }))
+  )
 
   // 원격 상태 변경 핸들러
   const handleSyncStateChange = useCallback((state: SyncState) => {
     // 원격에서 받은 상태로 로컬 스토어 업데이트
     // Note: 이 업데이트는 다시 Yjs로 전파되지 않도록 플래그 설정 필요
-    setFormData(state.formData)
-    setImages(state.images)
-    setColors(state.colors)
+    useCanvasEditorStore.setState((current) => ({
+      formData: state.formData,
+      images: state.images,
+      colors: state.colors,
+      slotTransforms: state.slotTransforms,
+      templateConfig: current.templateConfig
+        ? {
+            ...current.templateConfig,
+            layers: {
+              ...current.templateConfig.layers,
+              stickers: state.stickers,
+              texts: state.texts,
+            },
+          }
+        : current.templateConfig,
+      isDirty: true,
+    }))
     // slotTransforms와 stickers는 별도 처리
-  }, [setFormData, setImages, setColors])
+  }, [])
 
   // 원격 사용자 변경 핸들러
   const handleRemoteUserChange = useCallback((users: Map<string, UserEditingState>) => {
@@ -137,6 +163,10 @@ export function CollabProvider({
 
   // 충돌 핸들러
   const handleConflict = useCallback((slotId: string | null, textId: string | null, userName: string) => {
+    if (conflictTimeoutRef.current) {
+      clearTimeout(conflictTimeoutRef.current)
+    }
+
     setCurrentConflict({
       slotId: slotId || undefined,
       textId: textId || undefined,
@@ -146,9 +176,18 @@ export function CollabProvider({
     })
 
     // 3초 후 자동 dismiss
-    setTimeout(() => {
+    conflictTimeoutRef.current = setTimeout(() => {
       setCurrentConflict(null)
+      conflictTimeoutRef.current = null
     }, 3000)
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      if (conflictTimeoutRef.current) {
+        clearTimeout(conflictTimeoutRef.current)
+      }
+    }
   }, [])
 
   // H-2: 세션 참가자 allowlist 갱신 (참가자 목록이 바뀔 때마다 호출)
@@ -158,14 +197,12 @@ export function CollabProvider({
   }, [])
 
   // 연결 (에러 처리 포함)
-  const connect = useCallback(async (sessionId: string, user: CollabUser) => {
-    // 데모 모드에서는 연결하지 않음
-    if (!isSupabaseConfigured()) {
-      console.log('[CollabProvider] Demo mode - skipping connection')
-      setLocalUser(user)
-      return
-    }
-
+  const connect = useCallback(async (
+    sessionId: string,
+    user: CollabUser,
+    realtimeKey?: string
+  ) => {
+    const generation = ++connectGenerationRef.current
     try {
       // 기존 연결 정리
       if (providerRef.current) {
@@ -178,10 +215,27 @@ export function CollabProvider({
 
       const provider = new SupabaseYjsProvider({
         sessionId,
+        realtimeKey,
         user,
         onSyncStateChange: handleSyncStateChange,
         onRemoteUserChange: handleRemoteUserChange,
         onConflict: handleConflict,
+        onConnectionChange: (connected) => {
+          if (
+            connectGenerationRef.current === generation &&
+            providerRef.current === provider
+          ) {
+            setIsConnected(connected)
+          }
+        },
+        onSyncingChange: (syncing) => {
+          if (
+            connectGenerationRef.current === generation &&
+            providerRef.current === provider
+          ) {
+            setIsSyncing(syncing)
+          }
+        },
       })
 
       providerRef.current = provider
@@ -191,34 +245,48 @@ export function CollabProvider({
       // 현재 로컬 상태로 초기화 (templateConfig가 없어도 안전)
       const currentState = useCanvasEditorStore.getState()
       const stickers = currentState.templateConfig?.layers.stickers || []
-      provider.initializeState({
+      const texts = currentState.templateConfig?.layers.texts || []
+      provider.prepareInitialState({
         formData: currentState.formData,
         images: currentState.images,
         colors: currentState.colors,
         slotTransforms: currentState.slotTransforms,
         stickers,
+        texts,
       })
 
       await provider.connect()
-      setIsConnected(true)
+      if (
+        connectGenerationRef.current !== generation ||
+        providerRef.current !== provider
+      ) {
+        provider.disconnect()
+        return
+      }
       console.log('[CollabProvider] Connected successfully')
     } catch (error) {
       console.error('[CollabProvider] Connection failed:', error)
       // 연결 실패 시 상태 정리
-      setIsConnected(false)
-      if (providerRef.current) {
+      if (
+        connectGenerationRef.current === generation &&
+        providerRef.current
+      ) {
+        setIsConnected(false)
+        setIsSyncing(false)
         try {
           providerRef.current.disconnect()
-        } catch (e) {
+        } catch {
           // 무시
         }
         providerRef.current = null
       }
+      throw error
     }
   }, [handleSyncStateChange, handleRemoteUserChange, handleConflict])
 
   // 연결 해제 (에러 처리 포함)
   const disconnect = useCallback(() => {
+    connectGenerationRef.current += 1
     if (providerRef.current) {
       try {
         providerRef.current.disconnect()
@@ -228,8 +296,10 @@ export function CollabProvider({
       providerRef.current = null
     }
     setIsConnected(false)
+    setIsSyncing(false)
     setRemoteUsers(new Map())
     setZoneOwners({ A: null, B: null })
+    setMyZone(null)
   }, [])
 
   // 영역 선점
@@ -254,6 +324,10 @@ export function CollabProvider({
 
   // 충돌 dismiss
   const dismissConflict = useCallback(() => {
+    if (conflictTimeoutRef.current) {
+      clearTimeout(conflictTimeoutRef.current)
+      conflictTimeoutRef.current = null
+    }
     setCurrentConflict(null)
   }, [])
 
@@ -318,19 +392,23 @@ export function CollabProvider({
 
     const timeoutId = setTimeout(() => {
       const stickers = templateConfig?.layers.stickers || []
-      providerRef.current?.initializeState({
+      const texts = templateConfig?.layers.texts || []
+      providerRef.current?.syncLocalState({
         formData,
         images,
         colors,
         slotTransforms,
         stickers,
+        texts,
       })
     }, 100)
 
     return () => clearTimeout(timeoutId)
   }, [formData, images, colors, slotTransforms, templateConfig, isConnected, isSyncing])
 
-  const value: CollabContextValue = {
+  // 에디터 데이터 송신을 위한 provider 자체 재렌더가 context consumer까지
+  // 전파되지 않도록 실제 협업 상태가 바뀔 때만 value 참조를 갱신한다.
+  const value = useMemo<CollabContextValue>(() => ({
     isConnected,
     isSyncing,
     localUser,
@@ -345,7 +423,22 @@ export function CollabProvider({
     connect,
     disconnect,
     setAllowedUsers,
-  }
+  }), [
+    isConnected,
+    isSyncing,
+    localUser,
+    remoteUsers,
+    myZone,
+    claimZone,
+    getZoneOwner,
+    currentConflict,
+    dismissConflict,
+    updateCursor,
+    updateSelection,
+    connect,
+    disconnect,
+    setAllowedUsers,
+  ])
 
   return <CollabContext.Provider value={value}>{children}</CollabContext.Provider>
 }

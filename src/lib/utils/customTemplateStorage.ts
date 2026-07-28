@@ -7,6 +7,7 @@
  */
 
 import type { TemplateConfig, ImageSlot, TextField } from '@/types/template'
+import type { Template as DatabaseTemplate } from '@/types/database.types'
 
 // ============================================
 // 타입 정의
@@ -199,7 +200,7 @@ export function deleteCustomTemplate(id: string): boolean {
  * 커스텀 템플릿을 에디터용 TemplateConfig로 변환
  */
 export function convertToTemplateConfig(template: CustomTemplate): TemplateConfig {
-  const { canvasSize, compositeImage, slots, fields, layers } = template
+  const { canvasSize, compositeImage, slots, fields } = template
 
   // 슬롯 설정 변환
   const slotConfigs: ImageSlot[] = slots.map((slot, index) => ({
@@ -257,7 +258,7 @@ export function convertToTemplateConfig(template: CustomTemplate): TemplateConfi
   const backgroundConfig = compositeImage
     ? {
         type: 'image' as const,
-        src: compositeImage,
+        imageUrl: compositeImage,
       }
     : {
         type: 'solid' as const,
@@ -303,6 +304,174 @@ export function convertToTemplateConfig(template: CustomTemplate): TemplateConfi
     },
     inputFields,
   }
+}
+
+type DatabaseTemplateSource = Pick<
+  DatabaseTemplate,
+  'id' | 'title' | 'description' | 'preview_url' | 'editor_data' | 'created_at' | 'updated_at'
+>
+
+type UnknownRecord = Record<string, unknown>
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value)
+}
+
+function readCanvasSize(
+  editorData: UnknownRecord,
+  slots: CustomTemplate['slots']
+): CustomTemplate['canvasSize'] {
+  const canvasSize = editorData.canvasSize
+  if (
+    isRecord(canvasSize) &&
+    isFiniteNumber(canvasSize.width) &&
+    canvasSize.width > 0 &&
+    isFiniteNumber(canvasSize.height) &&
+    canvasSize.height > 0
+  ) {
+    return { width: canvasSize.width, height: canvasSize.height }
+  }
+
+  // 초기 seed 데이터에는 canvasSize가 없었다. 슬롯 경계를 포함하는 안전한
+  // 기본 캔버스를 만들어 기존 템플릿도 다시 열 수 있게 한다.
+  const maxX = slots.reduce((value, slot) => Math.max(value, slot.x + slot.width), 0)
+  const maxY = slots.reduce((value, slot) => Math.max(value, slot.y + slot.height), 0)
+  return {
+    width: Math.max(600, Math.ceil(maxX + 50)),
+    height: Math.max(400, Math.ceil(maxY + 50)),
+  }
+}
+
+function parseDatabaseSlots(value: unknown): CustomTemplate['slots'] {
+  if (!Array.isArray(value)) {
+    throw new Error('템플릿 슬롯 데이터가 올바르지 않습니다')
+  }
+
+  return value.map((item, index) => {
+    if (
+      !isRecord(item) ||
+      typeof item.id !== 'string' ||
+      !isFiniteNumber(item.x) ||
+      !isFiniteNumber(item.y) ||
+      !isFiniteNumber(item.width) ||
+      item.width <= 0 ||
+      !isFiniteNumber(item.height) ||
+      item.height <= 0
+    ) {
+      throw new Error(`템플릿 슬롯 ${index + 1}의 형식이 올바르지 않습니다`)
+    }
+
+    return {
+      id: item.id,
+      label: typeof item.label === 'string' ? item.label : `슬롯 ${index + 1}`,
+      x: item.x,
+      y: item.y,
+      width: item.width,
+      height: item.height,
+    }
+  })
+}
+
+function parseDatabaseFields(value: unknown): CustomTemplate['fields'] {
+  if (value === undefined) return []
+  if (!Array.isArray(value)) {
+    throw new Error('템플릿 필드 데이터가 올바르지 않습니다')
+  }
+
+  return value.map((item, index) => {
+    if (
+      !isRecord(item) ||
+      typeof item.id !== 'string' ||
+      typeof item.slotId !== 'string' ||
+      typeof item.label !== 'string' ||
+      (item.type !== 'text' && item.type !== 'image')
+    ) {
+      throw new Error(`템플릿 필드 ${index + 1}의 형식이 올바르지 않습니다`)
+    }
+
+    return {
+      id: item.id,
+      slotId: item.slotId,
+      label: item.label,
+      type: item.type,
+    }
+  })
+}
+
+function parseDatabaseLayers(value: unknown): CustomTemplate['layers'] {
+  if (value === undefined) return undefined
+  if (!Array.isArray(value)) {
+    throw new Error('템플릿 레이어 데이터가 올바르지 않습니다')
+  }
+
+  return value.map((item, index) => {
+    if (
+      !isRecord(item) ||
+      typeof item.id !== 'string' ||
+      typeof item.name !== 'string' ||
+      !isFiniteNumber(item.x) ||
+      !isFiniteNumber(item.y) ||
+      !isFiniteNumber(item.width) ||
+      !isFiniteNumber(item.height) ||
+      typeof item.visible !== 'boolean'
+    ) {
+      throw new Error(`템플릿 레이어 ${index + 1}의 형식이 올바르지 않습니다`)
+    }
+
+    return {
+      id: item.id,
+      name: item.name,
+      imageUrl: typeof item.imageUrl === 'string' ? item.imageUrl : undefined,
+      x: item.x,
+      y: item.y,
+      width: item.width,
+      height: item.height,
+      visible: item.visible,
+    }
+  })
+}
+
+/**
+ * Supabase templates 행을 캔버스 에디터 설정으로 변환한다.
+ *
+ * 현재 제작기 스키마와 canvasSize가 없던 초기 seed 스키마를 모두 지원한다.
+ * DB JSON은 신뢰하지 않고 필요한 필드를 런타임 검증한 뒤 사용한다.
+ */
+export function convertDatabaseTemplateToConfig(
+  template: DatabaseTemplateSource
+): TemplateConfig {
+  if (!isRecord(template.editor_data)) {
+    throw new Error('템플릿 편집 데이터가 비어 있습니다')
+  }
+
+  const editorData = template.editor_data
+  const slots = parseDatabaseSlots(editorData.slots)
+  if (slots.length === 0) {
+    throw new Error('편집 가능한 슬롯이 없는 템플릿입니다')
+  }
+
+  const tags = Array.isArray(editorData.tags)
+    ? editorData.tags.filter((tag): tag is string => typeof tag === 'string')
+    : []
+
+  return convertToTemplateConfig({
+    id: template.id,
+    title: template.title,
+    description: template.description || '',
+    emoji: typeof editorData.emoji === 'string' ? editorData.emoji : '🎨',
+    tags,
+    canvasSize: readCanvasSize(editorData, slots),
+    compositeImage: template.preview_url || undefined,
+    slots,
+    fields: parseDatabaseFields(editorData.fields),
+    layers: parseDatabaseLayers(editorData.layers),
+    createdAt: template.created_at,
+    updatedAt: template.updated_at,
+  })
 }
 
 /**

@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useCallback, useRef, useState, useEffect } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 import {
   Type,
   Image as ImageIcon,
@@ -28,8 +29,17 @@ import {
 import { cn } from '@/lib/utils/cn'
 import { useCanvasEditorStore } from '@/stores/canvasEditorStore'
 import type { InputFieldConfig, ImageSlot, ColorConfig, SlotImageTransform, ImageFilters, TextEffects, TextField, StickerLayer } from '@/types/template'
-import { ALL_STICKER_PACKS, searchStickers, type Sticker as StickerType, type StickerPack } from '@/types/sticker'
-import { processImageFile, formatFileSize, isSupportedImageType } from '@/lib/utils/imageCompressor'
+import { ALL_STICKER_PACKS, searchStickers, type Sticker as StickerType } from '@/types/sticker'
+import {
+  IMAGE_COMPRESSION_CONFIG,
+  processImageFile,
+  formatFileSize,
+  isSupportedImageType,
+} from '@/lib/utils/imageCompressor'
+import {
+  deleteEditorImage,
+  uploadEditorImage,
+} from '@/lib/supabase/storage'
 // Sprint 33: 캐릭터 선택
 import { CharacterSection } from './CharacterSelector'
 // Sprint 34: 유저 스티커
@@ -131,13 +141,11 @@ const TextInputField = React.forwardRef<HTMLInputElement | HTMLTextAreaElement |
  */
 function ImageUploadField({
   field,
-  slot: _slot,
   imageUrl,
   onUpload,
   onRemove,
 }: {
   field: InputFieldConfig
-  slot: ImageSlot | null
   imageUrl: string | null
   onUpload: (file: File) => void
   onRemove: () => void
@@ -670,7 +678,6 @@ const SlotInputGroup = React.forwardRef<HTMLDivElement, {
           {imageField && (
             <ImageUploadField
               field={imageField}
-              slot={slot}
               imageUrl={imageUrl}
               onUpload={onImageUpload}
               onRemove={onImageRemove}
@@ -995,7 +1002,7 @@ function StickerPanel({
                     onSelectSticker(sticker.id)
                   }
                 }}
-                aria-selected={selectedStickerId === sticker.id}
+                aria-pressed={selectedStickerId === sticker.id}
               >
                 <div className="flex items-center gap-2">
                   <img
@@ -1033,12 +1040,24 @@ function StickerPanel({
 
 type Tab = 'slots' | 'general' | 'colors' | 'stickers'
 
+export interface EditorAssetContext {
+  userId: string
+  documentId: string
+}
+
 interface EditorSidebarProps {
   isOpen?: boolean
   onClose?: () => void
+  assetContext?: EditorAssetContext
+  onAssetError?: (error: Error) => void
 }
 
-export default function EditorSidebar({ isOpen = true, onClose }: EditorSidebarProps) {
+export default function EditorSidebar({
+  isOpen = true,
+  onClose,
+  assetContext,
+  onAssetError,
+}: EditorSidebarProps) {
   const {
     templateConfig,
     formData,
@@ -1048,6 +1067,7 @@ export default function EditorSidebar({ isOpen = true, onClose }: EditorSidebarP
     selectedSlotId,
     selectedTextId,
     selectedStickerId, // Sprint 31
+    documentGeneration,
     updateFormField,
     updateImage,
     updateColor,
@@ -1064,18 +1084,87 @@ export default function EditorSidebar({ isOpen = true, onClose }: EditorSidebarP
     addSticker,
     removeSticker,
     selectSticker,
-  } = useCanvasEditorStore()
+  } = useCanvasEditorStore(
+    useShallow((state) => ({
+      templateConfig: state.templateConfig,
+      formData: state.formData,
+      images: state.images,
+      colors: state.colors,
+      slotTransforms: state.slotTransforms,
+      selectedSlotId: state.selectedSlotId,
+      selectedTextId: state.selectedTextId,
+      selectedStickerId: state.selectedStickerId,
+      documentGeneration: state.documentGeneration,
+      updateFormField: state.updateFormField,
+      updateImage: state.updateImage,
+      updateColor: state.updateColor,
+      resetSlotTransform: state.resetSlotTransform,
+      toggleFlipX: state.toggleFlipX,
+      toggleFlipY: state.toggleFlipY,
+      setImageOpacity: state.setImageOpacity,
+      setImageFilters: state.setImageFilters,
+      updateTextEffects: state.updateTextEffects,
+      updateTextStyle: state.updateTextStyle,
+      clearTextEffects: state.clearTextEffects,
+      addSticker: state.addSticker,
+      removeSticker: state.removeSticker,
+      selectSticker: state.selectSticker,
+    }))
+  )
 
   const [activeTab, setActiveTab] = useState<Tab>('slots')
   const [expandedSlots, setExpandedSlots] = useState<Set<string>>(new Set())
+  const assetUserId = assetContext?.userId
+  const assetDocumentId = assetContext?.documentId
 
   // 슬롯 섹션 refs
   const slotRefs = useRef<Record<string, HTMLDivElement | null>>({})
+  const isMountedRef = useRef(false)
+  const activeDocumentGenerationRef = useRef(documentGeneration)
+  const activeAssetContextRef = useRef<EditorAssetContext | undefined>(
+    assetUserId !== undefined && assetDocumentId !== undefined
+      ? { userId: assetUserId, documentId: assetDocumentId }
+      : undefined
+  )
+  const uploadSequenceRef = useRef(0)
+  const latestUploadBySlotRef = useRef<Map<string, number>>(new Map())
+
+  useEffect(() => {
+    const uploads = latestUploadBySlotRef.current
+    isMountedRef.current = true
+    return () => {
+      isMountedRef.current = false
+      uploads.clear()
+    }
+  }, [])
+
+  // 템플릿 로드/복구/전체 초기화는 같은 id를 재사용할 수 있으므로
+  // store의 문서 세대로 이전 비동기 이미지 처리를 모두 무효화한다.
+  useEffect(() => {
+    if (activeDocumentGenerationRef.current !== documentGeneration) {
+      activeDocumentGenerationRef.current = documentGeneration
+      latestUploadBySlotRef.current.clear()
+    }
+  }, [documentGeneration])
+
+  // 로그인/문서 범위가 바뀌면 이전 범위에서 진행 중이던 업로드도 stale 처리한다.
+  useEffect(() => {
+    const previous = activeAssetContextRef.current
+    if (
+      previous?.userId !== assetUserId ||
+      previous?.documentId !== assetDocumentId
+    ) {
+      activeAssetContextRef.current =
+        assetUserId !== undefined && assetDocumentId !== undefined
+          ? { userId: assetUserId, documentId: assetDocumentId }
+          : undefined
+      latestUploadBySlotRef.current.clear()
+    }
+  }, [assetDocumentId, assetUserId])
 
   // 버그 수정: 템플릿 변경 시 expandedSlots 동기화
   useEffect(() => {
     if (templateConfig?.layers.slots) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setExpandedSlots(new Set(templateConfig.layers.slots.map((s) => s.id)))
     }
   }, [templateConfig])
@@ -1084,7 +1173,6 @@ export default function EditorSidebar({ isOpen = true, onClose }: EditorSidebarP
   useEffect(() => {
     if (selectedSlotId && templateConfig) {
       // 슬롯 탭으로 전환
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setActiveTab('slots')
 
       // 해당 슬롯 펼치기
@@ -1113,7 +1201,6 @@ export default function EditorSidebar({ isOpen = true, onClose }: EditorSidebarP
       if (field) {
         if (field.slotId) {
           // 슬롯에 속한 필드면 슬롯 탭으로 이동
-          // eslint-disable-next-line react-hooks/set-state-in-effect
           setActiveTab('slots')
           setExpandedSlots((prev) => {
             const next = new Set(prev)
@@ -1134,6 +1221,220 @@ export default function EditorSidebar({ isOpen = true, onClose }: EditorSidebarP
       }
     }
   }, [selectedTextId, templateConfig])
+
+  const revokeBlobUrl = useCallback((url: string) => {
+    if (!url.startsWith('blob:')) return
+    try {
+      URL.revokeObjectURL(url)
+    } catch {
+      // 이미 해제됐거나 브라우저가 URL 해제를 거부한 경우 무시한다.
+    }
+  }, [])
+
+  const isLatestUpload = useCallback(
+    (dataKey: string, requestId: number, documentGeneration: number) =>
+      isMountedRef.current &&
+      activeDocumentGenerationRef.current === documentGeneration &&
+      latestUploadBySlotRef.current.get(dataKey) === requestId,
+    []
+  )
+
+  const handleImageUpload = useCallback(
+    (dataKey: string, slotId: string) => async (file: File) => {
+      const requestId = ++uploadSequenceRef.current
+      const requestDocumentGeneration = activeDocumentGenerationRef.current
+      const requestAssetContext = activeAssetContextRef.current
+      latestUploadBySlotRef.current.set(dataKey, requestId)
+      let processedBlobUrl: string | null = null
+
+      // 지원되는 형식과 원본 크기를 디코딩 전에 확인한다.
+      if (!isSupportedImageType(file)) {
+        console.warn('지원되지 않는 이미지 형식:', file.type)
+        latestUploadBySlotRef.current.delete(dataKey)
+        return
+      }
+      if (file.size > IMAGE_COMPRESSION_CONFIG.maxSourceFileSize) {
+        console.warn(
+          `이미지 파일은 ${formatFileSize(IMAGE_COMPRESSION_CONFIG.maxSourceFileSize)} 이하여야 합니다.`
+        )
+        latestUploadBySlotRef.current.delete(dataKey)
+        return
+      }
+
+      try {
+        // 기존 이미지는 새 결과가 성공하고 최신 요청임이 확인될 때까지 유지한다.
+        const result = await processImageFile(file)
+        processedBlobUrl = result.url
+
+        if (!isLatestUpload(dataKey, requestId, requestDocumentGeneration)) {
+          revokeBlobUrl(result.url)
+          return
+        }
+
+        // 압축 결과 로깅 (개발용)
+        if (result.compressionRatio < 1) {
+          console.log(
+            `이미지 압축: ${formatFileSize(result.originalSize)} → ${formatFileSize(result.compressedSize)} (${Math.round(result.compressionRatio * 100)}%)`
+          )
+        }
+
+        if (requestAssetContext) {
+          const uploaded = await uploadEditorImage(
+            requestAssetContext.userId,
+            requestAssetContext.documentId,
+            slotId,
+            result.blob
+          )
+
+          if (!isLatestUpload(dataKey, requestId, requestDocumentGeneration)) {
+            revokeBlobUrl(result.url)
+            processedBlobUrl = null
+            if (uploaded.path) {
+              await deleteEditorImage(uploaded.path)
+            }
+            return
+          }
+
+          // 영속 URL만 store/history/Yjs에 들어가도록 로컬 미리보기 URL은 즉시 해제한다.
+          revokeBlobUrl(result.url)
+          processedBlobUrl = null
+
+          if (uploaded.error || !uploaded.url || !uploaded.path) {
+            if (uploaded.path) await deleteEditorImage(uploaded.path)
+            const uploadError =
+              uploaded.error || new Error('에디터 이미지 업로드에 실패했습니다.')
+            console.error('에디터 이미지 업로드 실패:', uploadError)
+            onAssetError?.(uploadError)
+            latestUploadBySlotRef.current.delete(dataKey)
+            return
+          }
+
+          updateImage(dataKey, uploaded.url)
+          latestUploadBySlotRef.current.delete(dataKey)
+          return
+        }
+
+        updateImage(dataKey, result.url)
+        processedBlobUrl = null
+        latestUploadBySlotRef.current.delete(dataKey)
+      } catch (error) {
+        if (processedBlobUrl) {
+          revokeBlobUrl(processedBlobUrl)
+          processedBlobUrl = null
+        }
+
+        if (!isLatestUpload(dataKey, requestId, requestDocumentGeneration)) {
+          return
+        }
+
+        console.error('이미지 처리 실패:', error)
+        if (requestAssetContext) {
+          const uploadError =
+            error instanceof Error
+              ? error
+              : new Error('에디터 이미지 처리에 실패했습니다.')
+          onAssetError?.(uploadError)
+          latestUploadBySlotRef.current.delete(dataKey)
+          return
+        }
+
+        // 지원 브라우저 차이 등 압축 실패 시, 이미 크기 검사를 통과한 원본만 사용한다.
+        const url = URL.createObjectURL(file)
+        updateImage(dataKey, url)
+        latestUploadBySlotRef.current.delete(dataKey)
+      }
+    },
+    [
+      isLatestUpload,
+      onAssetError,
+      revokeBlobUrl,
+      updateImage,
+    ]
+  )
+
+  const handleImageRemove = useCallback(
+    (dataKey: string) => () => {
+      // 제거는 진행 중 업로드보다 최신 사용자 의도이므로 해당 결과를 무효화한다.
+      latestUploadBySlotRef.current.delete(dataKey)
+      updateImage(dataKey, null)
+    },
+    [updateImage]
+  )
+
+  const handleAddSticker = useCallback(
+    async (sticker: StickerType) => {
+      const requestGeneration = activeDocumentGenerationRef.current
+      const requestAssetContext = activeAssetContextRef.current
+      let imageUrl = sticker.imageUrl
+      let uploadedPath: string | null = null
+
+      try {
+        if (
+          requestAssetContext &&
+          (imageUrl.startsWith('blob:') || imageUrl.startsWith('data:'))
+        ) {
+          const response = await fetch(imageUrl)
+          if (!response.ok) {
+            throw new Error('개인 스티커 이미지를 읽을 수 없습니다.')
+          }
+
+          const uploaded = await uploadEditorImage(
+            requestAssetContext.userId,
+            requestAssetContext.documentId,
+            `sticker-${sticker.id}`,
+            await response.blob()
+          )
+          uploadedPath = uploaded.path
+          if (uploaded.error || !uploaded.url || !uploaded.path) {
+            if (uploaded.path) await deleteEditorImage(uploaded.path)
+            throw (
+              uploaded.error ||
+              new Error('개인 스티커를 에디터에 저장하지 못했습니다.')
+            )
+          }
+          imageUrl = uploaded.url
+        }
+
+        const activeAssetContext = activeAssetContextRef.current
+        const activeConfig = useCanvasEditorStore.getState().templateConfig
+        const isCurrent =
+          isMountedRef.current &&
+          activeDocumentGenerationRef.current === requestGeneration &&
+          activeAssetContext?.userId === requestAssetContext?.userId &&
+          activeAssetContext?.documentId === requestAssetContext?.documentId
+
+        if (!isCurrent || !activeConfig) {
+          if (uploadedPath) await deleteEditorImage(uploadedPath)
+          return
+        }
+
+        const newSticker: StickerLayer = {
+          id: `sticker-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
+          stickerId: sticker.id,
+          imageUrl,
+          transform: {
+            x: activeConfig.canvas.width / 2 - sticker.defaultSize.width / 2,
+            y: activeConfig.canvas.height / 2 - sticker.defaultSize.height / 2,
+            width: sticker.defaultSize.width,
+            height: sticker.defaultSize.height,
+            rotation: 0,
+          },
+          opacity: 1,
+          flipX: false,
+          flipY: false,
+        }
+        addSticker(newSticker)
+      } catch (stickerError) {
+        console.error('개인 스티커 추가 실패:', stickerError)
+        onAssetError?.(
+          stickerError instanceof Error
+            ? stickerError
+            : new Error('개인 스티커를 추가하지 못했습니다.')
+        )
+      }
+    },
+    [addSticker, onAssetError]
+  )
 
   if (!templateConfig) {
     return (
@@ -1173,48 +1474,6 @@ export default function EditorSidebar({ isOpen = true, onClose }: EditorSidebarP
       }
       return next
     })
-  }
-
-  const handleImageUpload = (dataKey: string) => async (file: File) => {
-    // 지원되는 형식인지 확인
-    if (!isSupportedImageType(file)) {
-      console.warn('지원되지 않는 이미지 형식:', file.type)
-      return
-    }
-
-    // 버그 수정: 기존 Object URL 해제 후 새로 생성 (메모리 누수 방지)
-    const existingUrl = images[dataKey]
-    if (existingUrl && existingUrl.startsWith('blob:')) {
-      URL.revokeObjectURL(existingUrl)
-    }
-
-    try {
-      // Sprint 34: 이미지 압축 적용 (최대 2000px, 5MB)
-      const result = await processImageFile(file)
-
-      // 압축 결과 로깅 (개발용)
-      if (result.compressionRatio < 1) {
-        console.log(
-          `이미지 압축: ${formatFileSize(result.originalSize)} → ${formatFileSize(result.compressedSize)} (${Math.round(result.compressionRatio * 100)}%)`
-        )
-      }
-
-      updateImage(dataKey, result.url)
-    } catch (error) {
-      console.error('이미지 처리 실패:', error)
-      // 압축 실패 시 원본 사용
-      const url = URL.createObjectURL(file)
-      updateImage(dataKey, url)
-    }
-  }
-
-  const handleImageRemove = (dataKey: string) => () => {
-    // 버그 수정: Object URL 해제 (메모리 누수 방지)
-    const existingUrl = images[dataKey]
-    if (existingUrl && existingUrl.startsWith('blob:')) {
-      URL.revokeObjectURL(existingUrl)
-    }
-    updateImage(dataKey, null)
   }
 
   return (
@@ -1313,7 +1572,7 @@ export default function EditorSidebar({ isOpen = true, onClose }: EditorSidebarP
                   formData={formData}
                   imageUrl={images[slot.dataKey] || null}
                   onFieldChange={updateFormField}
-                  onImageUpload={handleImageUpload(slot.dataKey)}
+                  onImageUpload={handleImageUpload(slot.dataKey, slot.id)}
                   onImageRemove={handleImageRemove(slot.dataKey)}
                   onResetTransform={() => resetSlotTransform(slot.id)}
                   hasTransform={hasTransform}
@@ -1388,27 +1647,7 @@ export default function EditorSidebar({ isOpen = true, onClose }: EditorSidebarP
             aria-labelledby="tab-stickers"
           >
             <StickerPanel
-              onAddSticker={(sticker) => {
-                // 스티커를 캔버스 중앙에 추가
-                const canvasWidth = templateConfig.canvas.width
-                const canvasHeight = templateConfig.canvas.height
-                const newSticker: StickerLayer = {
-                  id: `sticker-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                  stickerId: sticker.id,
-                  imageUrl: sticker.imageUrl,
-                  transform: {
-                    x: canvasWidth / 2 - sticker.defaultSize.width / 2,
-                    y: canvasHeight / 2 - sticker.defaultSize.height / 2,
-                    width: sticker.defaultSize.width,
-                    height: sticker.defaultSize.height,
-                    rotation: 0,
-                  },
-                  opacity: 1,
-                  flipX: false,
-                  flipY: false,
-                }
-                addSticker(newSticker)
-              }}
+              onAddSticker={(sticker) => void handleAddSticker(sticker)}
               stickers={templateConfig.layers.stickers || []}
               selectedStickerId={selectedStickerId}
               onSelectSticker={selectSticker}

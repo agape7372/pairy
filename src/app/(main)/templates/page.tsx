@@ -459,7 +459,7 @@ export default function ResourceHubPage() {
                     {/* 호버 오버레이 */}
                     <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                       <Link
-                        href={`/canvas-editor/custom?id=${template.id}`}
+                        href={`/editor/new?template=${encodeURIComponent(template.id)}`}
                         className="p-2 bg-white rounded-lg text-gray-700 hover:bg-primary-100"
                         title="에디터에서 열기"
                       >

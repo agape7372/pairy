@@ -39,10 +39,20 @@ import {
   type LayerSliceState,
   type LayerSliceActions,
   initialHistoryState,
+  createSnapshot,
+  pushSnapshot,
   createHistoryActions,
   defaultLayerState,
   createLayerActions,
 } from './middleware'
+
+export interface CanvasEditorData {
+  templateConfig: TemplateConfig | null
+  formData: FormData
+  images: ImageData
+  colors: ColorData
+  slotTransforms: SlotTransforms
+}
 
 // ============================================
 // 상태 타입
@@ -75,11 +85,15 @@ interface CanvasEditorState extends HistoryState, LayerSliceState {
   // 저장 상태
   isDirty: boolean
   lastSavedAt: Date | null
+  /** 템플릿 로드/복구/전체 초기화 세대. 비동기 업로드 무효화에 사용한다. */
+  documentGeneration: number
 }
 
 interface CanvasEditorActions extends HistoryActions, LayerSliceActions {
   // 템플릿 로드
   loadTemplate: (config: TemplateConfig) => void
+  loadEditorData: (data: CanvasEditorData) => void
+  restoreEditorData: (data: CanvasEditorData) => void
   setLoading: (loading: boolean) => void
   setError: (error: string | null) => void
 
@@ -92,6 +106,11 @@ interface CanvasEditorActions extends HistoryActions, LayerSliceActions {
   setFormData: (data: FormData) => void
   setImages: (data: ImageData) => void
   setColors: (data: ColorData) => void
+  /**
+   * 화면의 의미는 바꾸지 않고 임시 asset URL만 영속 URL로 승격한다.
+   * 현재 상태와 undo/redo 스냅샷을 함께 치환한다.
+   */
+  replaceAssetUrls: (replacements: Record<string, string>) => void
 
   // 슬롯 이미지 변환
   updateSlotTransform: (slotId: string, transform: Partial<SlotImageTransform>) => void
@@ -137,13 +156,7 @@ interface CanvasEditorActions extends HistoryActions, LayerSliceActions {
   reset: () => void
 
   // 내보내기용 데이터
-  getEditorData: () => {
-    templateConfig: TemplateConfig | null
-    formData: FormData
-    images: ImageData
-    colors: ColorData
-    slotTransforms: SlotTransforms
-  }
+  getEditorData: () => CanvasEditorData
 }
 
 // ============================================
@@ -155,6 +168,171 @@ const DEFAULT_COLORS: ColorData = {
   secondaryColor: '#D7FAFA',
   accentColor: '#FF6B6B',
   textColor: '#3D3636',
+}
+
+type ComparableRecord = Record<string, unknown>
+
+function isComparableRecord(value: unknown): value is ComparableRecord {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function areEditorValuesEqual(a: unknown, b: unknown): boolean {
+  if (Object.is(a, b)) return true
+
+  if (Array.isArray(a) && Array.isArray(b)) {
+    return (
+      a.length === b.length &&
+      a.every((value, index) => areEditorValuesEqual(value, b[index]))
+    )
+  }
+
+  if (isComparableRecord(a) && isComparableRecord(b)) {
+    const keysA = Object.keys(a)
+    const keysB = Object.keys(b)
+    return (
+      keysA.length === keysB.length &&
+      keysA.every(
+        (key) =>
+          Object.prototype.hasOwnProperty.call(b, key) &&
+          areEditorValuesEqual(a[key], b[key])
+      )
+    )
+  }
+
+  return false
+}
+
+function getChangedPaths(
+  current: unknown,
+  patch: object,
+  prefix = ''
+): string[] {
+  const currentRecord = isComparableRecord(current) ? current : {}
+  const patchRecord = patch as ComparableRecord
+  const changedPaths: string[] = []
+
+  for (const key of Object.keys(patchRecord).sort()) {
+    const path = prefix ? `${prefix}.${key}` : key
+    const currentValue = currentRecord[key]
+    const nextValue = patchRecord[key]
+
+    if (areEditorValuesEqual(currentValue, nextValue)) continue
+
+    if (isComparableRecord(currentValue) && isComparableRecord(nextValue)) {
+      const nestedPaths = getChangedPaths(currentValue, nextValue, path)
+      changedPaths.push(...(nestedPaths.length > 0 ? nestedPaths : [path]))
+    } else {
+      changedPaths.push(path)
+    }
+  }
+
+  return changedPaths
+}
+
+function createHistoryGroup(
+  prefix: string,
+  targetId: string,
+  changedPaths: string[]
+): string {
+  return `${prefix}:${targetId}:${changedPaths.join('|')}`
+}
+
+function collectBlobUrls(value: unknown, urls: Set<string>, seen: Set<object>): void {
+  if (typeof value === 'string') {
+    if (value.startsWith('blob:')) urls.add(value)
+    return
+  }
+
+  if (typeof value !== 'object' || value === null || seen.has(value)) return
+  seen.add(value)
+
+  if (Array.isArray(value)) {
+    value.forEach((item) => collectBlobUrls(item, urls, seen))
+    return
+  }
+
+  Object.values(value as Record<string, unknown>).forEach((item) => {
+    collectBlobUrls(item, urls, seen)
+  })
+}
+
+function getReferencedBlobUrls(state: {
+  templateConfig: TemplateConfig | null
+  images: ImageData
+  history: HistorySnapshot[]
+}): Set<string> {
+  const urls = new Set<string>()
+  const seen = new Set<object>()
+
+  collectBlobUrls(state.templateConfig, urls, seen)
+  collectBlobUrls(state.images, urls, seen)
+  state.history.forEach((snapshot) => {
+    collectBlobUrls(snapshot.templateConfig, urls, seen)
+    collectBlobUrls(snapshot.images, urls, seen)
+  })
+
+  return urls
+}
+
+function revokeUnreferencedBlobUrls(
+  previousUrls: Set<string>,
+  retainedUrls: Set<string> = new Set()
+): void {
+  if (
+    typeof URL === 'undefined' ||
+    typeof URL.revokeObjectURL !== 'function'
+  ) {
+    return
+  }
+
+  previousUrls.forEach((url) => {
+    if (retainedUrls.has(url)) return
+    try {
+      URL.revokeObjectURL(url)
+    } catch {
+      // 이미 해제됐거나 브라우저가 관리하지 않는 URL은 무시한다.
+    }
+  })
+}
+
+function replaceImageUrls(
+  images: ImageData,
+  replacements: Record<string, string>
+): ImageData {
+  let changed = false
+  const nextImages = Object.fromEntries(
+    Object.entries(images).map(([key, url]) => {
+      const nextUrl = url ? replacements[url] : undefined
+      if (nextUrl && nextUrl !== url) changed = true
+      return [key, nextUrl || url]
+    })
+  ) as ImageData
+
+  return changed ? nextImages : images
+}
+
+function replaceTemplateAssetUrls(
+  config: TemplateConfig | null,
+  replacements: Record<string, string>
+): TemplateConfig | null {
+  if (!config?.layers.stickers?.length) return config
+
+  let changed = false
+  const stickers = config.layers.stickers.map((sticker) => {
+    const imageUrl = replacements[sticker.imageUrl]
+    if (!imageUrl || imageUrl === sticker.imageUrl) return sticker
+    changed = true
+    return { ...sticker, imageUrl }
+  })
+
+  if (!changed) return config
+  return {
+    ...config,
+    layers: {
+      ...config.layers,
+      stickers,
+    },
+  }
 }
 
 const initialState: CanvasEditorState = {
@@ -178,6 +356,7 @@ const initialState: CanvasEditorState = {
 
   isDirty: false,
   lastSavedAt: null,
+  documentGeneration: 0,
 
   ...initialHistoryState,
   layerStates: {},
@@ -194,13 +373,30 @@ export const useCanvasEditorStore = create<CanvasEditorState & CanvasEditorActio
         ...initialState,
 
         // 히스토리 액션 (미들웨어에서 생성)
-        ...createHistoryActions(set, get),
+        ...createHistoryActions(set, get, (previousHistory) => {
+          const discardedBlobUrls = new Set<string>()
+          const seen = new Set<object>()
+
+          previousHistory.forEach((snapshot) => {
+            collectBlobUrls(snapshot.templateConfig, discardedBlobUrls, seen)
+            collectBlobUrls(snapshot.images, discardedBlobUrls, seen)
+          })
+
+          revokeUnreferencedBlobUrls(
+            discardedBlobUrls,
+            getReferencedBlobUrls(get())
+          )
+        }),
 
         // 레이어 액션 (슬라이스에서 생성)
         ...createLayerActions(set, get),
 
         // 템플릿 로드
         loadTemplate: (config) => {
+          const previousState = get()
+          const previousBlobUrls = getReferencedBlobUrls(previousState)
+          get().cancelScheduledHistory()
+
           // 템플릿의 기본 색상으로 초기화
           const colors: ColorData = { ...DEFAULT_COLORS }
           config.colors.forEach((c) => {
@@ -225,6 +421,7 @@ export const useCanvasEditorStore = create<CanvasEditorState & CanvasEditorActio
 
           // 초기 히스토리 스냅샷 생성
           const initialSnapshot: HistorySnapshot = {
+            templateConfig: config,
             formData,
             images: {},
             colors,
@@ -240,10 +437,125 @@ export const useCanvasEditorStore = create<CanvasEditorState & CanvasEditorActio
             layerStates,
             selectedSlotId: config.layers.slots[0]?.id || null,
             selectedTextId: null,
+            selectedStickerId: null,
             isDirty: false,
+            documentGeneration: previousState.documentGeneration + 1,
             history: [initialSnapshot],
             historyIndex: 0,
           })
+
+          const retainedBlobUrls = getReferencedBlobUrls(get())
+          revokeUnreferencedBlobUrls(previousBlobUrls, retainedBlobUrls)
+        },
+
+        loadEditorData: (data) => {
+          const previousState = get()
+          const previousBlobUrls = getReferencedBlobUrls(previousState)
+          get().cancelScheduledHistory()
+
+          const snapshot = createSnapshot(data)
+          const config = snapshot.templateConfig
+          const layerStates: LayerStates = {}
+          config?.layers.slots.forEach((slot) => {
+            layerStates[slot.id] = { ...defaultLayerState }
+          })
+
+          set({
+            templateConfig: config,
+            formData: snapshot.formData,
+            images: snapshot.images,
+            colors: snapshot.colors,
+            slotTransforms: snapshot.slotTransforms,
+            layerStates,
+            selectedSlotId: config?.layers.slots[0]?.id || null,
+            selectedTextId: null,
+            selectedStickerId: null,
+            isDirty: false,
+            lastSavedAt: new Date(),
+            documentGeneration: previousState.documentGeneration + 1,
+            history: [snapshot],
+            historyIndex: 0,
+            hasPendingHistory: false,
+          })
+
+          const retainedBlobUrls = getReferencedBlobUrls(get())
+          revokeUnreferencedBlobUrls(previousBlobUrls, retainedBlobUrls)
+        },
+
+        restoreEditorData: (data) => {
+          const previousState = get()
+          const previousBlobUrls = getReferencedBlobUrls(previousState)
+          const currentSnapshot = createSnapshot(previousState)
+
+          // 타이머만 취소하고 복구 직전 화면은 Undo 기준점으로 보존한다.
+          get().cancelScheduledHistory()
+
+          // redo 분기를 먼저 버린 뒤 아직 커밋되지 않은 현재 화면을 기존
+          // pending 단계 대신 확정하고, 복구 결과를 정확히 한 단계 추가한다.
+          const truncatedHistory = previousState.history.slice(
+            0,
+            previousState.historyIndex + 1
+          )
+          const currentHistory = pushSnapshot(
+            truncatedHistory,
+            truncatedHistory.length - 1,
+            currentSnapshot
+          )
+          const restoredSnapshot = createSnapshot(data)
+          const restoredHistory = pushSnapshot(
+            currentHistory.history,
+            currentHistory.historyIndex,
+            restoredSnapshot
+          )
+
+          const restoredConfig = restoredSnapshot.templateConfig
+          const restoredSlotIds = new Set(
+            restoredConfig?.layers.slots.map((slot) => slot.id) ?? []
+          )
+          const restoredTextIds = new Set(
+            restoredConfig?.layers.texts.map((text) => text.id) ?? []
+          )
+          const restoredStickerIds = new Set(
+            restoredConfig?.layers.stickers?.map((sticker) => sticker.id) ?? []
+          )
+          const restoredLayerStates: LayerStates = {}
+          restoredConfig?.layers.slots.forEach((slot) => {
+            restoredLayerStates[slot.id] = {
+              ...(previousState.layerStates[slot.id] || defaultLayerState),
+            }
+          })
+
+          set({
+            templateConfig: restoredConfig,
+            formData: restoredSnapshot.formData,
+            images: restoredSnapshot.images,
+            colors: restoredSnapshot.colors,
+            slotTransforms: restoredSnapshot.slotTransforms,
+            layerStates: restoredLayerStates,
+            selectedSlotId:
+              previousState.selectedSlotId &&
+              restoredSlotIds.has(previousState.selectedSlotId)
+                ? previousState.selectedSlotId
+                : null,
+            selectedTextId:
+              previousState.selectedTextId &&
+              restoredTextIds.has(previousState.selectedTextId)
+                ? previousState.selectedTextId
+                : null,
+            selectedStickerId:
+              previousState.selectedStickerId &&
+              restoredStickerIds.has(previousState.selectedStickerId)
+                ? previousState.selectedStickerId
+                : null,
+            history: restoredHistory.history,
+            historyIndex: restoredHistory.historyIndex,
+            hasPendingHistory: false,
+            isDirty: true,
+            documentGeneration: previousState.documentGeneration + 1,
+          })
+
+          const retainedBlobUrls = getReferencedBlobUrls(get())
+          revokeUnreferencedBlobUrls(previousBlobUrls, retainedBlobUrls)
         },
 
         setLoading: (loading) => set({ isLoading: loading }),
@@ -255,20 +567,11 @@ export const useCanvasEditorStore = create<CanvasEditorState & CanvasEditorActio
             formData: { ...state.formData, [key]: value },
             isDirty: true,
           }))
-          get().pushHistory()
+          get().scheduleHistory(`form:${key}`)
         },
 
         updateImage: (dataKey, url) => {
-          // 기존 Blob URL 메모리 해제 (메모리 누수 방지)
-          const oldUrl = get().images[dataKey]
-          if (oldUrl && oldUrl.startsWith('blob:') && oldUrl !== url) {
-            try {
-              URL.revokeObjectURL(oldUrl)
-            } catch {
-              // Blob URL 해제 실패 무시 (이미 해제됨)
-            }
-          }
-
+          // Blob URLs are owned by the current state plus history, not one slot value.
           set((state) => ({
             images: { ...state.images, [dataKey]: url },
             isDirty: true,
@@ -281,25 +584,41 @@ export const useCanvasEditorStore = create<CanvasEditorState & CanvasEditorActio
             colors: { ...state.colors, [colorKey]: value },
             isDirty: true,
           }))
-          get().pushHistory()
+          get().scheduleHistory(`color:${String(colorKey)}`)
         },
 
         setFormData: (data) => set({ formData: data, isDirty: true }),
         setImages: (data) => {
-          // 기존 Blob URL 메모리 해제 (메모리 누수 방지)
-          const oldImages = get().images
-          Object.values(oldImages).forEach((url) => {
-            if (url && url.startsWith('blob:') && !Object.values(data).includes(url)) {
-              try {
-                URL.revokeObjectURL(url)
-              } catch {
-                // Blob URL 해제 실패 무시
-              }
-            }
-          })
+          // Replaced URLs remain alive while any Undo snapshot can restore them.
           set({ images: data, isDirty: true })
         },
         setColors: (data) => set({ colors: data, isDirty: true }),
+        replaceAssetUrls: (replacements) => {
+          if (Object.keys(replacements).length === 0) return
+
+          const previousState = get()
+          const previousBlobUrls = getReferencedBlobUrls(previousState)
+          set((state) => ({
+            templateConfig: replaceTemplateAssetUrls(
+              state.templateConfig,
+              replacements
+            ),
+            images: replaceImageUrls(state.images, replacements),
+            history: state.history.map((snapshot) => ({
+              ...snapshot,
+              templateConfig: replaceTemplateAssetUrls(
+                snapshot.templateConfig,
+                replacements
+              ),
+              images: replaceImageUrls(snapshot.images, replacements),
+            })),
+          }))
+
+          revokeUnreferencedBlobUrls(
+            previousBlobUrls,
+            getReferencedBlobUrls(get())
+          )
+        },
 
         // 슬롯 이미지 변환
         updateSlotTransform: (slotId, transform) => {
@@ -380,28 +699,49 @@ export const useCanvasEditorStore = create<CanvasEditorState & CanvasEditorActio
               isDirty: true,
             }
           })
-          get().pushHistory()
+          get().scheduleHistory(`image-opacity:${slotId}`)
         },
 
         setImageFilters: (slotId, filters) => {
+          const current = get().slotTransforms[slotId] || DEFAULT_SLOT_TRANSFORM
+          const changedPaths = getChangedPaths(
+            current.filters,
+            filters
+          )
+          if (changedPaths.length === 0) return
+
           set((state) => {
-            const current = state.slotTransforms[slotId] || DEFAULT_SLOT_TRANSFORM
+            const currentTransform =
+              state.slotTransforms[slotId] || DEFAULT_SLOT_TRANSFORM
             return {
               slotTransforms: {
                 ...state.slotTransforms,
                 [slotId]: {
-                  ...current,
-                  filters: { ...current.filters, ...filters },
+                  ...currentTransform,
+                  filters: { ...currentTransform.filters, ...filters },
                 },
               },
               isDirty: true,
             }
           })
-          get().pushHistory()
+          get().scheduleHistory(
+            createHistoryGroup('image-filters', slotId, changedPaths)
+          )
         },
 
         // Sprint 30: 텍스트 편집 고도화
         updateTextEffects: (textId, effects) => {
+          const text = get().templateConfig?.layers.texts.find(
+            (item) => item.id === textId
+          )
+          if (!text) return
+
+          const changedPaths = getChangedPaths(
+            text.effects,
+            effects
+          )
+          if (changedPaths.length === 0) return
+
           set((state) => {
             if (!state.templateConfig) return state
             const texts = state.templateConfig.layers.texts.map((text) => {
@@ -425,10 +765,23 @@ export const useCanvasEditorStore = create<CanvasEditorState & CanvasEditorActio
               isDirty: true,
             }
           })
-          get().pushHistory()
+          get().scheduleHistory(
+            createHistoryGroup('text-effects', textId, changedPaths)
+          )
         },
 
         updateTextStyle: (textId, style) => {
+          const text = get().templateConfig?.layers.texts.find(
+            (item) => item.id === textId
+          )
+          if (!text) return
+
+          const changedPaths = getChangedPaths(
+            text.style,
+            style
+          )
+          if (changedPaths.length === 0) return
+
           set((state) => {
             if (!state.templateConfig) return state
             const texts = state.templateConfig.layers.texts.map((text) => {
@@ -452,10 +805,17 @@ export const useCanvasEditorStore = create<CanvasEditorState & CanvasEditorActio
               isDirty: true,
             }
           })
-          get().pushHistory()
+          get().scheduleHistory(
+            createHistoryGroup('text-style', textId, changedPaths)
+          )
         },
 
         clearTextEffects: (textId) => {
+          const text = get().templateConfig?.layers.texts.find(
+            (item) => item.id === textId
+          )
+          if (!text?.effects || Object.keys(text.effects).length === 0) return
+
           set((state) => {
             if (!state.templateConfig) return state
             const texts = state.templateConfig.layers.texts.map((text) => {
@@ -500,6 +860,9 @@ export const useCanvasEditorStore = create<CanvasEditorState & CanvasEditorActio
         },
 
         removeSticker: (stickerId) => {
+          const stickers = get().templateConfig?.layers.stickers || []
+          if (!stickers.some((sticker) => sticker.id === stickerId)) return
+
           set((state) => {
             if (!state.templateConfig) return state
             const stickers = (state.templateConfig.layers.stickers || []).filter(
@@ -521,6 +884,17 @@ export const useCanvasEditorStore = create<CanvasEditorState & CanvasEditorActio
         },
 
         updateStickerTransform: (stickerId, transform) => {
+          const sticker = (
+            get().templateConfig?.layers.stickers || []
+          ).find((item) => item.id === stickerId)
+          if (!sticker) return
+
+          const changedPaths = getChangedPaths(
+            sticker.transform,
+            transform
+          )
+          if (changedPaths.length === 0) return
+
           set((state) => {
             if (!state.templateConfig) return state
             const stickers = (state.templateConfig.layers.stickers || []).map((sticker) => {
@@ -610,7 +984,7 @@ export const useCanvasEditorStore = create<CanvasEditorState & CanvasEditorActio
               isDirty: true,
             }
           })
-          get().pushHistory()
+          get().scheduleHistory(`character-color:${colorType}`)
         },
 
         // UI 상태
@@ -622,10 +996,6 @@ export const useCanvasEditorStore = create<CanvasEditorState & CanvasEditorActio
         removeImage: (dataKey) => {
           set((state) => {
             const newImages = { ...state.images }
-            const existingUrl = newImages[dataKey]
-            if (existingUrl && existingUrl.startsWith('blob:')) {
-              URL.revokeObjectURL(existingUrl)
-            }
             delete newImages[dataKey]
             return { images: newImages, isDirty: true }
           })
@@ -637,7 +1007,16 @@ export const useCanvasEditorStore = create<CanvasEditorState & CanvasEditorActio
         markSaved: () => set({ isDirty: false, lastSavedAt: new Date() }),
 
         // 초기화
-        reset: () => set(initialState),
+        reset: () => {
+          const previousState = get()
+          const previousBlobUrls = getReferencedBlobUrls(previousState)
+          get().cancelScheduledHistory()
+          set({
+            ...initialState,
+            documentGeneration: previousState.documentGeneration + 1,
+          })
+          revokeUnreferencedBlobUrls(previousBlobUrls)
+        },
 
         // 내보내기용 데이터
         getEditorData: () => {

@@ -16,3 +16,15 @@
 3. H-2 봉합 — presence/awareness payload에 인증된 userId 서버측 검증 추가(RLS or Edge Function 경유) — AC: 위조된 userId로 awareness 업데이트 시도 시 거부. (Opus)
 
 **의존·순서**: **선행조건**: F-13(초대/세션)의 Supabase 배선과 함께 진행해야 세션 join이 실 네트워크 경로를 타게 됨 — F-11·F-13은 사실상 하나의 작업 단위. **후행영향**: F-12(Presence)·F-14(협업 채팅)가 이 프로바이더에 의존.
+
+## 갱신 · 2026-07-28 (DL-0007)   [source-ready/live-unverified]
+
+- Supabase Realtime private channel과 현재 Auth JWT를 사용하며,
+  `realtime.messages` RLS 소스는 host/participant·상태·만료·topic을 서버에서 검증한다.
+- 늦은 참가자는 `request-state/state-response`로 전체 상태를 받고, 원격 update는
+  remote origin으로 적용해 에코하지 않는다. 이미지 삭제·transform·스티커·텍스트
+  스타일/효과까지 동기화한다.
+- awareness 부분 변경은 기존 cursor/selection/zone을 보존하고 transport의 실제
+  subscribe/error/closed 상태를 UI에 반영한다.
+- **미완료 게이트**: `20260728000001_collab_realtime_authorization.sql` 라이브 적용과
+  서로 다른 두 브라우저 JWT 실검증. 소스·단위 테스트 통과만으로 real 판정하지 않는다.

@@ -24,7 +24,6 @@ export function TitleInputStep({ className }: TitleInputStepProps) {
     setTitle,
     selectedTemplate,
     mode,
-    isLoading,
     setLoading,
     setError,
     reset,
@@ -74,15 +73,15 @@ export function TitleInputStep({ className }: TitleInputStepProps) {
       const params = new URLSearchParams()
       // NOTE: URLSearchParams.set()이 자동으로 인코딩하므로 encodeURIComponent 불필요
       params.set('title', title.trim())
+      params.set('template', selectedTemplate.id)
 
-      // Duo 모드일 경우 세션 자동 생성
+      // Duo 모드는 에디터 진입 후 인증된 실제 세션을 생성한다.
       if (mode === 'duo') {
-        const sessionId = `collab_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
-        params.set('session', sessionId)
+        params.set('collab', '1')
       }
 
       // 에디터로 이동
-      router.push(`/canvas-editor/${selectedTemplate.id}?${params.toString()}`)
+      router.push(`/editor/new?${params.toString()}`)
 
       // 진입 스토어 리셋 (약간의 딜레이 후, ref로 추적하여 메모리 누수 방지)
       resetTimeoutRef.current = setTimeout(() => {

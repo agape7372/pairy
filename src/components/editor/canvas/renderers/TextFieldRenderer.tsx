@@ -7,7 +7,7 @@
  * Sprint 36: 자동 맞춤 (shrink-to-fit), 그라디언트 텍스트 기능 추가
  */
 
-import { useMemo } from 'react'
+import { useMemo, useCallback, memo } from 'react'
 import { Group, Rect, Text, TextPath } from 'react-konva'
 import { resolveColor } from '@/lib/utils/canvasUtils'
 import { calculateFittedFontSize } from '@/lib/utils/textMeasure'
@@ -74,11 +74,11 @@ interface TextFieldRendererProps {
   value: string
   colors: ColorData
   isSelected: boolean
-  onClick?: () => void
-  onDoubleClick?: () => void // Sprint 30: 인라인 편집 트리거
+  onClick?: (textId: string) => void
+  onDoubleClick?: (textId: string) => void // Sprint 30: 인라인 편집 트리거
 }
 
-export function TextFieldRenderer({
+export const TextFieldRenderer = memo(function TextFieldRenderer({
   field,
   value,
   colors,
@@ -91,6 +91,12 @@ export function TextFieldRenderer({
   const isPlaceholder = !value && !defaultValue
 
   const fillColor = resolveColor(style.color, colors)
+  const handleClick = useCallback(() => {
+    onClick?.(field.id)
+  }, [field.id, onClick])
+  const handleDoubleClick = useCallback(() => {
+    onDoubleClick?.(field.id)
+  }, [field.id, onDoubleClick])
 
   // 곡선 텍스트 사용 여부
   const useCurvedText = curve && curve.type !== 'none' && curve.strength > 0
@@ -201,10 +207,10 @@ export function TextFieldRenderer({
 
   return (
     <Group
-      onClick={onClick}
-      onTap={onClick}
-      onDblClick={onDoubleClick}
-      onDblTap={onDoubleClick}
+      onClick={onClick ? handleClick : undefined}
+      onTap={onClick ? handleClick : undefined}
+      onDblClick={onDoubleClick ? handleDoubleClick : undefined}
+      onDblTap={onDoubleClick ? handleDoubleClick : undefined}
     >
       {/* 배경 */}
       {background && (
@@ -288,4 +294,4 @@ export function TextFieldRenderer({
       )}
     </Group>
   )
-}
+})

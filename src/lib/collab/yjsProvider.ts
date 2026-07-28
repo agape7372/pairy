@@ -1,7 +1,9 @@
 /**
- * Sprint 32: Yjs + Supabase Realtime Provider
+ * Yjs collaboration provider backed by Supabase Realtime.
  *
- * CRDT 기반 실시간 동기화를 위한 커스텀 프로바이더
+ * The local BroadcastChannel transport is kept for demo/test environments.
+ * Initial document hydration and subsequent editor changes intentionally use
+ * different origins so initial state is not echoed while real edits are.
  */
 
 import * as Y from 'yjs'
@@ -9,14 +11,88 @@ import { Awareness } from 'y-protocols/awareness'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { BroadcastChannelProvider } from './broadcastProvider'
 import type { RealtimeChannel } from '@supabase/supabase-js'
-import type { SyncState, UserEditingState, CollabUser, EditingZone } from './types'
+import type {
+  SyncState,
+  UserEditingState,
+  CollabUser,
+  EditingZone,
+  YjsUpdateOrigin,
+} from './types'
+
+const INITIAL_STATE_WAIT_MS = 750
+// Private-channel authorization may need to wake Supabase's Realtime
+// authorization pool before evaluating RLS. Keep the client and channel join
+// deadlines aligned so a valid member is not rejected by the SDK's shorter
+// default timeout during a cold connection.
+const CONNECT_TIMEOUT_MS = 30_000
+const REALTIME_DISCONNECT_WAIT_MS = 1_000
+const REALTIME_DISCONNECT_POLL_MS = 25
+const SYNC_SETTLE_MS = 100
+
+interface StateRequestPayload {
+  userId: string
+}
+
+interface StateResponsePayload {
+  userId: string
+  targetUserId: string | null
+  update: number[]
+}
+
+type CollabBroadcastEvent =
+  | 'yjs-update'
+  | 'awareness-update'
+  | 'request-state'
+  | 'state-response'
+
+interface CollabBroadcastRpcClient {
+  rpc(
+    fn: 'broadcast_collab_message',
+    args: {
+      p_session_id: string
+      p_realtime_key: string
+      p_event: CollabBroadcastEvent
+      p_payload: object
+    }
+  ): PromiseLike<{ error: { message: string } | null }>
+}
 
 export interface SupabaseYjsProviderOptions {
   sessionId: string
+  /** Server-rotated capability used to abandon cached Realtime grants. */
+  realtimeKey?: string
   user: CollabUser
   onSyncStateChange?: (state: SyncState) => void
   onRemoteUserChange?: (users: Map<string, UserEditingState>) => void
   onConflict?: (slotId: string | null, textId: string | null, userName: string) => void
+  onConnectionChange?: (isConnected: boolean) => void
+  onSyncingChange?: (isSyncing: boolean) => void
+}
+
+function cloneSyncState(state: SyncState): SyncState {
+  return JSON.parse(JSON.stringify(state)) as SyncState
+}
+
+function emptySyncState(): SyncState {
+  return {
+    formData: {},
+    images: {},
+    colors: {
+      primaryColor: '#FFD9D9',
+      secondaryColor: '#D7FAFA',
+    },
+    slotTransforms: {},
+    stickers: [],
+    texts: [],
+  }
+}
+
+function sameJson(left: unknown, right: unknown): boolean {
+  return JSON.stringify(left) === JSON.stringify(right)
+}
+
+function nullableString(value: unknown, fallback: string | null): string | null {
+  return value === null || typeof value === 'string' ? value : fallback
 }
 
 export class SupabaseYjsProvider {
@@ -26,229 +102,362 @@ export class SupabaseYjsProvider {
   private channel: RealtimeChannel | null = null
   private broadcastProvider: BroadcastChannelProvider | null = null
   private sessionId: string
+  private realtimeKey: string | null
   private user: CollabUser
   isConnected = false
   private isSyncing = false
+  private isBootstrapped = false
+  private pendingInitialState: SyncState | null = null
+  private bootstrapTimer: ReturnType<typeof setTimeout> | null = null
+  private syncTimer: ReturnType<typeof setTimeout> | null = null
 
-  // H-2 완화: 세션 참가자 allowlist — 설정 시 목록 밖 userId 의 인바운드
-  // 업데이트/awareness/presence 를 폐기한다 (채널명만 알면 위장 참여 가능하던 것 차단).
-  // 진실 원천은 collab_sessions.participants (join RPC 가 auth.uid() 로 강제 기록).
+  // Participant allowlist supplied from the server-backed collaboration row.
+  // Realtime topic authorization remains a separate server/RLS concern.
   private allowedUserIds: Set<string> | null = null
 
-  // 콜백
+  private remoteEditingStates = new Map<string, UserEditingState>()
+  private presentUserIds = new Set<string>()
+  private remoteUserNames = new Map<string, string>()
+
   private onSyncStateChange?: (state: SyncState) => void
   private onRemoteUserChange?: (users: Map<string, UserEditingState>) => void
   private onConflict?: (slotId: string | null, textId: string | null, userName: string) => void
+  private onConnectionChange?: (isConnected: boolean) => void
+  private onSyncingChange?: (isSyncing: boolean) => void
 
-  // 공유 데이터 (Y.Map / Y.Array)
   sharedFormData: Y.Map<string>
   sharedImages: Y.Map<string>
   sharedColors: Y.Map<string>
   sharedTransforms: Y.Map<unknown>
   sharedStickers: Y.Array<unknown>
+  sharedTexts: Y.Array<unknown>
 
   constructor(options: SupabaseYjsProviderOptions) {
     this.sessionId = options.sessionId
+    this.realtimeKey = options.realtimeKey ?? null
     this.user = options.user
     this.onSyncStateChange = options.onSyncStateChange
     this.onRemoteUserChange = options.onRemoteUserChange
     this.onConflict = options.onConflict
+    this.onConnectionChange = options.onConnectionChange
+    this.onSyncingChange = options.onSyncingChange
 
-    // Yjs 문서 생성
     this.doc = new Y.Doc()
-
-    // Awareness (커서, 선택 상태 등)
     this.awareness = new Awareness(this.doc)
-
-    // 공유 데이터 구조 초기화
     this.sharedFormData = this.doc.getMap('formData')
     this.sharedImages = this.doc.getMap('images')
     this.sharedColors = this.doc.getMap('colors')
     this.sharedTransforms = this.doc.getMap('slotTransforms')
     this.sharedStickers = this.doc.getArray('stickers')
+    this.sharedTexts = this.doc.getArray('texts')
 
-    // 변경 감지 설정
     this.setupObservers()
   }
 
-  /** Supabase Realtime 또는 BroadcastChannel 연결 */
+  /** Connect to Supabase Realtime or to the local demo transport. */
   async connect(): Promise<void> {
     if (!isSupabaseConfigured()) {
-      // Demo 모드: BroadcastChannel 사용
       this.connectViaBroadcastChannel()
+      this.setConnected(true)
+      this.beginInitialSync()
       return
     }
 
     try {
       const supabase = createClient()
       if (!supabase) {
-        console.warn('[YjsProvider] Supabase client not available')
-        return
+        throw new Error('Supabase client not available')
+      }
+      if (!this.realtimeKey) {
+        throw new Error('Realtime key is required for private collaboration')
       }
 
-      // 채널 생성
-      this.channel = supabase.channel(`collab-yjs:${this.sessionId}`, {
+      // Private Realtime 채널의 RLS 판정에 현재 Auth JWT를 사용한다.
+      // Supabase disconnects the shared websocket when its final channel is
+      // removed. A key rotation can mount the replacement provider during that
+      // brief closing state; subscribe() otherwise skips connect() and the new
+      // channel times out. Wait only for the SDK's bounded close transition.
+      const disconnectDeadline = Date.now() + REALTIME_DISCONNECT_WAIT_MS
+      while (supabase.realtime.isDisconnecting()) {
+        if (Date.now() >= disconnectDeadline) {
+          throw new Error('Realtime transport did not finish disconnecting')
+        }
+        await new Promise((resolve) => {
+          setTimeout(resolve, REALTIME_DISCONNECT_POLL_MS)
+        })
+      }
+
+      await supabase.realtime.setAuth()
+      this.channel = supabase.channel(
+        `collab-yjs:${this.sessionId}:${this.realtimeKey}`,
+        {
         config: {
+          private: true,
           broadcast: {
-            self: false, // 자신의 브로드캐스트는 수신하지 않음
+            self: false,
           },
         },
-      })
+        }
+      )
 
-      // Yjs 업데이트 수신
       this.channel.on('broadcast', { event: 'yjs-update' }, ({ payload }) => {
         try {
           this.handleRemoteUpdate(payload)
-        } catch (e) {
-          console.warn('[YjsProvider] Error handling remote update:', e)
+        } catch (error) {
+          console.warn('[YjsProvider] Error handling remote update:', error)
         }
       })
 
-      // Awareness 업데이트 수신
       this.channel.on('broadcast', { event: 'awareness-update' }, ({ payload }) => {
         try {
           this.handleAwarenessUpdate(payload)
-        } catch (e) {
-          console.warn('[YjsProvider] Error handling awareness update:', e)
+        } catch (error) {
+          console.warn('[YjsProvider] Error handling awareness update:', error)
         }
       })
 
-      // Presence 설정 (온라인 상태)
-      this.channel.on('presence', { event: 'sync' }, () => {
-        this.syncRemoteUsers()
+      this.channel.on('broadcast', { event: 'request-state' }, ({ payload }) => {
+        try {
+          this.handleStateRequest(payload)
+        } catch (error) {
+          console.warn('[YjsProvider] Error handling state request:', error)
+        }
       })
 
-      this.channel.on('presence', { event: 'join' }, () => {
-        this.syncRemoteUsers()
+      this.channel.on('broadcast', { event: 'state-response' }, ({ payload }) => {
+        try {
+          this.handleStateResponse(payload)
+        } catch (error) {
+          console.warn('[YjsProvider] Error handling state response:', error)
+        }
       })
 
-      this.channel.on('presence', { event: 'leave' }, () => {
-        this.syncRemoteUsers()
-      })
+      // subscribe() returns a channel immediately. Resolve only when the
+      // transport reports the real SUBSCRIBED state.
+      await new Promise<void>((resolve, reject) => {
+        let settled = false
+        let transportSubscribed = false
+        const connectTimeout = setTimeout(() => {
+          if (settled) return
+          settled = true
+          this.setConnected(false)
+          reject(new Error('Realtime connection timed out'))
+        }, CONNECT_TIMEOUT_MS)
 
-      // 구독 시작
-      await this.channel.subscribe(async (status) => {
-        if (status === 'SUBSCRIBED') {
-          this.isConnected = true
+        const fail = (status: string) => {
+          this.setConnected(false)
+          this.clearBootstrapTimer()
+          if (!settled) {
+            settled = true
+            clearTimeout(connectTimeout)
+            reject(new Error(`Realtime connection failed: ${status}`))
+          }
+        }
 
-          // Presence에 자신 등록
-          try {
-            await this.channel?.track({
-              user_id: this.user.id,
-              user_name: this.user.name,
-              user_color: this.user.color,
-              user_avatar: this.user.avatar,
-              online_at: new Date().toISOString(),
-            })
-          } catch (e) {
-            console.warn('[YjsProvider] Error tracking presence:', e)
+        this.channel?.subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            if (transportSubscribed) return
+            transportSubscribed = true
+            this.setConnected(true)
+
+            void (async () => {
+              if (!this.isConnected) return
+              // Server-stamped awareness doubles as an authenticated presence
+              // announcement; direct client Broadcast/Presence writes stay disabled.
+              this.updateAwareness({
+                zone: null,
+                selectedSlotId: null,
+                selectedTextId: null,
+                cursor: null,
+                lastActivity: Date.now(),
+              })
+              this.beginInitialSync()
+              if (!settled) {
+                settled = true
+                clearTimeout(connectTimeout)
+                resolve()
+              }
+            })()
+            return
           }
 
-          // 초기 상태 요청 (기존 참여자로부터)
-          this.requestInitialState()
-        }
+          if (
+            status === 'CHANNEL_ERROR' ||
+            status === 'TIMED_OUT' ||
+            status === 'CLOSED'
+          ) {
+            transportSubscribed = false
+            fail(status)
+          }
+        }, CONNECT_TIMEOUT_MS)
       })
     } catch (error) {
+      this.setConnected(false)
       console.error('[YjsProvider] Connection failed:', error)
-      throw error // 상위에서 처리하도록 다시 throw
+      throw error
     }
   }
 
-  /** BroadcastChannel 모드 연결 (Demo/로컬) */
   private connectViaBroadcastChannel(): void {
     this.broadcastProvider = new BroadcastChannelProvider(this.sessionId, this.user)
 
-    // Yjs 업데이트 수신
     this.broadcastProvider.on('yjs-update', (payload) => {
       this.handleRemoteUpdate(payload as { update: number[]; userId: string })
     })
-
-    // Awareness 업데이트 수신
     this.broadcastProvider.on('awareness-update', (payload) => {
-      this.handleAwarenessUpdate(payload as { userId: string; state: Partial<UserEditingState> })
+      this.handleAwarenessUpdate(
+        payload as { userId: string; state: Partial<UserEditingState> }
+      )
     })
-
-    // Presence 변경 감지
+    this.broadcastProvider.on('request-state', (payload) => {
+      this.handleStateRequest(payload as StateRequestPayload)
+    })
+    this.broadcastProvider.on('state-response', (payload) => {
+      this.handleStateResponse(payload as StateResponsePayload)
+    })
     this.broadcastProvider.on('presence-sync', () => {
       this.syncRemoteUsersFromBroadcast()
     })
 
     this.broadcastProvider.connect()
-    this.isConnected = true
   }
 
-  /** 연결 해제 (안전한 정리) */
+  /** Disconnect and release every transport, document, timer, and presence reference. */
   disconnect(): void {
-    try {
-      if (this.channel) {
-        // 데모 모드가 아닐 때만 채널 제거
-        if (isSupabaseConfigured()) {
-          const supabase = createClient()
-          if (supabase) {
-            supabase.removeChannel(this.channel)
-          }
-        }
-        this.channel = null
-      }
-      this.isConnected = false
+    this.clearBootstrapTimer()
+    this.clearSyncTimer()
+    this.setSyncing(false)
+    this.setConnected(false)
 
-      // Awareness와 Doc는 안전하게 정리
-      try {
-        this.awareness.destroy()
-      } catch (e) {
-        console.warn('[YjsProvider] Error destroying awareness:', e)
-      }
-      try {
-        this.doc.destroy()
-      } catch (e) {
-        console.warn('[YjsProvider] Error destroying doc:', e)
-      }
-    } catch (error) {
-      console.error('[YjsProvider] Error during disconnect:', error)
-    }
     if (this.broadcastProvider) {
       this.broadcastProvider.disconnect()
       this.broadcastProvider = null
     }
+
+    if (this.channel) {
+      try {
+        if (isSupabaseConfigured()) {
+          const supabase = createClient()
+          if (supabase) {
+            void supabase.removeChannel(this.channel)
+          }
+        }
+      } catch (error) {
+        console.warn('[YjsProvider] Error removing channel:', error)
+      }
+      this.channel = null
+    }
+
+    this.remoteEditingStates.clear()
+    this.presentUserIds.clear()
+    this.remoteUserNames.clear()
+    this.onRemoteUserChange?.(new Map())
+
+    try {
+      this.awareness.destroy()
+    } catch (error) {
+      console.warn('[YjsProvider] Error destroying awareness:', error)
+    }
+    try {
+      this.doc.destroy()
+    } catch (error) {
+      console.warn('[YjsProvider] Error destroying doc:', error)
+    }
   }
 
-  /** 초기 상태 설정 (로컬 스토어에서) */
+  /**
+   * Stage the editor snapshot used only if no existing peer answers the
+   * initial state request. This avoids creating a second, concurrent Yjs base
+   * document for a late joiner.
+   */
+  prepareInitialState(state: SyncState): void {
+    this.pendingInitialState = cloneSyncState(state)
+  }
+
+  /**
+   * Compatibility API for callers that intentionally need immediate local
+   * hydration. Initial hydration never broadcasts.
+   */
   initializeState(state: SyncState): void {
-    this.doc.transact(() => {
-      // formData
-      Object.entries(state.formData).forEach(([key, value]) => {
-        if (value !== undefined) {
-          this.sharedFormData.set(key, value)
-        }
-      })
-
-      // images
-      Object.entries(state.images).forEach(([key, value]) => {
-        if (value !== null) {
-          this.sharedImages.set(key, value)
-        }
-      })
-
-      // colors
-      Object.entries(state.colors).forEach(([key, value]) => {
-        if (value !== undefined) {
-          this.sharedColors.set(key, value)
-        }
-      })
-
-      // slotTransforms
-      Object.entries(state.slotTransforms).forEach(([key, value]) => {
-        this.sharedTransforms.set(key, value)
-      })
-
-      // stickers
-      state.stickers.forEach((sticker) => {
-        this.sharedStickers.push([sticker])
-      })
-    }, 'init')
+    this.pendingInitialState = cloneSyncState(state)
+    this.replaceSharedState(state, 'init')
+    this.isBootstrapped = true
   }
 
-  /** 로컬 변경사항 브로드캐스트 */
+  /**
+   * Apply a real local editor change. Before bootstrap it only refreshes the
+   * fallback snapshot; after bootstrap its Yjs update is broadcast.
+   */
+  syncLocalState(state: SyncState): void {
+    this.pendingInitialState = cloneSyncState(state)
+    if (!this.isBootstrapped) return
+    this.replaceSharedState(state, 'local')
+  }
+
+  private replaceSharedState(state: SyncState, origin: YjsUpdateOrigin): void {
+    this.doc.transact(() => {
+      this.syncStringMap(this.sharedFormData, state.formData)
+      this.syncStringMap(this.sharedImages, state.images)
+      this.syncStringMap(this.sharedColors, state.colors)
+
+      const desiredTransforms = new Map(
+        Object.entries(state.slotTransforms)
+      )
+      Array.from(this.sharedTransforms.keys()).forEach((key) => {
+        if (!desiredTransforms.has(key)) {
+          this.sharedTransforms.delete(key)
+        }
+      })
+      desiredTransforms.forEach((value, key) => {
+        if (!sameJson(this.sharedTransforms.get(key), value)) {
+          this.sharedTransforms.set(key, value)
+        }
+      })
+
+      const currentStickers = this.sharedStickers.toArray()
+      if (!sameJson(currentStickers, state.stickers)) {
+        if (this.sharedStickers.length > 0) {
+          this.sharedStickers.delete(0, this.sharedStickers.length)
+        }
+        if (state.stickers.length > 0) {
+          this.sharedStickers.insert(0, cloneSyncState(state).stickers)
+        }
+      }
+
+      const currentTexts = this.sharedTexts.toArray()
+      if (!sameJson(currentTexts, state.texts)) {
+        if (this.sharedTexts.length > 0) {
+          this.sharedTexts.delete(0, this.sharedTexts.length)
+        }
+        if (state.texts.length > 0) {
+          this.sharedTexts.insert(0, cloneSyncState(state).texts)
+        }
+      }
+    }, origin)
+  }
+
+  private syncStringMap(
+    target: Y.Map<string>,
+    source: Record<string, string | null | undefined>
+  ): void {
+    const desired = new Map(
+      Object.entries(source).filter(
+        (entry): entry is [string, string] => typeof entry[1] === 'string'
+      )
+    )
+
+    Array.from(target.keys()).forEach((key) => {
+      if (!desired.has(key)) {
+        target.delete(key)
+      }
+    })
+    desired.forEach((value, key) => {
+      if (target.get(key) !== value) {
+        target.set(key, value)
+      }
+    })
+  }
+
   broadcastUpdate(update: Uint8Array): void {
     if (!this.isConnected) return
 
@@ -260,46 +469,48 @@ export class SupabaseYjsProvider {
 
     if (this.broadcastProvider) {
       this.broadcastProvider.broadcastYjsUpdate(payload.update, payload.userId)
-    } else if (this.channel) {
-      this.channel.send({
-        type: 'broadcast',
-        event: 'yjs-update',
-        payload,
-      })
+    } else {
+      this.sendRealtimeBroadcast('yjs-update', payload)
     }
   }
 
-  /** Awareness 상태 업데이트 */
   updateAwareness(state: Partial<UserEditingState>): void {
-    this.awareness.setLocalStateField('editing', state)
+    const current = (
+      this.awareness.getLocalState() as { editing?: Partial<UserEditingState> } | null
+    )?.editing
+    const next: UserEditingState = {
+      zone: current?.zone ?? null,
+      selectedSlotId: current?.selectedSlotId ?? null,
+      selectedTextId: current?.selectedTextId ?? null,
+      cursor: current?.cursor ?? null,
+      ...current,
+      ...state,
+      userId: this.user.id,
+      lastActivity:
+        typeof state.lastActivity === 'number' ? state.lastActivity : Date.now(),
+    }
 
+    this.awareness.setLocalStateField('editing', next)
     if (!this.isConnected) return
 
     if (this.broadcastProvider) {
-      this.broadcastProvider.broadcastAwareness(this.user.id, state)
-    } else if (this.channel) {
-      this.channel.send({
-        type: 'broadcast',
-        event: 'awareness-update',
-        payload: {
-          userId: this.user.id,
-          state,
-          timestamp: Date.now(),
-        },
+      this.broadcastProvider.broadcastAwareness(this.user.id, next)
+    } else {
+      this.sendRealtimeBroadcast('awareness-update', {
+        userId: this.user.id,
+        state: next,
+        timestamp: Date.now(),
       })
     }
   }
 
-  /** 편집 영역 선점 */
   claimZone(zone: EditingZone): void {
     this.updateAwareness({
-      userId: this.user.id,
       zone,
       lastActivity: Date.now(),
     })
   }
 
-  /** 현재 동기화 상태 가져오기 */
   getSyncState(): SyncState {
     const formData: Record<string, string> = {}
     this.sharedFormData.forEach((value, key) => {
@@ -324,134 +535,357 @@ export class SupabaseYjsProvider {
       slotTransforms[key] = value
     })
 
-    const stickers = this.sharedStickers.toArray() as unknown[]
-
     return {
       formData,
       images,
       colors: colors as SyncState['colors'],
       slotTransforms: slotTransforms as SyncState['slotTransforms'],
-      stickers: stickers as SyncState['stickers'],
+      stickers: this.sharedStickers.toArray() as SyncState['stickers'],
+      texts: this.sharedTexts.toArray() as SyncState['texts'],
     }
   }
 
-  // ============================================
-  // Private Methods
-  // ============================================
-
   private setupObservers(): void {
-    // 문서 변경 감지
     this.doc.on('update', (update: Uint8Array, origin: unknown) => {
-      // 로컬 변경만 브로드캐스트
       if (origin !== 'remote' && origin !== 'init') {
         this.broadcastUpdate(update)
       }
 
-      // 상태 변경 콜백
-      if (this.onSyncStateChange) {
-        this.onSyncStateChange(this.getSyncState())
+      // Local editor state is already the source for local changes. Feeding it
+      // back into Zustand would cause an unnecessary echo render.
+      if (origin === 'remote') {
+        this.onSyncStateChange?.(this.getSyncState())
       }
     })
-
-    // Awareness 변경 감지
-    this.awareness.on('change', () => {
-      this.syncRemoteUsers()
-    })
   }
 
-  /** 세션 참가자 allowlist 설정 (null = 필터 해제). 참가자 변동 시마다 갱신할 것. */
   setAllowedUsers(ids: string[] | null): void {
-    this.allowedUserIds = ids ? new Set(ids) : null
+    const nextAllowedUserIds = ids ? new Set(ids) : null
+    const isUnchanged =
+      (this.allowedUserIds === null && nextAllowedUserIds === null) ||
+      (this.allowedUserIds !== null &&
+        nextAllowedUserIds !== null &&
+        this.allowedUserIds.size === nextAllowedUserIds.size &&
+        Array.from(this.allowedUserIds).every((id) => nextAllowedUserIds.has(id)))
+
+    if (isUnchanged) return
+    this.allowedUserIds = nextAllowedUserIds
+
+    Array.from(this.remoteEditingStates.keys()).forEach((userId) => {
+      if (!this.isAllowedSender(userId)) this.remoteEditingStates.delete(userId)
+    })
+    Array.from(this.presentUserIds).forEach((userId) => {
+      if (!this.isAllowedSender(userId)) this.presentUserIds.delete(userId)
+    })
+    this.emitRemoteUsers()
+
+    // A participant row can arrive after the websocket. Retry bootstrap once
+    // the authoritative participant list becomes available.
+    if (this.isConnected && !this.isBootstrapped) {
+      this.beginInitialSync()
+    }
   }
 
-  private isAllowedSender(userId: unknown): boolean {
+  private isAllowedSender(userId: unknown): userId is string {
     if (typeof userId !== 'string' || !userId) return false
     return this.allowedUserIds === null || this.allowedUserIds.has(userId)
   }
 
-  private handleRemoteUpdate(payload: { update: number[]; userId: string }): void {
-    if (!this.isAllowedSender(payload.userId)) return
-    const update = new Uint8Array(payload.update)
-    Y.applyUpdate(this.doc, update, 'remote')
-    this.isSyncing = true
-
-    // 디바운스된 상태 업데이트
-    setTimeout(() => {
-      this.isSyncing = false
-    }, 100)
+  private setConnected(connected: boolean): void {
+    if (this.isConnected === connected) return
+    this.isConnected = connected
+    this.onConnectionChange?.(connected)
   }
 
-  private handleAwarenessUpdate(payload: { userId: string; state: Partial<UserEditingState> }): void {
-    if (!this.isAllowedSender(payload.userId)) return
-    // 원격 사용자 편집 상태 처리
-    const remoteStates = this.awareness.getStates()
-    const currentState = remoteStates.get(this.awareness.clientID) as { editing?: UserEditingState } | undefined
+  private setSyncing(syncing: boolean): void {
+    if (this.isSyncing === syncing) return
+    this.isSyncing = syncing
+    this.onSyncingChange?.(syncing)
+  }
 
-    // 충돌 감지
-    if (payload.state.selectedSlotId && currentState?.editing?.selectedSlotId === payload.state.selectedSlotId) {
-      this.onConflict?.(payload.state.selectedSlotId, null, payload.userId)
+  private clearBootstrapTimer(): void {
+    if (this.bootstrapTimer) {
+      clearTimeout(this.bootstrapTimer)
+      this.bootstrapTimer = null
     }
-    if (payload.state.selectedTextId && currentState?.editing?.selectedTextId === payload.state.selectedTextId) {
-      this.onConflict?.(null, payload.state.selectedTextId, payload.userId)
+  }
+
+  private clearSyncTimer(): void {
+    if (this.syncTimer) {
+      clearTimeout(this.syncTimer)
+      this.syncTimer = null
     }
+  }
+
+  private beginInitialSync(): void {
+    if (!this.isConnected) return
+
+    this.requestInitialState()
+    if (this.isBootstrapped) {
+      this.sendStateResponse(null)
+      return
+    }
+
+    this.clearBootstrapTimer()
+    this.bootstrapTimer = setTimeout(() => {
+      this.bootstrapTimer = null
+      if (this.isBootstrapped || !this.isConnected) return
+
+      this.initializeState(this.pendingInitialState ?? emptySyncState())
+      // Announce a newly seeded document so simultaneous first participants
+      // converge instead of waiting for another request.
+      this.sendStateResponse(null)
+    }, INITIAL_STATE_WAIT_MS)
+  }
+
+  private handleStateRequest(payload: StateRequestPayload): void {
+    if (
+      !payload ||
+      !this.isAllowedSender(payload.userId) ||
+      payload.userId === this.user.id ||
+      !this.isBootstrapped
+    ) {
+      return
+    }
+
+    this.sendStateResponse(payload.userId)
+  }
+
+  private sendStateResponse(targetUserId: string | null): void {
+    if (!this.isConnected || !this.isBootstrapped) return
+
+    const payload: StateResponsePayload = {
+      userId: this.user.id,
+      targetUserId,
+      update: Array.from(Y.encodeStateAsUpdate(this.doc)),
+    }
+
+    if (this.broadcastProvider) {
+      this.broadcastProvider.broadcast('state-response', payload)
+    } else {
+      this.sendRealtimeBroadcast('state-response', payload)
+    }
+  }
+
+  private handleStateResponse(payload: StateResponsePayload): void {
+    if (
+      !payload ||
+      !this.isAllowedSender(payload.userId) ||
+      payload.userId === this.user.id ||
+      (payload.targetUserId !== null && payload.targetUserId !== this.user.id) ||
+      !Array.isArray(payload.update)
+    ) {
+      return
+    }
+
+    this.clearBootstrapTimer()
+    this.isBootstrapped = true
+    this.applyRemoteUpdate(payload.update)
+  }
+
+  private handleRemoteUpdate(payload: { update: number[]; userId: string }): void {
+    if (
+      !payload ||
+      !this.isAllowedSender(payload.userId) ||
+      !Array.isArray(payload.update)
+    ) {
+      return
+    }
+    this.applyRemoteUpdate(payload.update)
+  }
+
+  private applyRemoteUpdate(rawUpdate: number[]): void {
+    this.setSyncing(true)
+    Y.applyUpdate(this.doc, new Uint8Array(rawUpdate), 'remote')
+
+    this.clearSyncTimer()
+    this.syncTimer = setTimeout(() => {
+      this.syncTimer = null
+      this.setSyncing(false)
+    }, SYNC_SETTLE_MS)
+  }
+
+  private handleAwarenessUpdate(payload: {
+    userId: string
+    state: Partial<UserEditingState>
+  }): void {
+    if (
+      !payload ||
+      !this.isAllowedSender(payload.userId) ||
+      payload.userId === this.user.id ||
+      !payload.state ||
+      typeof payload.state !== 'object'
+    ) {
+      return
+    }
+
+    const previous = this.remoteEditingStates.get(payload.userId)
+    const cursor = payload.state.cursor
+    const validCursor =
+      cursor === null ||
+      (typeof cursor?.x === 'number' &&
+        Number.isFinite(cursor.x) &&
+        typeof cursor?.y === 'number' &&
+        Number.isFinite(cursor.y))
+
+    const zone =
+      payload.state.zone === 'A' ||
+      payload.state.zone === 'B' ||
+      payload.state.zone === null
+        ? payload.state.zone
+        : previous?.zone ?? null
+
+    const next: UserEditingState = {
+      userId: payload.userId,
+      zone,
+      selectedSlotId: nullableString(
+        payload.state.selectedSlotId,
+        previous?.selectedSlotId ?? null
+      ),
+      selectedTextId: nullableString(
+        payload.state.selectedTextId,
+        previous?.selectedTextId ?? null
+      ),
+      cursor: validCursor ? cursor ?? null : previous?.cursor ?? null,
+      lastActivity:
+        typeof payload.state.lastActivity === 'number' &&
+        Number.isFinite(payload.state.lastActivity)
+          ? payload.state.lastActivity
+          : Date.now(),
+    }
+
+    this.remoteEditingStates.set(payload.userId, next)
+    this.presentUserIds.add(payload.userId)
+
+    const localEditing = (
+      this.awareness.getLocalState() as { editing?: UserEditingState } | null
+    )?.editing
+    const remoteName = this.remoteUserNames.get(payload.userId) ?? payload.userId
+
+    if (
+      next.selectedSlotId &&
+      localEditing?.selectedSlotId === next.selectedSlotId
+    ) {
+      this.onConflict?.(next.selectedSlotId, null, remoteName)
+    }
+    if (
+      next.selectedTextId &&
+      localEditing?.selectedTextId === next.selectedTextId
+    ) {
+      this.onConflict?.(null, next.selectedTextId, remoteName)
+    }
+
+    this.emitRemoteUsers()
   }
 
   private syncRemoteUsers(): void {
     if (!this.channel) return
 
+    const nextIds = new Set<string>()
     const presenceState = this.channel.presenceState()
-    const users = new Map<string, UserEditingState>()
+    Object.values(presenceState)
+      .flat()
+      .forEach((presence: unknown) => {
+        const entry = presence as { user_id?: string; user_name?: string }
+        if (
+          entry.user_id &&
+          entry.user_id !== this.user.id &&
+          this.isAllowedSender(entry.user_id)
+        ) {
+          nextIds.add(entry.user_id)
+          if (entry.user_name) {
+            this.remoteUserNames.set(entry.user_id, entry.user_name)
+          }
+        }
+      })
 
-    Object.values(presenceState).flat().forEach((presence: unknown) => {
-      const p = presence as { user_id?: string; user_name?: string }
-      if (p.user_id && p.user_id !== this.user.id && this.isAllowedSender(p.user_id)) {
-        users.set(p.user_id, {
-          userId: p.user_id,
-          zone: null,
-          selectedSlotId: null,
-          selectedTextId: null,
-          cursor: null,
-          lastActivity: Date.now(),
-        })
-      }
-    })
-
-    this.onRemoteUserChange?.(users)
+    this.replacePresenceUsers(nextIds)
   }
 
-  /** BroadcastChannel Presence에서 원격 사용자 동기화 */
   private syncRemoteUsersFromBroadcast(): void {
     if (!this.broadcastProvider) return
 
-    const presenceState = this.broadcastProvider.getPresenceState()
-    const users = new Map<string, UserEditingState>()
-
-    presenceState.forEach((entry, userId) => {
+    const nextIds = new Set<string>()
+    this.broadcastProvider.getPresenceState().forEach((entry, userId) => {
       if (userId !== this.user.id && this.isAllowedSender(userId)) {
-        users.set(userId, {
+        nextIds.add(userId)
+        this.remoteUserNames.set(userId, entry.user_name)
+      }
+    })
+
+    this.replacePresenceUsers(nextIds)
+  }
+
+  private replacePresenceUsers(nextIds: Set<string>): void {
+    this.presentUserIds = nextIds
+    Array.from(this.remoteEditingStates.keys()).forEach((userId) => {
+      if (!nextIds.has(userId)) {
+        this.remoteEditingStates.delete(userId)
+        this.remoteUserNames.delete(userId)
+      }
+    })
+    this.emitRemoteUsers()
+  }
+
+  private emitRemoteUsers(): void {
+    const users = new Map<string, UserEditingState>()
+    this.presentUserIds.forEach((userId) => {
+      if (!this.isAllowedSender(userId)) return
+      users.set(
+        userId,
+        this.remoteEditingStates.get(userId) ?? {
           userId,
           zone: null,
           selectedSlotId: null,
           selectedTextId: null,
           cursor: null,
           lastActivity: Date.now(),
-        })
-      }
+        }
+      )
     })
-
     this.onRemoteUserChange?.(users)
   }
 
   private requestInitialState(): void {
-    // 기존 참여자가 있으면 상태 요청
-    if (this.channel) {
-      this.channel.send({
-        type: 'broadcast',
-        event: 'request-state',
-        payload: {
-          userId: this.user.id,
-        },
-      })
+    const payload: StateRequestPayload = {
+      userId: this.user.id,
     }
+
+    if (this.broadcastProvider) {
+      this.broadcastProvider.broadcast('request-state', payload)
+    } else {
+      this.sendRealtimeBroadcast('request-state', payload)
+    }
+  }
+
+  /**
+   * All production writes cross an authenticated RPC. The database validates
+   * current membership for every message and overwrites `userId` with auth.uid,
+   * so a cached websocket grant cannot be used to spoof another participant.
+   */
+  private sendRealtimeBroadcast(
+    event: CollabBroadcastEvent,
+    payload: object
+  ): void {
+    if (!this.channel || !this.realtimeKey || !this.isConnected) return
+
+    const supabase = createClient()
+    if (!supabase) return
+
+    void (supabase as unknown as CollabBroadcastRpcClient)
+      .rpc('broadcast_collab_message', {
+        p_session_id: this.sessionId,
+        p_realtime_key: this.realtimeKey,
+        p_event: event,
+        p_payload: payload,
+      })
+      .then(({ error }) => {
+        if (error) {
+          console.warn(
+            `[YjsProvider] ${event} broadcast rejected:`,
+            error.message
+          )
+        }
+      })
   }
 }

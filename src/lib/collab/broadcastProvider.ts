@@ -23,6 +23,7 @@ interface BroadcastMessage {
     | 'presence-leave'
     | 'presence-sync'
     | 'request-state'
+    | 'state-response'
   payload: unknown
   senderId: string
   timestamp: number

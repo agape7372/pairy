@@ -1,6 +1,14 @@
 'use client'
 
-import type { FormData as TemplateFormData, ColorData } from '@/types/template'
+import type {
+  FormData as TemplateFormData,
+  ImageData,
+  ColorData,
+  SlotTransforms,
+  StickerLayer,
+  TemplateConfig,
+  TextField,
+} from '@/types/template'
 
 /**
  * 에디터 유틸리티 함수 모음
@@ -13,12 +21,23 @@ import type { FormData as TemplateFormData, ColorData } from '@/types/template'
 
 /** 자동 저장 데이터 스키마 */
 export interface AutoSaveData {
+  /** v1 데이터에는 이 필드가 없으므로 하위 호환을 위해 optional */
+  version?: 2
   templateId: string
   title: string
   formData: TemplateFormData
+  images?: ImageData
   colors: ColorData
-  slotTransforms: Record<string, SlotTransform>
+  slotTransforms: SlotTransforms
+  /** 사용자가 변경할 수 있는 텍스트/스티커 레이어만 저장해 큰 원본 템플릿 중복을 피한다. */
+  templateEdits?: TemplateEdits
   timestamp: string
+}
+
+/** 원본 템플릿에서 사용자가 실제로 수정할 수 있는 레이어 */
+export interface TemplateEdits {
+  texts: TextField[]
+  stickers: StickerLayer[]
 }
 
 /** 슬롯 변환 정보 */
@@ -59,6 +78,7 @@ export function validateAutoSaveData(data: unknown): data is AutoSaveData {
   if (typeof obj.templateId !== 'string') return false
   if (typeof obj.title !== 'string') return false
   if (typeof obj.timestamp !== 'string') return false
+  if (obj.version !== undefined && obj.version !== 2) return false
 
   // formData 검증 (Record<string, string>)
   if (!obj.formData || typeof obj.formData !== 'object') return false
@@ -70,9 +90,17 @@ export function validateAutoSaveData(data: unknown): data is AutoSaveData {
   if (typeof colorsObj.primaryColor !== 'string') return false
   if (typeof colorsObj.secondaryColor !== 'string') return false
 
+  // v2 이미지 데이터 검증 (v1에는 필드가 없음)
+  if (obj.images !== undefined && !isNullableStringRecord(obj.images)) return false
+
   // slotTransforms 검증
   if (!obj.slotTransforms || typeof obj.slotTransforms !== 'object') return false
   if (!isSlotTransformsRecord(obj.slotTransforms)) return false
+
+  // v2 편집 가능 템플릿 레이어 검증
+  if (obj.templateEdits !== undefined && !isTemplateEdits(obj.templateEdits)) {
+    return false
+  }
 
   // timestamp 유효성 검증
   const date = new Date(obj.timestamp)
@@ -91,6 +119,67 @@ function isStringRecord(obj: unknown): obj is Record<string, string | undefined>
   return true
 }
 
+/** Record<string, string | null> 타입 검증 */
+function isNullableStringRecord(obj: unknown): obj is ImageData {
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return false
+
+  for (const value of Object.values(obj)) {
+    if (value !== null && typeof value !== 'string') return false
+  }
+  return true
+}
+
+function isFiniteTransform(obj: unknown): boolean {
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return false
+  const transform = obj as Record<string, unknown>
+  return (
+    typeof transform.x === 'number' &&
+    isFinite(transform.x) &&
+    typeof transform.y === 'number' &&
+    isFinite(transform.y) &&
+    typeof transform.width === 'number' &&
+    isFinite(transform.width) &&
+    transform.width > 0 &&
+    typeof transform.height === 'number' &&
+    isFinite(transform.height) &&
+    transform.height > 0 &&
+    (transform.rotation === undefined ||
+      (typeof transform.rotation === 'number' && isFinite(transform.rotation)))
+  )
+}
+
+function isTemplateEdits(value: unknown): value is TemplateEdits {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+  const edits = value as Record<string, unknown>
+  if (!Array.isArray(edits.texts) || !Array.isArray(edits.stickers)) return false
+
+  const validTexts = edits.texts.every((item) => {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) return false
+    const text = item as Record<string, unknown>
+    return (
+      typeof text.id === 'string' &&
+      typeof text.dataKey === 'string' &&
+      isFiniteTransform(text.transform) &&
+      !!text.style &&
+      typeof text.style === 'object' &&
+      !Array.isArray(text.style)
+    )
+  })
+
+  const validStickers = edits.stickers.every((item) => {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) return false
+    const sticker = item as Record<string, unknown>
+    return (
+      typeof sticker.id === 'string' &&
+      typeof sticker.stickerId === 'string' &&
+      typeof sticker.imageUrl === 'string' &&
+      isFiniteTransform(sticker.transform)
+    )
+  })
+
+  return validTexts && validStickers
+}
+
 /** SlotTransforms Record 타입 검증 */
 function isSlotTransformsRecord(obj: unknown): obj is Record<string, SlotTransform> {
   if (!obj || typeof obj !== 'object') return false
@@ -99,6 +188,111 @@ function isSlotTransformsRecord(obj: unknown): obj is Record<string, SlotTransfo
     if (!isSlotTransform(value)) return false
   }
   return true
+}
+
+// ============================================
+// 에디터 문서 영속화
+// ============================================
+
+/** 편집 가능한 텍스트/스티커 레이어만 추출한다. */
+export function extractTemplateEdits(config: TemplateConfig): TemplateEdits {
+  return {
+    texts: config.layers.texts,
+    stickers: config.layers.stickers || [],
+  }
+}
+
+/** 저장된 편집 레이어를 현재 원본 템플릿에 안전하게 병합한다. */
+export function mergeTemplateEdits(
+  config: TemplateConfig,
+  edits?: TemplateEdits
+): TemplateConfig {
+  if (!edits) return config
+
+  return {
+    ...config,
+    layers: {
+      ...config.layers,
+      texts: edits.texts,
+      stickers: edits.stickers,
+    },
+  }
+}
+
+function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        resolve(reader.result)
+      } else {
+        reject(new Error('이미지를 직렬화할 수 없습니다'))
+      }
+    }
+    reader.onerror = () => reject(reader.error || new Error('이미지를 읽을 수 없습니다'))
+    reader.readAsDataURL(blob)
+  })
+}
+
+/** 새로고침 후 무효가 되는 blob URL을 영속 가능한 data URL로 바꾼다. */
+export async function makeUrlDurable(url: string): Promise<string> {
+  if (!url.startsWith('blob:')) return url
+
+  const response = await fetch(url)
+  if (!response.ok) {
+    throw new Error('임시 이미지를 읽을 수 없습니다')
+  }
+  return blobToDataUrl(await response.blob())
+}
+
+/** 이미지 슬롯 URL을 병렬 직렬화한다. */
+export async function makeImageDataDurable(images: ImageData): Promise<ImageData> {
+  const entries = await Promise.all(
+    Object.entries(images).map(async ([key, url]) => [
+      key,
+      url ? await makeUrlDurable(url) : null,
+    ] as const)
+  )
+  return Object.fromEntries(entries)
+}
+
+/** 사용자 스티커 URL도 문서와 함께 다시 열 수 있도록 직렬화한다. */
+export async function makeTemplateEditsDurable(
+  edits: TemplateEdits
+): Promise<TemplateEdits> {
+  return {
+    texts: edits.texts,
+    stickers: await Promise.all(
+      edits.stickers.map(async (sticker) => ({
+        ...sticker,
+        imageUrl: await makeUrlDurable(sticker.imageUrl),
+      }))
+    ),
+  }
+}
+
+/** 내보내기 전에 렌더러가 필요로 하는 이미지 URL을 중복 없이 수집한다. */
+export function collectEditorImageSources(
+  config: TemplateConfig,
+  images: ImageData
+): string[] {
+  const sources = new Set<string>()
+  const add = (value?: string | null) => {
+    if (value) sources.add(value)
+  }
+
+  if (config.layers.background.type === 'image') {
+    add(config.layers.background.imageUrl)
+  }
+  config.layers.slots.forEach((slot) => {
+    const userImage = images[slot.dataKey]
+    add(userImage || slot.placeholder)
+    if (slot.mask?.type === 'image') add(slot.mask.imageUrl)
+  })
+  config.layers.stickers?.forEach((sticker) => add(sticker.imageUrl))
+  config.layers.overlays?.forEach((overlay) => add(overlay.imageUrl))
+
+  return [...sources]
 }
 
 /** SlotTransform 타입 검증 */
@@ -112,6 +306,127 @@ function isSlotTransform(obj: unknown): obj is SlotTransform {
     typeof t.scale === 'number' && isFinite(t.scale) && t.scale > 0 &&
     typeof t.rotation === 'number' && isFinite(t.rotation)
   )
+}
+
+export type WorkEditorDataParseResult =
+  | { success: true; data: AutoSaveData | null }
+  | { success: false; error: string }
+
+function getTemplateDefaultColors(config: TemplateConfig): ColorData {
+  const colors: ColorData = {
+    primaryColor: '#FFD9D9',
+    secondaryColor: '#D7FAFA',
+    accentColor: '#FF6B6B',
+    textColor: '#3D3636',
+  }
+
+  config.colors.forEach((color) => {
+    colors[color.key] = color.defaultValue
+  })
+  return colors
+}
+
+function getTemplateDefaultFormData(config: TemplateConfig): TemplateFormData {
+  const formData: TemplateFormData = {}
+  config.inputFields.forEach((field) => {
+    if (field.defaultValue !== undefined) {
+      formData[field.key] = field.defaultValue
+    }
+  })
+  return formData
+}
+
+/**
+ * works.editor_data를 현재 자동 저장 문서 스키마로 정규화한다.
+ *
+ * v1/v2 캔버스 저장 형식과 초기 seed의 `slots: [{ id, image }]` 형식을
+ * 지원하며, 알 수 없는 JSON은 편집기 상태에 넣기 전에 거부한다.
+ */
+export function parseWorkEditorData(
+  value: unknown,
+  config: TemplateConfig,
+  title: string
+): WorkEditorDataParseResult {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return { success: false, error: '저장된 작업 데이터 형식이 올바르지 않습니다' }
+  }
+
+  const record = value as Record<string, unknown>
+  if (Object.keys(record).length === 0) {
+    return { success: true, data: null }
+  }
+
+  const hasCanvasDocumentFields = [
+    'version',
+    'formData',
+    'images',
+    'colors',
+    'slotTransforms',
+    'templateEdits',
+    'savedAt',
+    'timestamp',
+  ].some((key) => Object.prototype.hasOwnProperty.call(record, key))
+
+  if (hasCanvasDocumentFields) {
+    if (record.version !== undefined && record.version !== 2) {
+      return { success: false, error: '지원하지 않는 작업 데이터 버전입니다' }
+    }
+
+    const candidate: AutoSaveData = {
+      version: record.version === 2 ? 2 : undefined,
+      templateId: config.id,
+      title,
+      formData: record.formData as TemplateFormData,
+      images: record.images as ImageData | undefined,
+      colors: record.colors as ColorData,
+      slotTransforms: record.slotTransforms as SlotTransforms,
+      templateEdits: record.templateEdits as TemplateEdits | undefined,
+      timestamp:
+        typeof record.savedAt === 'string'
+          ? record.savedAt
+          : (record.timestamp as string),
+    }
+
+    if (!validateAutoSaveData(candidate)) {
+      return { success: false, error: '저장된 작업 데이터가 손상되었습니다' }
+    }
+    return { success: true, data: candidate }
+  }
+
+  // 초기 작품 seed는 슬롯 ID와 이미지 URL만 저장했다.
+  if (Array.isArray(record.slots)) {
+    const images: ImageData = {}
+    for (const item of record.slots) {
+      if (!item || typeof item !== 'object' || Array.isArray(item)) {
+        return { success: false, error: '저장된 슬롯 데이터가 손상되었습니다' }
+      }
+
+      const slotRecord = item as Record<string, unknown>
+      if (typeof slotRecord.id !== 'string' || typeof slotRecord.image !== 'string') {
+        return { success: false, error: '저장된 슬롯 데이터가 손상되었습니다' }
+      }
+
+      const slot = config.layers.slots.find(
+        (candidate) => candidate.id === slotRecord.id
+      )
+      if (slot) images[slot.dataKey] = slotRecord.image
+    }
+
+    return {
+      success: true,
+      data: {
+        templateId: config.id,
+        title,
+        formData: getTemplateDefaultFormData(config),
+        images,
+        colors: getTemplateDefaultColors(config),
+        slotTransforms: {},
+        timestamp: new Date(0).toISOString(),
+      },
+    }
+  }
+
+  return { success: false, error: '지원하지 않는 작업 데이터 형식입니다' }
 }
 
 // ============================================

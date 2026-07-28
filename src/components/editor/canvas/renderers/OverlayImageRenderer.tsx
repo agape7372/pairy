@@ -5,6 +5,7 @@
  * 변경 이유: TemplateRenderer.tsx에서 분리하여 단일 책임 원칙 준수
  */
 
+import { memo } from 'react'
 import { Image } from 'react-konva'
 import { useImage } from '@/hooks/useKonvaImage'
 import type { OverlayImage } from '@/types/template'
@@ -13,7 +14,9 @@ interface OverlayImageRendererProps {
   overlay: OverlayImage
 }
 
-export function OverlayImageRenderer({ overlay }: OverlayImageRendererProps) {
+export const OverlayImageRenderer = memo(function OverlayImageRenderer({
+  overlay,
+}: OverlayImageRendererProps) {
   const [image] = useImage(overlay.imageUrl)
 
   if (!image) return null
@@ -32,4 +35,4 @@ export function OverlayImageRenderer({ overlay }: OverlayImageRendererProps) {
       globalCompositeOperation={overlay.blendMode}
     />
   )
-}
+})
