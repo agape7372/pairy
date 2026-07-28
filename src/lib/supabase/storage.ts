@@ -1,6 +1,10 @@
 import { createClient, IS_DEMO_MODE } from './client'
 
-export type StorageBucket = 'avatars' | 'works' | 'templates'
+export type StorageBucket =
+  | 'avatars'
+  | 'works'
+  | 'templates'
+  | 'editor-assets'
 
 interface UploadOptions {
   bucket: StorageBucket
@@ -12,6 +16,130 @@ interface UploadOptions {
 interface UploadResult {
   url: string | null
   error: Error | null
+}
+
+export interface EditorImageUploadResult {
+  url: string | null
+  path: string | null
+  error: Error | null
+}
+
+const EDITOR_IMAGE_MAX_SIZE = 10 * 1024 * 1024
+const EDITOR_IMAGE_EXTENSIONS: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/gif': 'gif',
+  'image/webp': 'webp',
+}
+
+function sanitizeStorageSegment(value: string, fallback: string): string {
+  const sanitized = value
+    .normalize('NFKC')
+    .replace(/[^a-zA-Z0-9_-]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 80)
+
+  return sanitized || fallback
+}
+
+function createUploadNonce(): string {
+  if (
+    typeof crypto !== 'undefined' &&
+    typeof crypto.randomUUID === 'function'
+  ) {
+    return crypto.randomUUID()
+  }
+
+  return Math.random().toString(36).slice(2, 14)
+}
+
+/**
+ * 에디터 이미지를 새로고침과 기기 간 협업에서도 유효한 공개 URL로 저장한다.
+ *
+ * 첫 경로 세그먼트는 RLS가 auth.uid()와 대조하므로 userId를 변형하지 않는다.
+ */
+export async function uploadEditorImage(
+  userId: string,
+  documentId: string,
+  slotId: string,
+  blob: Blob
+): Promise<EditorImageUploadResult> {
+  if (IS_DEMO_MODE) {
+    return {
+      url: null,
+      path: null,
+      error: new Error('에디터 이미지 저장소를 사용할 수 없습니다.'),
+    }
+  }
+
+  const extension = EDITOR_IMAGE_EXTENSIONS[blob.type]
+  if (!extension) {
+    return {
+      url: null,
+      path: null,
+      error: new Error('지원하지 않는 이미지 형식입니다.'),
+    }
+  }
+
+  if (blob.size <= 0 || blob.size > EDITOR_IMAGE_MAX_SIZE) {
+    return {
+      url: null,
+      path: null,
+      error: new Error('이미지 파일은 10MB 이하여야 합니다.'),
+    }
+  }
+
+  if (!userId || userId.includes('/')) {
+    return {
+      url: null,
+      path: null,
+      error: new Error('유효하지 않은 사용자 경로입니다.'),
+    }
+  }
+
+  const safeDocumentId = sanitizeStorageSegment(documentId, 'document')
+  const safeSlotId = sanitizeStorageSegment(slotId, 'slot')
+  const path =
+    `${userId}/${safeDocumentId}/` +
+    `${safeSlotId}_${Date.now()}_${createUploadNonce()}.${extension}`
+
+  try {
+    const supabase = createClient()
+    const bucket = supabase.storage.from('editor-assets')
+    const { data, error } = await bucket.upload(path, blob, {
+      cacheControl: '31536000',
+      upsert: false,
+      contentType: blob.type,
+    })
+
+    if (error) throw error
+
+    const {
+      data: { publicUrl },
+    } = bucket.getPublicUrl(data.path)
+
+    return {
+      url: publicUrl,
+      path: data.path,
+      error: null,
+    }
+  } catch (error) {
+    return {
+      url: null,
+      path: null,
+      error:
+        error instanceof Error
+          ? error
+          : new Error('에디터 이미지 업로드에 실패했습니다.'),
+    }
+  }
+}
+
+/** 업로드가 늦게 끝나 더 이상 사용되지 않는 에디터 이미지를 정리한다. */
+export async function deleteEditorImage(path: string): Promise<boolean> {
+  if (!path || IS_DEMO_MODE) return false
+  return deleteFile('editor-assets', path)
 }
 
 /**

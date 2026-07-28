@@ -16,6 +16,7 @@ import {
   useCallback,
   forwardRef,
   useImperativeHandle,
+  memo,
 } from 'react'
 import { Stage, Layer } from 'react-konva'
 import type Konva from 'konva'
@@ -185,13 +186,9 @@ const TemplateRenderer = forwardRef<TemplateRendererRef, TemplateRendererProps>(
               imageSrc={images[slot.dataKey] || null}
               colors={colors}
               isSelected={selectedSlotId === slot.id}
-              onClick={editable && slot.clickable !== false ? () => onSlotClick?.(slot.id) : undefined}
+              onClick={editable && slot.clickable !== false ? onSlotClick : undefined}
               slotTransform={slotTransforms?.[slot.id]}
-              onTransformChange={
-                onSlotTransformChange
-                  ? (transform) => onSlotTransformChange(slot.id, transform)
-                  : undefined
-              }
+              onTransformChange={onSlotTransformChange}
               editable={editable}
             />
           ))}
@@ -205,12 +202,8 @@ const TemplateRenderer = forwardRef<TemplateRendererRef, TemplateRendererProps>(
                 key={sticker.id}
                 sticker={sticker}
                 isSelected={selectedStickerId === sticker.id}
-                onClick={editable ? () => onStickerClick?.(sticker.id) : undefined}
-                onTransformEnd={
-                  onStickerTransformChange
-                    ? (transform) => onStickerTransformChange(sticker.id, transform)
-                    : undefined
-                }
+                onClick={editable ? onStickerClick : undefined}
+                onTransformEnd={onStickerTransformChange}
                 editable={editable}
               />
             ))}
@@ -235,8 +228,8 @@ const TemplateRenderer = forwardRef<TemplateRendererRef, TemplateRendererProps>(
               value={formData[textField.dataKey] || ''}
               colors={colors}
               isSelected={selectedTextId === textField.id}
-              onClick={editable ? () => onTextClick?.(textField.id) : undefined}
-              onDoubleClick={editable ? () => onTextDoubleClick?.(textField.id) : undefined}
+              onClick={editable ? onTextClick : undefined}
+              onDoubleClick={editable ? onTextDoubleClick : undefined}
             />
           ))}
         </Layer>
@@ -255,5 +248,5 @@ const TemplateRenderer = forwardRef<TemplateRendererRef, TemplateRendererProps>(
 )
 
 // Export
-export default TemplateRenderer
+export default memo(TemplateRenderer)
 export type { TemplateRendererProps }

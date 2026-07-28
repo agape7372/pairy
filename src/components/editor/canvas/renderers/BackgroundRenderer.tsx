@@ -5,6 +5,7 @@
  * 변경 이유: TemplateRenderer.tsx에서 분리하여 단일 책임 원칙 준수
  */
 
+import { memo } from 'react'
 import { Rect, Image } from 'react-konva'
 import { useImage } from '@/hooks/useKonvaImage'
 import { resolveColor, calculateImageFit } from '@/lib/utils/canvasUtils'
@@ -17,7 +18,7 @@ interface BackgroundRendererProps {
   colors: ColorData
 }
 
-export function BackgroundRenderer({
+export const BackgroundRenderer = memo(function BackgroundRenderer({
   config,
   canvasWidth,
   canvasHeight,
@@ -112,4 +113,4 @@ export function BackgroundRenderer({
   return (
     <Rect x={0} y={0} width={canvasWidth} height={canvasHeight} fill="#FFFFFF" />
   )
-}
+})

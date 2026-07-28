@@ -6,10 +6,11 @@
  */
 
 import { useState } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 import { Palette, Check, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { useCanvasEditorStore } from '@/stores/canvasEditorStore'
-import type { ColorData, ColorReference } from '@/types/template'
+import type { ColorData } from '@/types/template'
 
 // ============================================
 // 프리셋 정의
@@ -209,7 +210,13 @@ interface ColorPresetsProps {
 }
 
 export function ColorPresets({ className }: ColorPresetsProps) {
-  const { colors, setColors, updateColor } = useCanvasEditorStore()
+  const { colors, setColors, pushHistory } = useCanvasEditorStore(
+    useShallow((state) => ({
+      colors: state.colors,
+      setColors: state.setColors,
+      pushHistory: state.pushHistory,
+    }))
+  )
   const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null)
 
   // 현재 색상과 일치하는 프리셋 찾기
@@ -246,6 +253,7 @@ export function ColorPresets({ className }: ColorPresetsProps) {
     }
 
     setColors(newColors)
+    pushHistory()
   }
 
   return (

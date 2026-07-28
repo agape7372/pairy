@@ -5,6 +5,7 @@
  * 변경 이유: TemplateRenderer.tsx에서 분리하여 단일 책임 원칙 준수
  */
 
+import { memo } from 'react'
 import { Rect, Circle, Ellipse, Line, Path, Arc } from 'react-konva'
 import { resolveColor } from '@/lib/utils/canvasUtils'
 import type { DynamicShape, ColorData } from '@/types/template'
@@ -14,7 +15,7 @@ interface DynamicShapeRendererProps {
   colors: ColorData
 }
 
-export function DynamicShapeRenderer({
+export const DynamicShapeRenderer = memo(function DynamicShapeRenderer({
   shape,
   colors,
 }: DynamicShapeRendererProps) {
@@ -110,4 +111,4 @@ export function DynamicShapeRenderer({
     default:
       return null
   }
-}
+})

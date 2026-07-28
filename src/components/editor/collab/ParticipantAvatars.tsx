@@ -7,10 +7,15 @@
  * 향후 프로필 사진/캐릭터 토큰 지원 예정
  */
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Crown, MoreHorizontal } from 'lucide-react'
-import { useUserActivity, getActivityStatusColor, type ActivityStatus } from '@/hooks/useUserActivity'
+import { Crown } from 'lucide-react'
+import {
+  useUserActivity,
+  getActivityStatusColor,
+  getActivityStatusLabel,
+  type ActivityStatus,
+} from '@/hooks/useUserActivity'
 import type { EditingZone, CollabUser, UserEditingState } from '@/lib/collab/types'
 import { cn } from '@/lib/utils/cn'
 
@@ -49,6 +54,7 @@ export function ParticipantAvatars({
   maxVisible = 5,
 }: ParticipantAvatarsProps) {
   const [showTooltip, setShowTooltip] = useState<string | null>(null)
+  const [currentTime, setCurrentTime] = useState<number | null>(null)
 
   // 로컬 사용자 활동 상태 추적
   const { status: activityStatus } = useUserActivity({
@@ -57,6 +63,20 @@ export function ParticipantAvatars({
 
   const isConnected = !!sessionId && !!user
   const participants = remoteUsers ? Array.from(remoteUsers.entries()) : []
+
+  // 원격 사용자의 활동 표시가 입력 이벤트 없이도 만료되도록 시계를 갱신한다.
+  useEffect(() => {
+    if (!sessionId || participants.length === 0) return
+
+    const updateCurrentTime = () => setCurrentTime(Date.now())
+    const initialTimer = window.setTimeout(updateCurrentTime, 0)
+    const interval = window.setInterval(updateCurrentTime, 1000)
+
+    return () => {
+      window.clearTimeout(initialTimer)
+      window.clearInterval(interval)
+    }
+  }, [sessionId, participants.length])
 
   // 세션이 없으면 렌더링하지 않음
   if (!sessionId) return null
@@ -98,7 +118,7 @@ export function ParticipantAvatars({
       isLocal: false,
       isHost: false,
       zone: participant.zone,
-      isActive: Date.now() - participant.lastActivity < 5000,
+      isActive: currentTime === null || currentTime - participant.lastActivity < 5000,
     })
   })
 
@@ -107,78 +127,95 @@ export function ParticipantAvatars({
 
   return (
     <div className={cn('flex items-center gap-1', className)}>
-      {/* 참여자 아바타들 */}
-      <AnimatePresence mode="popLayout">
-        {visibleParticipants.map((participant, index) => (
-          <motion.div
-            key={participant.id}
-            initial={{ opacity: 0, scale: 0.5, x: -20 }}
-            animate={{ opacity: 1, scale: 1, x: 0 }}
-            exit={{ opacity: 0, scale: 0.5 }}
-            transition={{ delay: index * 0.05 }}
-            className="relative"
-            onMouseEnter={() => setShowTooltip(participant.id)}
-            onMouseLeave={() => setShowTooltip(null)}
-          >
-            <Avatar
-              name={participant.name}
-              color={participant.color}
-              avatar={participant.avatar}
-              isLocal={participant.isLocal}
-              isHost={participant.isHost}
-              isActive={participant.isActive}
-              activityStatus={participant.activityStatus}
-              zone={participant.zone}
-              size="md"
-            />
+      <ul aria-label="현재 편집 참여자" className="flex items-center gap-1">
+        {/* 참여자 아바타들 */}
+        <AnimatePresence mode="popLayout">
+          {visibleParticipants.map((participant, index) => {
+            const statusLabel = participant.isLocal && participant.activityStatus
+              ? getActivityStatusLabel(participant.activityStatus)
+              : participant.isActive ? '활동 중' : '자리비움'
 
-            {/* 툴팁 */}
-            <AnimatePresence>
-              {showTooltip === participant.id && (
-                <motion.div
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 8 }}
-                  className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50"
-                >
-                  <div className="bg-gray-900 text-white text-xs px-2 py-1 rounded-lg whitespace-nowrap shadow-lg">
-                    <div className="flex items-center gap-1">
-                      <span>{participant.name}</span>
-                      {participant.isLocal && <span className="text-gray-400">(나)</span>}
-                      {participant.isHost && <Crown className="w-3 h-3 text-amber-400" />}
-                    </div>
-                    {participant.zone && (
-                      <div className="text-gray-400 text-[10px] mt-0.5">
-                        {participant.zone} 영역 편집 중
+            return (
+              <motion.li
+                key={participant.id}
+                initial={{ opacity: 0, scale: 0.5, x: -20 }}
+                animate={{ opacity: 1, scale: 1, x: 0 }}
+                exit={{ opacity: 0, scale: 0.5 }}
+                transition={{ delay: index * 0.05 }}
+                className="relative"
+                onMouseEnter={() => setShowTooltip(participant.id)}
+                onMouseLeave={() => setShowTooltip(null)}
+              >
+                <span className="sr-only">
+                  {participant.name}
+                  {participant.isLocal ? ', 나' : ''}
+                  {participant.isHost ? ', 호스트' : ''}
+                  {`, ${statusLabel}`}
+                  {participant.zone ? `, ${participant.zone} 영역 편집 중` : ''}
+                </span>
+                <Avatar
+                  name={participant.name}
+                  color={participant.color}
+                  avatar={participant.avatar}
+                  isLocal={participant.isLocal}
+                  isHost={participant.isHost}
+                  isActive={participant.isActive}
+                  activityStatus={participant.activityStatus}
+                  zone={participant.zone}
+                  size="md"
+                />
+
+                {/* 시각적 보조 툴팁. 동일 정보는 위 sr-only 텍스트로 항상 제공한다. */}
+                <AnimatePresence>
+                  {showTooltip === participant.id && (
+                    <motion.div
+                      aria-hidden="true"
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 8 }}
+                      className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50"
+                    >
+                      <div className="bg-gray-900 text-white text-xs px-2 py-1 rounded-lg whitespace-nowrap shadow-lg">
+                        <div className="flex items-center gap-1">
+                          <span>{participant.name}</span>
+                          {participant.isLocal && <span className="text-gray-400">(나)</span>}
+                          {participant.isHost && <Crown className="w-3 h-3 text-amber-400" />}
+                        </div>
+                        {participant.zone && (
+                          <div className="text-gray-400 text-[10px] mt-0.5">
+                            {participant.zone} 영역 편집 중
+                          </div>
+                        )}
+                        {/* 화살표 */}
+                        <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px">
+                          <div className="border-4 border-transparent border-t-gray-900" />
+                        </div>
                       </div>
-                    )}
-                    {/* 화살표 */}
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px">
-                      <div className="border-4 border-transparent border-t-gray-900" />
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.div>
-        ))}
-      </AnimatePresence>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.li>
+            )
+          })}
+        </AnimatePresence>
 
-      {/* 더보기 표시 */}
-      {hiddenCount > 0 && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.5 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 text-xs font-bold border-2 border-white shadow-md cursor-pointer hover:bg-gray-300 transition-colors"
-          title={`외 ${hiddenCount}명`}
-        >
-          +{hiddenCount}
-        </motion.div>
-      )}
+        {/* 더보기 표시 */}
+        {hiddenCount > 0 && (
+          <motion.li
+            initial={{ opacity: 0, scale: 0.5 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 text-xs font-bold border-2 border-white shadow-md"
+          >
+            <span className="sr-only">추가 참여자 {hiddenCount}명</span>
+            <span aria-hidden="true">+{hiddenCount}</span>
+          </motion.li>
+        )}
+      </ul>
 
       {/* 연결 중 표시 */}
       {!isConnected && (
         <motion.div
+          role="status"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           className="flex items-center gap-2 px-3 py-2 bg-white/80 backdrop-blur-sm rounded-full shadow-md"
@@ -244,7 +281,7 @@ function Avatar({
     : ''
 
   return (
-    <div className="relative">
+    <div className="relative" aria-hidden="true">
       {/* 메인 아바타 */}
       <div
         className={cn(

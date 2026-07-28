@@ -12,7 +12,13 @@ import {
   sanitizeFilename,
   debounce,
   throttle,
+  collectEditorImageSources,
+  extractTemplateEdits,
+  makeImageDataDurable,
+  mergeTemplateEdits,
+  parseWorkEditorData,
 } from '@/lib/utils/editorUtils'
+import type { TemplateConfig } from '@/types/template'
 
 // ============================================
 // validateAutoSaveData 테스트
@@ -112,6 +118,208 @@ describe('validateAutoSaveData', () => {
       }
     }
     expect(validateAutoSaveData(negativeScale)).toBe(false)
+  })
+
+  it('v2 이미지와 편집 레이어를 검증한다', () => {
+    const v2Data = {
+      ...validData,
+      version: 2,
+      images: { first: 'data:image/png;base64,AAAA', second: null },
+      templateEdits: {
+        texts: [
+          {
+            id: 'text-1',
+            dataKey: 'title',
+            transform: { x: 10, y: 20, width: 100, height: 30 },
+            style: { fontFamily: 'sans-serif', fontSize: 16, color: '#000000' },
+          },
+        ],
+        stickers: [
+          {
+            id: 'sticker-1',
+            stickerId: 'heart',
+            imageUrl: '/heart.png',
+            transform: { x: 10, y: 20, width: 30, height: 30 },
+          },
+        ],
+      },
+    }
+
+    expect(validateAutoSaveData(v2Data)).toBe(true)
+    expect(
+      validateAutoSaveData({
+        ...v2Data,
+        images: { first: 42 },
+      })
+    ).toBe(false)
+    expect(
+      validateAutoSaveData({
+        ...v2Data,
+        templateEdits: { texts: [{}], stickers: [] },
+      })
+    ).toBe(false)
+  })
+})
+
+describe('에디터 문서 영속화', () => {
+  const config: TemplateConfig = {
+    id: 'template',
+    name: 'Template',
+    category: 'pair',
+    version: '1.0.0',
+    canvas: { width: 400, height: 300 },
+    colors: [],
+    layers: {
+      background: { type: 'image', imageUrl: '/background.png' },
+      slots: [
+        {
+          id: 'slot-1',
+          name: 'Slot',
+          dataKey: 'photo',
+          transform: { x: 100, y: 100, width: 100, height: 100 },
+          placeholder: '/placeholder.png',
+          mask: { type: 'image', imageUrl: '/mask.png' },
+        },
+      ],
+      texts: [
+        {
+          id: 'text-1',
+          dataKey: 'title',
+          transform: { x: 200, y: 50, width: 200, height: 40 },
+          style: { fontFamily: 'sans-serif', fontSize: 20, color: '#000000' },
+        },
+      ],
+      stickers: [
+        {
+          id: 'sticker-1',
+          stickerId: 'heart',
+          imageUrl: '/sticker.png',
+          transform: { x: 20, y: 20, width: 30, height: 30 },
+        },
+      ],
+      overlays: [
+        {
+          id: 'overlay-1',
+          imageUrl: '/overlay.png',
+          transform: { x: 0, y: 0, width: 400, height: 300 },
+        },
+      ],
+    },
+    inputFields: [],
+  }
+
+  it('수정 가능한 레이어를 추출하고 원본에 병합한다', () => {
+    const edits = extractTemplateEdits(config)
+    const changed = {
+      ...edits,
+      texts: [
+        {
+          ...edits.texts[0],
+          style: { ...edits.texts[0].style, fontSize: 42 },
+        },
+      ],
+    }
+
+    const merged = mergeTemplateEdits(config, changed)
+    expect(merged.layers.texts[0].style.fontSize).toBe(42)
+    expect(merged.layers.background).toBe(config.layers.background)
+    expect(config.layers.texts[0].style.fontSize).toBe(20)
+  })
+
+  it('서버 작품의 v2 저장 데이터를 검증해 다시 여는 문서로 변환한다', () => {
+    const result = parseWorkEditorData(
+      {
+        version: 2,
+        formData: { title: '다시 연 작업' },
+        images: { photo: 'data:image/png;base64,AAAA' },
+        colors: { primaryColor: '#111111', secondaryColor: '#222222' },
+        slotTransforms: {
+          'slot-1': { x: 0.1, y: -0.2, scale: 1.2, rotation: 5 },
+        },
+        templateEdits: extractTemplateEdits(config),
+        savedAt: '2026-07-28T00:00:00.000Z',
+      },
+      config,
+      '서버 작업'
+    )
+
+    expect(result.success).toBe(true)
+    if (!result.success) return
+    expect(result.data?.templateId).toBe('template')
+    expect(result.data?.title).toBe('서버 작업')
+    expect(result.data?.images?.photo).toContain('data:image/png')
+  })
+
+  it('초기 seed 작품의 슬롯 이미지를 현재 dataKey로 변환한다', () => {
+    const result = parseWorkEditorData(
+      {
+        slots: [{ id: 'slot-1', image: 'https://example.com/legacy.png' }],
+      },
+      config,
+      '이전 작업'
+    )
+
+    expect(result).toMatchObject({
+      success: true,
+      data: {
+        templateId: 'template',
+        images: { photo: 'https://example.com/legacy.png' },
+      },
+    })
+  })
+
+  it('손상된 서버 작품 데이터는 편집기에 적용하지 않는다', () => {
+    expect(
+      parseWorkEditorData(
+        {
+          version: 2,
+          formData: {},
+          colors: { primaryColor: '#111111' },
+          slotTransforms: {},
+          savedAt: 'not-a-date',
+        },
+        config,
+        '손상 작업'
+      )
+    ).toEqual({
+      success: false,
+      error: '저장된 작업 데이터가 손상되었습니다',
+    })
+  })
+
+  it('내보내기에 필요한 이미지 URL을 중복 없이 수집한다', () => {
+    expect(
+      collectEditorImageSources(config, { photo: '/photo.png' })
+    ).toEqual([
+      '/background.png',
+      '/photo.png',
+      '/mask.png',
+      '/sticker.png',
+      '/overlay.png',
+    ])
+    expect(collectEditorImageSources(config, {})).toContain('/placeholder.png')
+  })
+
+  it('blob URL 이미지를 data URL로 직렬화한다', async () => {
+    const originalFetch = global.fetch
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      blob: async () => new Blob(['pairy'], { type: 'text/plain' }),
+    }) as jest.MockedFunction<typeof fetch>
+
+    try {
+      const result = await makeImageDataDurable({
+        local: 'blob:pairy-image',
+        remote: 'https://example.com/image.png',
+        empty: null,
+      })
+
+      expect(result.local).toMatch(/^data:text\/plain;base64,/)
+      expect(result.remote).toBe('https://example.com/image.png')
+      expect(result.empty).toBeNull()
+    } finally {
+      global.fetch = originalFetch
+    }
   })
 })
 

@@ -6,6 +6,7 @@
  */
 
 import { useState, useCallback } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 import {
   Layers,
   Image as ImageIcon,
@@ -266,7 +267,22 @@ export function LayerPanel({ className }: LayerPanelProps) {
     layerStates,
     toggleLayerLocked,
     toggleLayerVisible,
-  } = useCanvasEditorStore()
+  } = useCanvasEditorStore(
+    useShallow((state) => ({
+      templateConfig: state.templateConfig,
+      images: state.images,
+      selectedSlotId: state.selectedSlotId,
+      selectedTextId: state.selectedTextId,
+      selectedStickerId: state.selectedStickerId,
+      selectSlot: state.selectSlot,
+      selectText: state.selectText,
+      selectSticker: state.selectSticker,
+      removeSticker: state.removeSticker,
+      layerStates: state.layerStates,
+      toggleLayerLocked: state.toggleLayerLocked,
+      toggleLayerVisible: state.toggleLayerVisible,
+    }))
+  )
 
   // 그룹 확장 상태
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({

@@ -5,7 +5,7 @@
  * 이미지 스티커를 캔버스에 렌더링 (이모지 배제)
  */
 
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useCallback, memo } from 'react'
 import { Group, Image, Rect, Transformer } from 'react-konva'
 import { useImage } from '@/hooks/useKonvaImage'
 import type { StickerLayer } from '@/types/sticker'
@@ -14,12 +14,12 @@ import type Konva from 'konva'
 interface StickerRendererProps {
   sticker: StickerLayer
   isSelected: boolean
-  onClick?: () => void
-  onTransformEnd?: (transform: Partial<StickerLayer['transform']>) => void
+  onClick?: (stickerId: string) => void
+  onTransformEnd?: (stickerId: string, transform: Partial<StickerLayer['transform']>) => void
   editable?: boolean
 }
 
-export function StickerRenderer({
+export const StickerRenderer = memo(function StickerRenderer({
   sticker,
   isSelected,
   onClick,
@@ -39,18 +39,19 @@ export function StickerRenderer({
       transformerRef.current.nodes([groupRef.current])
       transformerRef.current.getLayer()?.batchDraw()
     }
-  }, [isSelected, editable])
+  }, [isSelected, editable, image])
 
   // 변환 종료 핸들러
   const handleTransformEnd = () => {
     const node = groupRef.current
     if (!node || !onTransformEnd) return
 
-    const scaleX = node.scaleX()
-    const scaleY = node.scaleY()
+    // flip 상태는 scale 축을 음수로 표현하므로 실제 크기에는 절댓값만 반영한다.
+    const scaleX = Math.abs(node.scaleX())
+    const scaleY = Math.abs(node.scaleY())
 
     // 스케일을 크기에 적용하고 스케일 리셋
-    onTransformEnd({
+    onTransformEnd(sticker.id, {
       x: node.x(),
       y: node.y(),
       width: Math.max(20, transform.width * scaleX),
@@ -59,8 +60,8 @@ export function StickerRenderer({
     })
 
     // 스케일 리셋
-    node.scaleX(1)
-    node.scaleY(1)
+    node.scaleX(flipX ? -1 : 1)
+    node.scaleY(flipY ? -1 : 1)
   }
 
   // 드래그 종료 핸들러
@@ -68,11 +69,15 @@ export function StickerRenderer({
     const node = groupRef.current
     if (!node || !onTransformEnd) return
 
-    onTransformEnd({
+    onTransformEnd(sticker.id, {
       x: node.x(),
       y: node.y(),
     })
   }
+
+  const handleClick = useCallback(() => {
+    onClick?.(sticker.id)
+  }, [onClick, sticker.id])
 
   // 이미지가 로드되지 않으면 렌더링하지 않음
   if (!image) return null
@@ -92,8 +97,8 @@ export function StickerRenderer({
         offsetY={flipY ? transform.height : 0}
         opacity={opacity}
         draggable={editable}
-        onClick={onClick}
-        onTap={onClick}
+        onClick={onClick ? handleClick : undefined}
+        onTap={onClick ? handleClick : undefined}
         onDragEnd={handleDragEnd}
         onTransformEnd={handleTransformEnd}
       >
@@ -142,4 +147,4 @@ export function StickerRenderer({
       )}
     </>
   )
-}
+})

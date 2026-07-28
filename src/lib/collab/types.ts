@@ -8,6 +8,7 @@ import type {
   ColorData,
   SlotTransforms,
   StickerLayer,
+  TextField,
 } from '@/types/template'
 
 /** 동기화할 상태 스냅샷 */
@@ -17,6 +18,7 @@ export interface SyncState {
   colors: ColorData
   slotTransforms: SlotTransforms
   stickers: StickerLayer[]
+  texts: TextField[]
 }
 
 /** 사용자 정보 */

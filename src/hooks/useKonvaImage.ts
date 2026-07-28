@@ -26,12 +26,15 @@ interface ImageState {
 }
 
 type ImageAction =
+  | { type: 'RESET' }
   | { type: 'LOAD_START' }
   | { type: 'LOAD_SUCCESS'; image: HTMLImageElement }
   | { type: 'LOAD_ERROR'; error: Error }
 
 function imageReducer(state: ImageState, action: ImageAction): ImageState {
   switch (action.type) {
+    case 'RESET':
+      return initialImageState
     case 'LOAD_START':
       return { image: null, loading: true, error: null }
     case 'LOAD_SUCCESS':
@@ -57,8 +60,11 @@ export function useImage(src: string | null | undefined): UseImageReturn {
   const [state, dispatch] = useReducer(imageReducer, initialImageState)
 
   useEffect(() => {
-    // src가 없으면 로딩하지 않음
-    if (!src) return
+    // src가 사라졌을 때 이전 decoded image 참조도 즉시 해제한다.
+    if (!src) {
+      dispatch({ type: 'RESET' })
+      return
+    }
 
     let isCancelled = false
     const img = new window.Image()
@@ -138,14 +144,19 @@ export function useMaskedImage(
   imageRotation: number = 0,
   filters?: ImageFilters
 ): UseMaskedImageReturn {
-  const [userImage] = useImage(userImageSrc)
-  const [maskImage] = useImage(
+  const [userImage, userImageLoading] = useImage(userImageSrc)
+  const [maskImage, maskImageLoading] = useImage(
     maskConfig?.type === 'image' ? maskConfig.imageUrl : null
   )
+  const requiresImageMask = maskConfig?.type === 'image'
 
   // 마스킹된 캔버스 계산
   const maskedCanvas = useMemo(() => {
     if (!userImage) {
+      return null
+    }
+    // 마스크가 준비되지 않은 동안 원본 이미지를 슬롯 밖에 노출하지 않는다.
+    if (requiresImageMask && !maskImage) {
       return null
     }
 
@@ -209,19 +220,16 @@ export function useMaskedImage(
 
     // Step 2: 마스킹 적용 (destination-in 사용)
     if (maskConfig) {
-      ctx.globalCompositeOperation = 'destination-in'
-
       if (maskConfig.type === 'image' && maskImage) {
-        // 이미지 기반 마스킹
+        // 반전은 기존 이미지를 같은 마스크 알파로 제거하고,
+        // 일반 마스크는 해당 알파와 교차시킨다.
+        ctx.globalCompositeOperation = maskConfig.invert
+          ? 'destination-out'
+          : 'destination-in'
         ctx.drawImage(maskImage, 0, 0, slotWidth, slotHeight)
-
-        // 반전 옵션 처리
-        if (maskConfig.invert) {
-          ctx.globalCompositeOperation = 'destination-out'
-          ctx.drawImage(maskImage, 0, 0, slotWidth, slotHeight)
-        }
       } else if (maskConfig.type === 'shape') {
         // Shape 기반 마스킹
+        ctx.globalCompositeOperation = 'destination-in'
         drawShapeMask(ctx, slotWidth, slotHeight, maskConfig)
         ctx.fill()
       }
@@ -234,6 +242,7 @@ export function useMaskedImage(
   }, [
     userImage,
     maskImage,
+    requiresImageMask,
     maskConfig,
     slotWidth,
     slotHeight,
@@ -246,7 +255,9 @@ export function useMaskedImage(
   ])
 
   // isProcessing은 이미지 로딩 상태로 판단
-  const isProcessing = userImageSrc !== null && !userImage
+  const isProcessing =
+    (userImageSrc !== null && userImageLoading) ||
+    (requiresImageMask && maskImageLoading)
 
   return [maskedCanvas, isProcessing]
 }
