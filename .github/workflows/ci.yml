@@ -69,7 +69,9 @@ jobs:
   # E2E 스모크 — "클릭 무반응"·"죽은 링크" 부류 회귀를 실브라우저로 차단 (2026-07-19).
   # 데모 모드(dev 서버, Supabase env 불필요)로 결정적으로 동작한다.
   e2e-smoke:
-    runs-on: ubuntu-latest
+    # Playwright 1.57.0 은 Ubuntu 26.04(현 ubuntu-latest)를 지원하지 않아 브라우저 설치가 실패한다 (2026-11-04).
+    # 의존성 변경 없이 공식 지원 OS 로 고정 — 26.04 지원 버전으로 올리면 ubuntu-latest 로 복귀.
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@v4
