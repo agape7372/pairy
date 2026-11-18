@@ -384,12 +384,11 @@ export function useShareWork(): UseShareWorkReturn {
       }
 
       const supabase = createClient()
+      // unlisted 는 select 정책으로 열려 있지 않다 — share_id 를 인자로 받는 RPC 로만 1건 읽는다
+      // (private 은 RPC 가 돌려주지 않는다). 20260729000001
       const { data, error: fetchError } = await supabase
-        .from('works')
-        .select('*')
-        .eq('share_id', shareId)
-        .neq('share_status', 'private') // private은 조회 불가
-        .single()
+        .rpc('get_shared_work', { p_share_id: shareId })
+        .maybeSingle()
 
       if (fetchError) {
         if (fetchError.code === 'PGRST116') {
@@ -399,7 +398,7 @@ export function useShareWork(): UseShareWorkReturn {
         throw new Error(fetchError.message)
       }
 
-      return data as Work
+      return (data as Work | null) ?? null
     } catch (err) {
       const message = err instanceof Error ? err.message : '작품을 불러오지 못했습니다.'
       setError(message)

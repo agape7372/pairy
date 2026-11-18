@@ -27,7 +27,7 @@ import {
   MAX_INLINE_FILE_KB,
   type ResourceFileMeta,
 } from '@/lib/utils/resourceStorage'
-import { createResource, MAX_RESOURCE_FILE_MB } from '@/hooks/useResources'
+import { createResource, MAX_RESOURCE_FILE_MB, RESOURCE_FILE_ACCEPT } from '@/hooks/useResources'
 import { IS_DEMO_MODE } from '@/lib/supabase/client'
 
 const CATEGORY_KEYS = Object.keys(RESOURCE_CATEGORIES) as ResourceCategory[]
@@ -386,7 +386,7 @@ function NewResourceForm() {
                   <label className="flex items-center justify-center gap-2 p-4 rounded-lg border-2 border-dashed border-gray-300 bg-white hover:border-primary-300 hover:bg-primary-50/40 cursor-pointer text-sm text-gray-500">
                     <Upload className="w-4 h-4" />
                     파일 선택
-                    <input type="file" onChange={handleFileChange} className="hidden" />
+                    <input type="file" accept={RESOURCE_FILE_ACCEPT} onChange={handleFileChange} className="hidden" />
                   </label>
                 )}
                 {fileError && <p className="text-xs text-amber-600 mt-1">{fileError}</p>}

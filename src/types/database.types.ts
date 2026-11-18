@@ -878,6 +878,16 @@ export interface Database {
         Args: { p_payment_id: string; p_payment_key: string }
         Returns: string
       }
+      /** 공유 작품 1건 — share_id 를 아는 경우만, unlisted·public (SECURITY DEFINER — 20260729000001) */
+      get_shared_work: {
+        Args: { p_share_id: string }
+        Returns: Database['public']['Tables']['works']['Row'][]
+      }
+      /** 환불 회수: 구독 만료 앞당김 · 단건구매 refunded (service_role 전용 — 20260729000001) */
+      revoke_payment_and_grant: {
+        Args: { p_order_id: string }
+        Returns: string
+      }
       /** 초대코드로 활성 세션 1건 조회 (SECURITY DEFINER — 20260706000000, H-1) */
       get_collab_session_by_invite: {
         Args: { p_invite_code: string }

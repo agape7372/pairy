@@ -247,13 +247,15 @@ export async function uploadAvatar(userId: string, file: File): Promise<UploadRe
  * 작업 이미지 업로드
  */
 export async function uploadWorkImage(
+  userId: string,
   workId: string,
   slotId: string,
   file: File
 ): Promise<UploadResult> {
   const fileExt = file.name.split('.').pop() || 'jpg'
   const timestamp = Date.now()
-  const path = `${workId}/${slotId}_${timestamp}.${fileExt}`
+  // 첫 폴더 = auth.uid() — works 버킷 RLS(20260729000001)가 대조한다
+  const path = `${userId}/${workId}/${slotId}_${timestamp}.${fileExt}`
 
   return uploadFile({
     bucket: 'works',
@@ -267,11 +269,12 @@ export async function uploadWorkImage(
  * 작업 썸네일 업로드
  */
 export async function uploadWorkThumbnail(
+  userId: string,
   workId: string,
   file: File
 ): Promise<UploadResult> {
   const fileExt = file.name.split('.').pop() || 'jpg'
-  const path = `${workId}/thumbnail.${fileExt}`
+  const path = `${userId}/${workId}/thumbnail.${fileExt}`
 
   return uploadFile({
     bucket: 'works',

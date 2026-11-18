@@ -7,7 +7,7 @@ interface PageProps {
   params: Promise<{ shareId: string }>
 }
 
-// OG 언퍼용 공개 데이터 조회 (익명 read — RLS 가 published 공개를 허용해야 실데이터가 나온다).
+// OG 언퍼용 공개 데이터 조회 (익명 — share_id 를 인자로 받는 RPC 로만 읽는다. unlisted 는 목록 조회 불가).
 // 실패/미공개 시 null → 제네릭 메타데이터 폴백. 쿠키 불필요하므로 bare 클라이언트 사용.
 async function fetchSharedWorkForOg(shareId: string) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -17,12 +17,9 @@ async function fetchSharedWorkForOg(shareId: string) {
   try {
     const supabase = createClient(url, anonKey)
     const { data } = await supabase
-      .from('works')
-      .select('title, og_image_url, thumbnail_url, share_status')
-      .eq('share_id', shareId)
-      .in('share_status', ['unlisted', 'public'])
+      .rpc('get_shared_work', { p_share_id: shareId })
       .maybeSingle()
-    return data
+    return data as { title: string; og_image_url: string | null; thumbnail_url: string | null } | null
   } catch {
     return null
   }
