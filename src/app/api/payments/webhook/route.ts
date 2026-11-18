@@ -6,8 +6,8 @@ import { fetchTossPaymentByOrderId } from '@/lib/payments/toss'
 //
 // 위조 방어: Toss 는 웹훅 서명(HMAC)을 제공하지 않으므로, 본문을 신뢰하지 않고
 // 시크릿키 인증으로 Toss API 에서 해당 주문의 정본 상태를 재조회해 그 결과만 반영한다.
-// 웹훅으로 "부여"는 하지 않으며(부여는 confirm 만), 취소/실패 하향 동기화만 수행 —
-// 위조 웹훅이 할 수 있는 최대치는 "재조회를 유발"하는 것뿐이다.
+// 웹훅으로 "부여"는 하지 않으며(부여는 confirm 만), 취소/실패 하향 동기화와 환불 회수만 수행 —
+// 위조 웹훅이 할 수 있는 최대치는 "재조회를 유발"하는 것뿐이다(회수도 Toss 정본이 CANCELED 일 때만).
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null)
   if (!body) {
@@ -37,11 +37,19 @@ export async function POST(req: NextRequest) {
 
   const admin = createAdminClient()
 
-  if (verified.status === 'CANCELED' || verified.status === 'PARTIAL_CANCELED') {
+  if (verified.status === 'CANCELED') {
+    // 전액 취소(환불): 재조회로 확인된 경우에만 회수한다. 구독 만료를 앞당기고 단건구매를 refunded 로
+    // 돌리는 일은 한 트랜잭션 RPC(20260729000001)가 한다. 실패하면 500 → Toss 가 재시도.
+    const { error } = await admin.rpc('revoke_payment_and_grant', { p_order_id: orderId })
+    if (error) {
+      return NextResponse.json({ error: '환불 회수 처리에 실패했습니다.' }, { status: 500 })
+    }
+  } else if (verified.status === 'PARTIAL_CANCELED') {
+    // 부분 취소는 자동 회수하지 않는다(디지털 상품 부분 환불은 운영 판단). 미확정 주문만 정리.
     await admin.from('payments')
       .update({ status: 'canceled', updated_at: new Date().toISOString() })
       .eq('order_id', orderId)
-      .neq('status', 'paid') // 이미 확정된 결제는 웹훅으로 뒤집지 않음
+      .neq('status', 'paid')
   } else if (verified.status === 'EXPIRED' || verified.status === 'ABORTED') {
     await admin.from('payments')
       .update({ status: 'failed', updated_at: new Date().toISOString() })

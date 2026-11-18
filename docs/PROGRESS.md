@@ -37,6 +37,20 @@ Phase 1~6 (기능 구축)  █████████████████�
 |------|------|------|
 | **결제 백엔드 (Tier 0 #6)** | 구독 1회성 결제 스캐폴드(Toss 테스트모드) — prepare/confirm/webhook Route Handler + payments 테이블 + grant_subscription. 금액 서버강제·멱등·부여 service_role만 (DL-0005) | (결제 PR) |
 
+### 어뷰징 점검 후속 (2026-11-18) — 고침 · 미합침(fix/abuse-1118) · 운영 DB 미적용
+
+> **11-19 보류**: 운영 DB(`bbvuqbzbniappgsxajkd`)가 `INACTIVE`(무료 플랜 일시정지)라 마이그레이션을 못 넣었다 → PR #114 머지도 보류(앱이 새 RPC 둘을 부른다). 복원(대시보드 Restore)은 사용자 결정. 복원 뒤 순서: ① 백업(`db dump`) ② 마이그레이션 ③ PR #114 머지 · 배포 ④ 마이그레이션 끝 주석의 검증 6줄(:166) · 되돌리기 SQL은 :174.
+
+> 마이그레이션 `20260729000001_abuse_hardening_1118.sql` + 앱 변경이 한 묶음. 적용 순서: 마이그레이션 먼저 → 곧바로 앱 배포.
+
+| 항목 | 내용 |
+|------|------|
+| 결제 부여 함수 | `grant_subscription`·`confirm_payment_and_grant` 의 anon·authenticated EXECUTE 회수(종전엔 PUBLIC 만 회수), service_role 에만 부여 |
+| 「링크만 공유」 | works select 정책은 `public` 만. unlisted 는 `get_shared_work(p_share_id)` definer RPC 로만 읽음(공유 페이지·OG 가 사용) |
+| Storage | works·templates 버킷 쓰기·덮어쓰기는 첫 폴더 = `auth.uid()`. resources 버킷 20MB·허용 MIME 목록(실행 파일·HTML·SVG 제외) |
+| 환불 회수 | 웹훅이 Toss 재조회로 `CANCELED` 확인 → `revoke_payment_and_grant(order_id)`: 구독 만료 앞당김·단건구매 `refunded`. 부분 취소는 자동 회수 안 함 |
+| 안 한 것 | 신고·차단(기능 추가), avatars·works·templates 의 크기·MIME 상한, 위스퍼 보조 함수 회수 |
+
 ### 남은 파운데이션 (다음 우선순위)
 
 | 항목 | 내용 | 선행 |

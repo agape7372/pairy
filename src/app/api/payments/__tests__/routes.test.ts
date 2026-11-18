@@ -322,15 +322,37 @@ describe('POST /api/payments/webhook', () => {
     expect(from).not.toHaveBeenCalled()
   })
 
-  it('정본 CANCELED: canceled 반영하되 paid 는 뒤집지 않는다', async () => {
+  it('정본 CANCELED(환불): 회수 RPC 를 주문번호로 1회 호출한다 (직접 update 없음)', async () => {
     mockedFetchToss.mockResolvedValue({ ok: true, status: 'CANCELED' })
-    const updateChain = chain({ error: null })
-    adminWith([updateChain])
+    const { from, rpc } = adminWith([])
 
-    await webhookPost(makeReq({ data: { orderId: 'o-1', status: 'CANCELED' } }))
+    const res = await webhookPost(makeReq({ data: { orderId: 'o-1', status: 'CANCELED' } }))
+
+    expect(res.status).toBe(200)
+    expect(rpc).toHaveBeenCalledTimes(1)
+    expect(rpc).toHaveBeenCalledWith('revoke_payment_and_grant', { p_order_id: 'o-1' })
+    expect(from).not.toHaveBeenCalled()
+  })
+
+  it('회수 RPC 실패 시 500 — Toss 가 재시도하도록', async () => {
+    mockedFetchToss.mockResolvedValue({ ok: true, status: 'CANCELED' })
+    adminWith([], { error: { message: 'boom' } })
+
+    const res = await webhookPost(makeReq({ data: { orderId: 'o-1', status: 'CANCELED' } }))
+
+    expect(res.status).toBe(500)
+  })
+
+  it('정본 PARTIAL_CANCELED: 미확정 주문만 canceled, 자동 회수 없음', async () => {
+    mockedFetchToss.mockResolvedValue({ ok: true, status: 'PARTIAL_CANCELED' })
+    const updateChain = chain({ error: null })
+    const { rpc } = adminWith([updateChain])
+
+    await webhookPost(makeReq({ data: { orderId: 'o-1', status: 'PARTIAL_CANCELED' } }))
 
     expect(updateChain.update).toHaveBeenCalledWith(expect.objectContaining({ status: 'canceled' }))
     expect(updateChain.neq).toHaveBeenCalledWith('status', 'paid')
+    expect(rpc).not.toHaveBeenCalled()
   })
 
   it('하향 아닌 상태 통지는 재조회 없이 무시 (부여 경로 아님)', async () => {

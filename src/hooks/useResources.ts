@@ -15,6 +15,11 @@ import type { Resource, ResourceCategory, LicenseType, FileFormat } from '@/type
 // 자료 파일 업로드 상한 (스토리지 낭비 방지)
 export const MAX_RESOURCE_FILE_MB = 20
 
+// 올릴 수 있는 파일 형식 — resources 버킷의 allowed_mime_types(20260729000001)와 맞춘다.
+// 실행 파일·HTML·SVG 는 받지 않는다(압축 파일로 올린다).
+export const RESOURCE_FILE_ACCEPT =
+  '.png,.jpg,.jpeg,.gif,.webp,.psd,.pdf,.zip,.7z,.rar,.txt,.csv,.json,.mp3,.ogg,.wav'
+
 interface ResourceRowWithAuthor extends ResourceRow {
   author: {
     id: string
